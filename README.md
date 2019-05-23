@@ -1,2 +1,2 @@
-# osprey-backend
+# Osprey Cloud
 Managed Kubernetes Platform
