@@ -7,7 +7,7 @@ class All():
 class Development(All):
     """ development config """
     DEBUG = True,
-    SQLALCHEMY_DATABASE_URI = 'postgresql://localhost/osprey'
+    SQLALCHEMY_DATABASE_URI = 'postgresql:///osprey'
 
 class Production(All):
     """ production config """
