@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 def create_app():
-    """ creates app instance """
+    """ create app instance """
     # import config options
     from config import app_config
 
@@ -29,9 +29,8 @@ def create_app():
 
 app = create_app()
 
-@app.route('/')
-def hello():
-    return 'hello world'
+# import routes
+import router
 
 if __name__ == '__main__':
     app.run()
