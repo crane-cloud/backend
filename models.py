@@ -23,7 +23,7 @@ class User(db.Model):
         self.password = Bcrypt().generate_password_hash(password).decode()
 
     def password_is_valid(self, password):
-        """ checks the password against it's hash to validates the user's password """
+        """ checks the password against it's hash to validate the user's password """
         return Bcrypt().check_password_hash(self.password, password)
 
     def save(self):

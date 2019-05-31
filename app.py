@@ -30,7 +30,7 @@ def create_app():
 app = create_app()
 
 # import routes
-import router
+import routes
 
 if __name__ == '__main__':
     app.run()
