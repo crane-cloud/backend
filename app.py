@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, Blueprint
 
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
@@ -8,13 +8,11 @@ from flask_sqlalchemy import SQLAlchemy
 # initialize sql-alchemy
 db = SQLAlchemy()
 
-def create_app():
-    """ create app instance """
+def create_app(config_name):
+    """ app factory """
+    
     # import config options
     from config import app_config
-
-    # get the running config
-    config_name = os.getenv('FLASK_APP_CONFIG')
 
     app = Flask(__name__)
 
@@ -22,14 +20,14 @@ def create_app():
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # add db wrapper
+    # register app with the db
     db.init_app(app)
 
     return app
 
-app = create_app()
+# create app instance using running config
+app = create_app(os.getenv('FLASK_ENV'))
 
-# import routes
 import routes
 
 if __name__ == '__main__':

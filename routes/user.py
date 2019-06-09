@@ -3,9 +3,10 @@ from flask import request, jsonify
 from models import User
 from app import app
 
-""" sign up """
-@app.route('/users/', methods=['POST'])
+@app.route('/signup/', methods=['POST'])
 def sign_up():
+    """ create new user """
+
     email = request.get_json()['email']
     password = request.get_json()['password']
 
