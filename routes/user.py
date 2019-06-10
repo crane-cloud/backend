@@ -3,7 +3,7 @@ from flask import request, jsonify
 from models import User
 from app import app
 
-@app.route('/signup/', methods=['POST'])
+@app.route('/register/', methods=['POST'])
 def sign_up():
     """ create new user """
 
