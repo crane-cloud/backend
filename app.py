@@ -5,6 +5,15 @@ from flask import Flask, Blueprint
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
 
+# import kubernetes client
+from kubernetes import client, config
+
+# load config from file
+config.load_kube_config()
+
+# create API instance
+api = client.CoreV1Api()
+
 # initialize sql-alchemy
 db = SQLAlchemy()
 
