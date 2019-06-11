@@ -16,5 +16,5 @@ jobs:
           command: |
             sudo pip install pipenv
             pipenv install
-      - run:
-          command: nosetests --with-coverage --cover-package=routes
+            pipenv shell
+            nosetests --with-coverage --cover-package=routes
