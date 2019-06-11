@@ -7,7 +7,7 @@ jobs:
           FLASK_APP: app.py
           FLASK_ENV: testing
           PGHOST: 127.0.0.1
-          PGUSER: test
+          PGUSER: root
       - image: circleci/postgres:10.8-alpine
         environment:
           POSTGRES_USER: root
