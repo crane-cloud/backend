@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.2-stretch-browsers
+        environment:
+          FLASK_APP: app.py
+          DATABASE_URL: postgresql://root@localhost/test
+      - image: circleci/postgres:10.8-alpine
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_DB: test
+    steps:
+      - checkout
+      - run:
+          command: pip install -r requirements.txt
+      - run:
+          command: nosetests --with-coverage --cover-package=routes
