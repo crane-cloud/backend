@@ -6,13 +6,17 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 # import kubernetes client
-from kubernetes import client, config
+from kubernetes import client
 
-# load config from file
-config.load_kube_config()
+# configure client
+config = client.Configuration()
+config.host = os.getenv('KUBE_HOST')
+config.api_key['authorization'] = os.getenv('KUBE_TOKEN')
+config.api_key_prefix['authorization'] = 'Bearer'
+config.verify_ssl = False
 
 # create API instance
-kube = client.CoreV1Api()
+kube = client.CoreV1Api(client.ApiClient(config))
 
 # initialize sql-alchemy
 db = SQLAlchemy()
