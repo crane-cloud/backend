@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, Blueprint
+from flask import Flask
 
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
@@ -12,10 +12,14 @@ from kubernetes import client, config
 config.load_kube_config()
 
 # create API instance
-api = client.CoreV1Api()
+kube_api = client.CoreV1Api()
 
 # initialize sql-alchemy
 db = SQLAlchemy()
+
+# import blueprints
+from routes.user import user_bp
+from routes.admin import admin_bp
 
 def create_app(config_name):
     """ app factory """
@@ -29,6 +33,10 @@ def create_app(config_name):
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # register blueprints with the app
+    app.register_blueprint(user_bp)
+    app.register_blueprint(admin_bp)
+
     # register app with the db
     db.init_app(app)
 
@@ -36,8 +44,6 @@ def create_app(config_name):
 
 # create app instance using running config
 app = create_app(os.getenv('FLASK_ENV'))
-
-import routes
 
 if __name__ == '__main__':
     app.run()

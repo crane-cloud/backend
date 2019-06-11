@@ -6,30 +6,32 @@ from flask_bcrypt import Bcrypt
 
 from app import db
 
-class User(db.Model):
-    """ user table definition """
+class Admin(db.Model):
+    """ admin table definition """
 
-    _tablename_ = 'users'
+    _tablename_ = 'admins'
 
-    # fields of the user table
+    # fields of the admin table
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(256), nullable=False)
+    username = db.Column(db.String(256), nullable=False)
     password = db.Column(db.String(256), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def __init__(self, email, password):
-        """ initialize with email and password """
+    def __init__(self, email, username, password):
+        """ initialize with email, username and password """
         self.email = email
+        self.username = username
         self.password = Bcrypt().generate_password_hash(password).decode()
 
     def password_is_valid(self, password):
-        """ checks the password against it's hash to validate the user's password """
+        """ checks the password against it's hash to validate the admin's password """
         return Bcrypt().check_password_hash(self.password, password)
 
     def save(self):
         """
-        save a user to the database
-        this includes creating a new user and editing one.
+        save a admin to the database
+        this includes creating a new admin and editing one.
         """
         db.session.add(self)
         db.session.commit()
@@ -75,4 +77,4 @@ class User(db.Model):
             return "Invalid token. Please register or login"
 
     def __repr__(self):
-        return "<User: {}>".format(self.email)
+        return "<Admin: {}>".format(self.email)
