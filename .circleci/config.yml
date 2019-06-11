@@ -11,7 +11,7 @@ jobs:
       - image: circleci/postgres:10.8-alpine
         environment:
           POSTGRES_USER: root
-          POSTGRES_DB: test
+          POSTGRES_DB: osprey_test_db
     steps:
       - checkout
       - run:
