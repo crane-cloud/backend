@@ -12,7 +12,7 @@ from kubernetes import client, config
 config.load_kube_config()
 
 # create API instance
-kube_api = client.CoreV1Api()
+kube = client.CoreV1Api()
 
 # initialize sql-alchemy
 db = SQLAlchemy()
