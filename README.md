@@ -10,7 +10,7 @@
 
 ``` git clone https://github.com/ckwagaba/osprey-backend.git ```
 <p>
-If ` master ` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
+If `master` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
 </p>
 
 ##### Install PostgreSQL
