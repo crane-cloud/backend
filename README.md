@@ -1,38 +1,37 @@
 # Osprey Cloud
 [![CircleCI](https://circleci.com/gh/ckwagaba/osprey-backend/tree/develop.svg?style=svg)](https://circleci.com/gh/ckwagaba/osprey-backend/tree/develop)
 [![codecov](https://codecov.io/gh/ckwagaba/osprey-backend/branch/develop/graph/badge.svg)](https://codecov.io/gh/ckwagaba/osprey-backend)
-<p>Managed Kubernetes Platform</p>
+
+Managed Kubernetes Platform
 
 ### Project Setup
-<p>Follow these steps to have a local running copy of the app.</p>
+Follow these steps to have a local running copy of the app.
 
 ##### Clone The Repo
 
-``` git clone https://github.com/ckwagaba/osprey-backend.git ```
-<p>
+` git clone https://github.com/ckwagaba/osprey-backend.git `
+
 If `master` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
-</p>
 
 ##### Install PostgreSQL
-<p>Here's a great resource to check out.</p>
+Here's a great resource to check out:
 
 [How To Install and Use PostgreSQL](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04)
 
-<p>
 Create the two databases `osprey` (for development) and `osprey_test_db` (for unit testing).
-</p>
 
 ##### Create a Virtual Environment
-<p>App was developed with `Python 3.6`</p>
-<p>Make sure you have `pip` installed on your machine.</p>
-<p>Install the dependencies</p>
+App was developed with `Python 3.6`.
 
-``` pip install -r requirements.txt ```
+Make sure you have `pip` installed on your machine.
 
-<p>
+Install the dependencies.
+
+` pip install -r requirements.txt `
+
 Create a `.env` file (which defines the environment variables used) at the root of the app.
-</p>
-<p>Add the following details, customizing as needed.</p>
+
+Add the following details, customizing as needed.
 
 ```
 export FLASK_APP=app.py
@@ -44,15 +43,15 @@ export KUBE_HOST=<cluster IP>
 export KUBE_TOKEN=<cluster access_token>
 ```
 
-<p>Activate the virtual environment</p>
+Activate the virtual environment.
 
-``` . venv/bin/activate ```
+` . venv/bin/activate `
 
-<p>Run the application</p>
+Run the application.
 
-``` flask run ```
+` flask run `
 
 ##### Testing and Coverage
-<p>This app uses `nose` to run tests</p>
+This app uses `nose` to run tests.
 
-``` nosetests --with-coverage --cover-package=routes ```
+` nosetests --with-coverage --cover-package=routes `
