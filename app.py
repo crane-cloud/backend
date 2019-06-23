@@ -24,6 +24,7 @@ db = SQLAlchemy()
 # import blueprints
 from routes.user import user_bp
 from routes.admin import admin_bp
+from routes.monitoring import monitor_bp
 
 def create_app(config_name):
     """ app factory """
@@ -40,6 +41,7 @@ def create_app(config_name):
     # register blueprints with the app
     app.register_blueprint(user_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(monitor_bp)
 
     # register app with the db
     db.init_app(app)
