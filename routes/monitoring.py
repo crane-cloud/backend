@@ -7,7 +7,6 @@ prometheus = Prometheus()
 #monitor Blueprint
 monitor_bp = Blueprint('monitor', __name__)
 
-
 #Cluster info
 @monitor_bp.route('/monitor/cluster/pod',methods=['GET'])
 def get_cluster_Pod_usage():
@@ -25,12 +24,13 @@ def get_cluster_Memory_usage():
 def get_cluster_Disk_usage():
     return prometheus.query(metric='(sum (node_filesystem_size_bytes{nodename=~".*"}) - sum (node_filesystem_free_bytes{nodename=~".*"})) / sum (node_filesystem_size_bytes{nodename=~".*"})')
 
+
 #Deployment info
 @monitor_bp.route('/monitor/deployment/replicas/info',methods=['GET'])
 def get_deployment_replicas():
     return prometheus.query(metric='kube_deployment_status_replicas{namespace=~".*"}')
 
-@monitor_bp.route('/monitor/deployment/replicas',methods=['GET'])
+@monitor_bp.route('/monitor/deployment/replicas/',methods=['GET'])
 def get_no_replicas():
     return prometheus.query(metric='sum(kube_deployment_status_replicas{namespace=~".*"})')
 
@@ -55,6 +55,7 @@ def get_nodes_unavailable():
 @monitor_bp.route('/monitor/nodes/info',methods=['GET'])
 def get_nodes_info():
     return prometheus.query(metric='kube_node_info{node=~".*"}')
+
 
 #pod info
 @monitor_bp.route('/monitor/pods',methods=['GET'])
@@ -90,7 +91,8 @@ def get_containers_cpu_cores_requested():
 
 def get_containers_memory_requested():
     return prometheus.query(metric='sum(kube_pod_container_resource_requests_memory_bytes{namespace=~".*", node=~".*"})')
- 
+
+
 #Jobs info
 @monitor_bp.route('/monitor/jobs',methods=['GET'])
 def get_jobs_succeeded():
