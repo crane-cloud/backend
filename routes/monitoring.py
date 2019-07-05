@@ -38,7 +38,7 @@ def get_no_replicas():
 def get_no_replicas_apdated():
     return prometheus.query(metric='sum(kube_deployment_status_replicas_updated{namespace=~".*"})')
 
-@monitor_bp.route('/monitor/deployment/repunavailable',methods=['GET'])
+@monitor_bp.route('/monitor/nodes',methods=['GET'])
 def get_no_replicas_unavailable():
     return prometheus.query(metric='sum(kube_deployment_status_replicas_unavailable{namespace=~".*"})')
 
