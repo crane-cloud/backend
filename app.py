@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask_cors import CORS
 
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
@@ -36,6 +37,9 @@ def create_app(config_name):
     from config import app_config
 
     app = Flask(__name__)
+
+    # allow cross-domain requests
+    CORS(app)
 
     # use running config settings on app
     app.config.from_object(app_config[config_name])
