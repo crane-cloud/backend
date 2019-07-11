@@ -1,4 +1,4 @@
-import jwt
+import jwt, json
 from datetime import datetime, timedelta
 
 from flask import current_app
@@ -43,15 +43,15 @@ class User(db.Model):
         try:
             # setup a payload with an expiration time
             payload = {
-                'exp': datetime.utcnow() + timedelta(minutes=3600),
-                'iat': datetime.utcnow(),
                 'sub': id
             }
 
+            # print(payload)
+
             # create the bytestring token using the payload and the secret key
             jwt_string = jwt.encode(
-                payload,
-                current_app.config.get('APP_SECRET'),
+                json.dumps(payload),
+                'secret',
                 algorithm='HS256'
             )
 
