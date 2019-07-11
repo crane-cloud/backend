@@ -13,15 +13,16 @@ class User(db.Model):
 
     # fields of the user table
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(256), nullable=False)
-    username = db.Column(db.String(256), nullable=False)
-    password = db.Column(db.String(256), nullable=False)
+    email = db.Column(db.String(256), nullable=False, default='')
+    name = db.Column(db.String(256), nullable=False, default='')
+    username = db.Column(db.String(256), nullable=False, default='')
+    password = db.Column(db.String(256), nullable=False, default='')
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def __init__(self, email, username, password):
+    def __init__(self, email, name, password):
         """ initialize with email, username and password """
         self.email = email
-        self.username = username
+        self.name = name
         self.password = Bcrypt().generate_password_hash(password).decode()
 
     def password_is_valid(self, password):
