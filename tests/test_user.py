@@ -14,7 +14,7 @@ class UserTestCase(unittest.TestCase):
         
         self.test_user = {
             'email': 'test_email@test_domain',
-            'username': 'test_username',
+            'name': 'test_name',
             'password': 'test_password'
         }
 
@@ -35,11 +35,11 @@ class UserTestCase(unittest.TestCase):
     def test_sign_up(self):
         """ test user creation """
 
-        response = self.client.post('/register/', json=self.test_user)
+        response = self.client.post('/register', json=self.test_user)
 
         self.assertEqual(response.status_code, 201)
         self.assertIn('test_email@test_domain', str(response.data))
-        self.assertIn('test_username', str(response.data))
+        self.assertIn('test_name', str(response.data))
 
 if __name__ == 'main':
     unittest.main()

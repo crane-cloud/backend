@@ -6,9 +6,6 @@ from flask_cors import CORS
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
 
-# import migration class
-from flask_migrate import Migrate
-
 # import kubernetes client
 from kubernetes import client
 
@@ -52,13 +49,6 @@ def create_app(config_name):
 
     # register app with the db
     db.init_app(app)
-
-    # register app and db with migration class
-    Migrate(app, db)
-
-    # import models
-    from models.user import User
-    from models.admin import Admin
 
     return app
 
