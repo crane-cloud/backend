@@ -1,5 +1,8 @@
 from flask import request, jsonify, Blueprint
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    JWTManager, jwt_required, create_access_token,
+    get_jwt_identity
+)
 
 from models.user import User
 
@@ -66,3 +69,10 @@ def login():
             response.status_code = 401
 
             return response
+
+@user_bp.route('/protected', methods=['GET'])
+@jwt_required
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
