@@ -1,8 +1,6 @@
-import jwt, json
-from datetime import datetime, timedelta
-
 from flask import current_app
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import create_access_token
 
 from app import db
 
@@ -40,42 +38,7 @@ class User(db.Model):
     def generate_token(self, id):
         """ generates the access token """
 
-        try:
-            # setup a payload with an expiration time
-            payload = {
-                'sub': id
-            }
-
-            # print(payload)
-
-            # create the bytestring token using the payload and the secret key
-            jwt_string = jwt.encode(
-                json.dumps(payload),
-                'secret',
-                algorithm='HS256'
-            )
-
-            return jwt_string
-
-        except Exception as e:
-            # return an error in string format if an exception occurs
-            return str(e)
-
-    @staticmethod
-    def decode_token(token):
-        """ decodes the access token from then authorization header """
-        try:
-            # try to decode the token using our secret variables
-            payload = jwt.decode(token, current_app.config.get('APP_SECRET'))
-            return payload['sub']
-
-        except jwt.ExpiredSignatureError:
-            # the token is expired, return an error string
-            return "Expired token. Please login to get a new token"
-
-        except jwt.InvalidTokenError:
-            # the token is invalid, return an error string
-            return "Invalid token. Please register or login"
+        return create_access_token(identity=id)
 
     def __repr__(self):
         return "<User: {}>".format(self.email)
