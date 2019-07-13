@@ -2,6 +2,7 @@ import os
 
 from flask import Flask
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
@@ -49,6 +50,9 @@ def create_app(config_name):
 
     # register app with the db
     db.init_app(app)
+
+    # initialize jwt with app
+    JWTManager(app)
 
     return app
 
