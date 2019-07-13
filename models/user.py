@@ -1,6 +1,7 @@
 from flask import current_app
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
+from datetime import timedelta
 
 from app import db
 
@@ -38,7 +39,10 @@ class User(db.Model):
     def generate_token(self, id):
         """ generates the access token """
 
-        return create_access_token(identity=id)
+        # set token expiry period
+        expiry = timedelta(days=10)
+
+        return create_access_token(id, expires_delta=expiry)
 
     def __repr__(self):
         return "<User: {}>".format(self.email)
