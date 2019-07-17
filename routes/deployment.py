@@ -24,8 +24,8 @@ def yamldeployment():
     # config.load_kube_config()
     # k8s_client = client.ApiClient()
     utils.create_from_yaml(kube, UPLOAD_FOLDER)
-    k8s_api = client.ExtensionsV1beta1Api(kube)
-    deps = k8s_api.read_namespaced_deployment(DEPLOYMENT_NAME, NAMESPACE)
+    #k8s_api = client.ExtensionsV1beta1Api(kube)
+    deps = kube.read_namespaced_deployment(DEPLOYMENT_NAME, NAMESPACE)
     print("Deployment {0} created".format(deps.metadata.name))
 
 
