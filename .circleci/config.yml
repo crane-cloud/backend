@@ -8,8 +8,10 @@ jobs:
         environment:
           FLASK_APP: app.py
           FLASK_ENV: testing
+          FLASK_APP_SECRET: $FLASK_APP_SECRET
           PGHOST: 127.0.0.1
           PGUSER: root
+          IMAGE: ckwagaba/osprey-backend:$CIRCLE_SHA1
       - image: circleci/postgres:10.8-alpine
         # add postgres service and set environment variables
         environment:
@@ -46,3 +48,27 @@ jobs:
       - run:
           # upload test coverage to codecov
           command: pipenv run codecov
+      - run:
+          # build docker image
+          command: docker build -t $IMAGE .
+      - run: 
+          # push image to repo
+          command: |
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker push $IMAGE
+      - run:
+          # install envsubst
+          command: |
+            sudo apt-get update && sudo apt-get -y install envsubst
+      - run:
+          # install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+            chmod u+x ./kubectl
+      - run:
+          # deploy develop to cluster
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              ./scripts/ci-deploy.sh
+            fi
+
