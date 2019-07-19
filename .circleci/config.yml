@@ -8,7 +8,6 @@ jobs:
         environment:
           FLASK_APP: app.py
           FLASK_ENV: testing
-          FLASK_APP_SECRET: $FLASK_APP_SECRET
           PGHOST: 127.0.0.1
           PGUSER: root
       - image: circleci/postgres:10.8-alpine
