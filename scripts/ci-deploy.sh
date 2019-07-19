@@ -14,8 +14,8 @@ docker push $IMAGE
 COMMIT_SHA1=$CIRCLE_SHA1
 export COMMIT_SHA1=$COMMIT_SHA1
 
-envsubst < ./flask-api/deployment.yml > ./flask-api/deployment.out.yml
-mv ./flask-api/deployment.out.yml ./flask-api/deployment.yml
+envsubst < ./kube/deployment.yml > ./kube/deployment.out.yml
+mv ./kube/deployment.out.yml ./kube/deployment.yml
 
 echo "$KUBE_CERT" | base64 --decode > cert.crt
 
@@ -24,4 +24,4 @@ echo "$KUBE_CERT" | base64 --decode > cert.crt
   --server=$KUBE_HOST \
   --certificate-authority=cert.crt \
   --token=$KUBE_TOKEN \
-  apply -f ./flask-api/
+  apply -f ./kube/
