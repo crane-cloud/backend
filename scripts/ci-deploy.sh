@@ -2,6 +2,15 @@
 
 set -e
 
+# tag image with hash of commit it was built from
+IMAGE=ckwagaba/osprey-backend:$CIRCLE_SHA1
+# build image
+docker build -t $IMAGE .
+
+# push image to dockerhub
+echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+docker push $IMAGE
+
 COMMIT_SHA1=$CIRCLE_SHA1
 export COMMIT_SHA1=$COMMIT_SHA1
 
