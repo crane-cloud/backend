@@ -48,6 +48,15 @@ jobs:
           # upload test coverage to codecov
           command: pipenv run codecov
       - run:
+          # install envsubst
+          command: |
+            sudo apt-get update && sudo apt-get -y install envsubst
+      - run:
+          # install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+            chmod u+x ./kubectl
+      - run:
           # deploy develop to cluster
           command: |
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
