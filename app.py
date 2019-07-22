@@ -20,6 +20,7 @@ config.verify_ssl = False
 
 # create API instance
 kube = client.CoreV1Api(client.ApiClient(config))
+extension_api = client.ExtensionsV1beta1Api(client.ApiClient(config))
 
 # initialize sql-alchemy
 db = SQLAlchemy()
@@ -28,6 +29,7 @@ db = SQLAlchemy()
 from routes.user import user_bp
 from routes.admin import admin_bp
 from routes.monitoring import monitor_bp
+from routes.deployment import deployment_bp
 
 def create_app(config_name):
     """ app factory """
@@ -45,6 +47,7 @@ def create_app(config_name):
     app.register_blueprint(user_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(monitor_bp)
+    app.register_blueprint(deployment_bp)
 
     # register app with the db
     db.init_app(app)
@@ -55,7 +58,6 @@ def create_app(config_name):
     # import models
     from models.user import User
     from models.admin import Admin
-
     return app
 
 # create app instance using running config

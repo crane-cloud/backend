@@ -1,31 +1,38 @@
 from os import path
 
+import yaml
+
 from kubernetes import client, config, utils
 
-from flask import request, Blueprint
+from flask import request, Blueprint, jsonify
+
+# custom response helper
+from helpers.construct_response import *
 
 #kube being our kubernetes instance
-from app import kube
+from app import extension_api
 
 deployment_bp = Blueprint('deployment', __name__)
 
-@deployment_bp.route('/deploy/yaml',methods = ['GET'])
+@deployment_bp.route('/deploy/yaml',methods = ['POST'])
 #Deployment from a yaml file
 def yamldeployment():
     #upload file
-    #TO DO: point the upload folder to an upload file and test it. havent tested it
-    UPLOAD_FOLDER = '~/Documents/yamls/1-nginx-pod.yaml'
-    ALLOWED_EXTENSIONS = set(['yml','yaml','json'])
-    DEPLOYMENT_NAME = "nginx-deployment"
-    NAMESPACE = "default"
-    # Configs can be set in Configuration class directly or using helper
-    # utility. If no argument provided, the config will be loaded from
-    # default location.
-    # config.load_kube_config()
-    # k8s_client = client.ApiClient()
-    utils.create_from_yaml(kube, UPLOAD_FOLDER)
-    #k8s_api = client.ExtensionsV1beta1Api(kube)
-    deps = kube.read_namespaced_deployment(DEPLOYMENT_NAME, NAMESPACE)
-    print("Deployment {0} created".format(deps.metadata.name))
+    with open(path.join(path.dirname(__file__), "nginx-deployment.yaml")) as f:
+        dep = yaml.safe_load(f)
+        resp = extension_api.create_namespaced_deployment(
+            body=dep, namespace="ngin", _preload_content=False)
+        print("Deployment created. status='%s'" % str(resp.status))
+        #TO DO: confliction status codes
+        # print(str(resp.status))
 
-
+        # if (str(resp.status) != '409'):
+        #     response = construct_response(resp)
+        #     response.status_code = resp.status
+        # else:
+        #     response = jsonify({
+        #         msg: 'error'
+        #     })
+        #     response.status_code = 409
+        response = construct_response(resp)
+        return response
