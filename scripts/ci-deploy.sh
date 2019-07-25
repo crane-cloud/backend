@@ -11,8 +11,7 @@ docker build -t $IMAGE .
 echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 docker push $IMAGE
 
-COMMIT_SHA1=$CIRCLE_SHA1
-export COMMIT_SHA1=$COMMIT_SHA1
+export COMMIT_SHA1=$CIRCLE_SHA1
 
 envsubst < ./kube/deployment.yml > ./kube/deployment.out.yml
 mv ./kube/deployment.out.yml ./kube/deployment.yml
