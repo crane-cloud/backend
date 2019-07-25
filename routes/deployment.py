@@ -1,6 +1,6 @@
 from os import path
 
-import yaml
+import yaml, base64
 
 from kubernetes import client, config, utils
 
@@ -19,29 +19,40 @@ deployment_bp = Blueprint('deployment', __name__)
 @deployment_bp.route('/deploy/yaml',methods = ['POST'])
 def yamldeployment():
     #upload file
-    with open(path.join(path.dirname(__file__), "nginx-deployment.yaml")) as f:
-        dep = yaml.safe_load(f)
+    dep_file = request.get_json()['yaml_file']
+    namespace = request.get_json()['namespace']
+    dep_yaml = yaml.safe_load(base64.b64decode(dep_file))
 
-        # dep_file = request.get_json()['ymal_file']
-        # namespace = request.get_json()['namespace']
-        namespaces = 'trial'
-
+    try:
         resp = extension_api.create_namespaced_deployment(
-            body=dep, namespace=namespaces, _preload_content=False)
-        print("Deployment created. status='%s'" % str(resp.status))
-        #TO DO: confliction status codes
-        # print(str(resp.status))
+        body=dep_yaml, namespace=namespace, _preload_content=False)
+        return "Deployment Successful: "+str(resp.status)
 
-        # if (str(resp.status) != '409'):
-        #     response = construct_response(resp)
-        #     response.status_code = resp.status
-        # else:
-        #     response = jsonify({
-        #         msg: 'error'
-        #     })
-        #     response.status_code = 409
-        response = construct_response(resp)
-        return response
+    except:
+    
+        return 'Error Already exits'
+
+    # if (str(resp.status) == '201'):
+    #     response = jsonify({
+    #         msg: 'Deployed'
+    #     })
+    #     response.status_code = resp.status
+    #     return response
+    # elif(str(resp.status) == '409'):
+    #     response = jsonify({
+    #         msg: 'Deployment Exists'
+    #     })
+    #     response.status_code = resp.status
+    #     return response
+    # elif(str(resp.status) == '400'):
+    #     response = jsonify({
+    #         msg: 'Bad data'
+    #     })
+    #     response.status_code = resp.status
+    #     return response
+    
+   
+
 
 #deleting a deployment
 @deployment_bp.route('/deploy/delete/<string:deployment_name>/<string:namespace>',methods = ['POST'])
