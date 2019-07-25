@@ -7,10 +7,10 @@ prometheus = Prometheus()
 #monitor Blueprint
 monitor_bp = Blueprint('monitor', __name__)
 
-#Cluster info
-@monitor_bp.route('/monitor/cluster/pod',methods=['GET'])
-def get_cluster_Pod_usage():
-    return prometheus.query(metric='sum(kube_pod_info{node=~".*"}) / sum(kube_node_status_allocatable_pods{node=~".*"})')
+# #Cluster info
+# @monitor_bp.route('/monitor/cluster/pod',methods=['GET'])
+# def get_cluster_Pod_usage():
+#     return prometheus.query(metric='sum(kube_pod_info{node=~".*"}) / sum(kube_node_status_allocatable_pods{node=~".*"})')
     
 # @monitor_bp.route('/monitor/cluster/cpu',methods=['GET'])
 # def get_cluster_CPU_usage():
