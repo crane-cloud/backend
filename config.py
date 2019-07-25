@@ -3,7 +3,7 @@ import os
 class All():
     """ parent config """
 
-    APP_SECRET = os.getenv('FLASK_APP_SECRET')
+    JWT_SECRET_KEY = os.getenv('FLASK_APP_SECRET')
 
 class Development(All):
     """ development config """

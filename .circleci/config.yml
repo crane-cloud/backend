@@ -46,3 +46,21 @@ jobs:
       - run:
           # upload test coverage to codecov
           command: pipenv run codecov
+      - run:
+          # install envsubst
+          command: |
+            sudo apt update && sudo apt -y install gettext-base
+      - run:
+          # install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+            chmod u+x ./kubectl
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          # deploy develop to cluster
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              ./scripts/ci-deploy.sh
+            fi
+

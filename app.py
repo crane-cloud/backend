@@ -1,12 +1,11 @@
 import os
 
 from flask import Flask
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 # import ORM
 from flask_sqlalchemy import SQLAlchemy
-
-# import migration class
-from flask_migrate import Migrate
 
 # import kubernetes client
 from kubernetes import client
@@ -39,6 +38,9 @@ def create_app(config_name):
 
     app = Flask(__name__)
 
+    # allow cross-domain requests
+    CORS(app)
+
     # use running config settings on app
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -51,13 +53,10 @@ def create_app(config_name):
 
     # register app with the db
     db.init_app(app)
-
-    # register app and db with migration class
-    Migrate(app, db)
-
-    # import models
-    from models.user import User
-    from models.admin import Admin
+    
+    # initialize jwt with app
+    JWTManager(app)
+    
     return app
 
 # create app instance using running config
