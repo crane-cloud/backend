@@ -21,8 +21,13 @@ def yamldeployment():
     #upload file
     with open(path.join(path.dirname(__file__), "nginx-deployment.yaml")) as f:
         dep = yaml.safe_load(f)
+
+        # dep_file = request.get_json()['ymal_file']
+        # namespace = request.get_json()['namespace']
+        namespaces = 'trial'
+
         resp = extension_api.create_namespaced_deployment(
-            body=dep, namespace="nginv", _preload_content=False)
+            body=dep, namespace=namespaces, _preload_content=False)
         print("Deployment created. status='%s'" % str(resp.status))
         #TO DO: confliction status codes
         # print(str(resp.status))
@@ -39,9 +44,9 @@ def yamldeployment():
         return response
 
 #deleting a deployment
-@deployment_bp.route('/deploy/delete/<string:deployment_name>',methods = ['POST'])
-def _delete_deployment(app_info, deployment_name):
-    fmlogger.debug("Deleting GKE app deployment")
+@deployment_bp.route('/deploy/delete/<string:deployment_name>/<string:namespace>',methods = ['POST'])
+def _delete_deployment(deployment_name, namespace):
+    print("Deleting GKE app deployment")
     extensions_v1beta1 = client.ExtensionsV1beta1Api()
     delete_options = client.V1DeleteOptions()
     delete_options.grace_period_seconds = 0
@@ -50,9 +55,10 @@ def _delete_deployment(app_info, deployment_name):
         api_response = extensions_v1beta1.delete_namespaced_deployment(
             name=deployment_name,
             body=delete_options,
-            grace_period_seconds=0,
-            namespace="default")
-        fmlogger.debug("Delete deployment response:%s" % api_response)
+            grace_period_seconds=2,
+            # namespace="default"
+            namespace = namespace)
+        print("Delete deployment response:%s" % api_response)
     except Exception as e:
-        fmlogger.error(e)
+        print('Error '+str(e))
         raise e 
