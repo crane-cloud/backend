@@ -49,7 +49,7 @@ jobs:
       - run:
           # install envsubst
           command: |
-            sudo apt-get update && sudo apt-get -y install gettext-base
+            sudo apt update && sudo apt -y install gettext-base
       - run:
           # install kubectl
           command: |
