@@ -1,6 +1,5 @@
 __pycache__/
 venv/
-kube/
 .env
 *.pyc
 .coverage
