@@ -45,3 +45,32 @@ def delete_deployment(deployment_name, namespace):
         logging.exception(e)
         return "Error: {}".format(e)
    
+
+#Creating namespace
+@deployment_bp.route('/deploy/create/namespace/<string:namespace>', methods = ['POST'])
+def create_namespace(namespace):
+    try:
+        resp = kube.create_namespace(client.V1Namespace(metadata=client.V1ObjectMeta(name=namespace)))
+        return "Namespace created: "+format(resp.status)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+        return "Error: {} /n".format(e)
+        
+    else:
+        logging.info('created /{} namespace'.format(namespace))
+        return 'created /{} namespace'.format(namespace)
+        
+# Deleting namespace
+@deployment_bp.route('/deploy/delete/namespace/<string:namespace>', methods = ['POST'])
+def delete_namespace(namespace):
+    try:
+        resp = kube.delete_namespace(namespace)
+        return "Namespace Deleted: "+str(resp.status)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+        return "Error: {}".format(e)
+        
+    else:
+        logging.info('Deleted {} namespace'.format(namespace))
+        return 'Deleted {} namespace'.format(namespace)
+
