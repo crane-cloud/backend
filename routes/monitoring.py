@@ -174,3 +174,21 @@ def get_replica_pods(replicaset):
 @monitor_bp.route('/monitor/pods_table/<string:namespace>',methods=['GET'])
 def get_pods_info(pods):
     return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+pods+'"}')
+# get persistent volumes
+@monitor_bp.route('/monitor/persistent-volumes/info/<string:namespace>',methods=['GET'])
+def get_persistent_volumes(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_persistentvolume_info{kubernetes_namespace=~"'+namespace+'"}')
+
+
+# get persistent volume claims
+@monitor_bp.route('/monitor/persistent-volume-claims/info/<string:namespace>',methods=['GET'])
+def get_persistent_volumes_claims(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_persistentvolumeclaim_info{namespace=~"'+namespace+'"}')
+
+
+
+#TODO get services, cluster status
