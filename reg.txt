@@ -1,0 +1,54 @@
+openssl req -sha256 -x509 -days 365 -nodes -newkey rsa:4096 -keyout  harbor.example.com.key -out harbor.example.com.crt
+
+ubuntu@aci-aws-master:~/Osprey/teraform/cert$ openssl req -sha256 -x509 -days 365 -nodes -newkey rsa:4096 -keyout  registry.avci.africa.key -out registry.avci.africa.crt
+Generating a 4096 bit RSA private key
+......................................................................++
+.........................................................................................++
+writing new private key to 'registry.avci.africa.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:UG
+State or Province Name (full name) [Some-State]:Kampala
+Locality Name (eg, city) []:Kampala
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:Osprey
+Organizational Unit Name (eg, section) []:Devs
+Common Name (e.g. server FQDN or YOUR name) []:Osprey
+Email Address []:paulmutambuze@gmail.com
+
+ubuntu@aci-aws-master:~/Osprey/teraform/harbor$ sudo cp registry.avci.africa.crt  registry.avci.africa.key /etc/letsencrypt/cert
+........................................
+LOCATION and Deployment of Harbor
+  Docker is installed as a docker container NOT on the Kubernetes cluster directly
+  docker-compose.yaml installs all services creates containers for all services that are required
+  and manages their communication
+
+........................................
+Pushing and Pulling images to harbor registry
+On the local machine:
+  sudo nano /etc/docker/daemon.json
+    EDIT FILE
+    {
+      "insecure-registries":["registry.avci.africa"]
+    }
+  RESTART docker
+    sudo systemctl restart docker
+  DOCKER Login
+    sudo docker login registry.avci.africa
+      username:
+      password:
+  VIEW images
+    sudo docker images
+  TAG
+    sudo docker push registry.avci.africa/library/busybox:v1
+  PUSH (Before pushing to harbor ensure you belong to project you intend to push to.)
+    sudo docker push registry.avci.africa/library/busybox:v1
+
+
+    ..........................................
+    Harbor API Swagger
