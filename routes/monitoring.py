@@ -147,4 +147,30 @@ def get_failed(namespace):
         namespace = '.*'
     return prometheus.query(metric='sum(kube_job_status_failed{namespace=~"'+namespace+'"})')
 
+#Config Maps info
 
+@monitor_bp.route('/monitor/config-maps/<string:namespace>',methods=['GET'])
+def get_configmaps(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_configmap_created{namespace=~"'+namespace+'"}')
+
+
+#Replicas info 
+
+@monitor_bp.route('/monitor/replicas_info/<string:namespace>',methods=['GET'])
+def get_replicas(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_replicaset_labels{namespace=~"'+namespace+'"}')
+
+#get number of pods running each replica 
+@monitor_bp.route('/monitor/replicas_pods/<string:namespace>',methods=['GET'])
+def get_replica_pods(replicaset):
+    return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+replicaset+'"}')
+
+#pods table 
+
+@monitor_bp.route('/monitor/pods_table/<string:namespace>',methods=['GET'])
+def get_pods_info(pods):
+    return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+pods+'"}')
