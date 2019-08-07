@@ -31,7 +31,7 @@ def yamldeployment():
     except client.rest.ApiException as e:
         logging.exception(e)
         return 'Error Already exits {}'.format(e)
-
+        
     
 #deleting a deployment
 @deployment_bp.route('/deploy/delete/deployment/<string:deployment_name>/<string:namespace>',methods = ['POST'])
