@@ -165,12 +165,66 @@ def get_replicas(namespace):
     return prometheus.query(metric='kube_replicaset_labels{namespace=~"'+namespace+'"}')
 
 #get number of pods running each replica 
-@monitor_bp.route('/monitor/replicas_pods/<string:namespace>',methods=['GET'])
+@monitor_bp.route('/monitor/replicas_pods/<string:replicaset>',methods=['GET'])
 def get_replica_pods(replicaset):
-    return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+replicaset+'"}')
+    return prometheus.query(metric='sum(kube_replicaset_labels{replicaset=~"'+replicaset+'"})')
 
-#pods table 
+#pods table
+@monitor_bp.route('/monitor/pods_info/<string:namespace>',methods=['GET'])
+def get_pods_inf(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_pod_info{namespace=~"'+namespace+'"}')
 
-@monitor_bp.route('/monitor/pods_table/<string:namespace>',methods=['GET'])
-def get_pods_info(pods):
-    return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+pods+'"}')
+
+# get persistent volumes
+@monitor_bp.route('/monitor/persistent-volumes/info/<string:namespace>',methods=['GET'])
+def get_persistent_volumes(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_persistentvolume_info{kubernetes_namespace=~"'+namespace+'"}')
+
+
+# get persistent volume claims
+@monitor_bp.route('/monitor/persistent-volume-claims/info/<string:namespace>',methods=['GET'])
+def get_persistent_volumes_claims(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_persistentvolumeclaim_info{namespace=~"'+namespace+'"}')
+
+
+
+#TODO get services, cluster status
+
+
+#services table
+
+#services info
+@monitor_bp.route('/monitor/services_info/<string:namespace>',methods=['GET'])
+def get_services_info(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_service_info{namespace=~"'+namespace+'"}')
+
+#services labels
+@monitor_bp.route('/monitor/services_labels/<string:namespace>',methods=['GET'])
+def get_services_labels(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_service_labels{namespace=~"'+namespace+'"}')
+
+
+#ingresses info
+@monitor_bp.route('/monitor/ingress_info/<string:namespace>',methods=['GET'])
+def get_ingress_info(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_ingress_info{namespace=~"'+namespace+'"}')
+
+
+#secrets info
+@monitor_bp.route('/monitor/secrets_info/<string:namespace>',methods=['GET'])
+def get_secrets_info(namespace):
+    if (namespace == 'all'):
+        namespace = '.*'
+    return prometheus.query(metric='kube_secret_labels{namespace=~"'+namespace+'"}')
