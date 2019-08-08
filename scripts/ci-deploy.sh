@@ -3,7 +3,7 @@
 set -e
 
 # tag image with hash of commit it was built from
-IMAGE=ckwagaba/osprey-backend:$CIRCLE_SHA1
+IMAGE=ckwagaba/crane-cloud-backend:$CIRCLE_SHA1
 # build image
 docker build -t $IMAGE .
 
