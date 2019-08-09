@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: flask-api
-          image: ckwagaba/osprey-backend:$COMMIT_SHA1
+          image: ckwagaba/crane-cloud-backend:$COMMIT_SHA1
           ports:
             - containerPort: 5000
               name: flask-api
