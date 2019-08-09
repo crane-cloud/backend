@@ -1,32 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: react-frontend
-  namespace: default
-  labels:
-    app: react-frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: react-frontend
-  template:
-    metadata:
-      labels:
-        app: react-frontend
-    spec:
-      containers:
-        - name: react-frontend
-          image: ckwagaba/osprey-frontend:0.1.1
-          ports:
-            - containerPort: 3000
-              name: react-frontend
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
   name: flask-api
   namespace: default
   labels:
@@ -43,7 +17,7 @@ spec:
     spec:
       containers:
         - name: flask-api
-          image: ckwagaba/osprey-backend:$COMMIT_SHA1
+          image: ckwagaba/crane-cloud-backend:$COMMIT_SHA1
           ports:
             - containerPort: 5000
               name: flask-api
