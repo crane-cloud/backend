@@ -34,8 +34,6 @@ spec:
               value: $KUBE_CERT
             - name: PROMETHEUS_URL
               value: $PROMETHEUS_URL
-            - name: PROMETHEUS_HEAD
-              value: $PROMETHEUS_HEAD
 
 ---
 
