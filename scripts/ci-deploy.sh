@@ -16,11 +16,9 @@ export COMMIT_SHA1=$CIRCLE_SHA1
 envsubst < ./kube/deployment.yml > ./kube/deployment.out.yml
 mv ./kube/deployment.out.yml ./kube/deployment.yml
 
-echo "$KUBE_CERT" | base64 --decode > cert.crt
-
 ./kubectl \
   --kubeconfig=/dev/null \
   --server=$KUBE_HOST \
-  --certificate-authority=cert.crt \
+  --insecure-skip-tls-verify \
   --token=$KUBE_TOKEN \
   apply -f ./kube/
