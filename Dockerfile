@@ -18,4 +18,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 # run when the container launches
-CMD ["/app/scripts/docker_compose.sh"]
+CMD ["/app/scripts/start.sh"]
