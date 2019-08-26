@@ -170,10 +170,10 @@ def get_replica_pods(replicaset):
     return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+replicaset+'"}')
 
 #pods table 
-
 @monitor_bp.route('/monitor/pods_table/<string:namespace>',methods=['GET'])
 def get_pods_info(pods):
     return prometheus.query(metric='kube_replicaset_labels{replicaset=~"'+pods+'"}')
+
 # get persistent volumes
 @monitor_bp.route('/monitor/persistent-volumes/info/<string:namespace>',methods=['GET'])
 def get_persistent_volumes(namespace):

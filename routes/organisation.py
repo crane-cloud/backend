@@ -9,7 +9,7 @@ from helpers.construct_response import *
 organisation_bp = Blueprint('organisation', __name__)
 @organisation_bp.route('/create/organisation', methods=['POST'])
 def register():
-    """ create new organisatoin """
+    """ create new organisation """
     name = request.get_json()['name']
     namespace = request.get_json()['namespace']
     member = request.get_json()['member']
@@ -29,3 +29,5 @@ def register():
 
         response.status_code = 201
         return response
+
+    
