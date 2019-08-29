@@ -37,31 +37,45 @@ def yamldeployment():
 # Deployment from a form
 @deployment_bp.route('/deploy/form',methods = ['POST'])
 def create_deployment_object():
+    name="nginx"
+    image="nginx:1.15.4"
+    port = 80
+    app = name
+    replicas = 2
+    kind = "deployment"
+    namespace = 'trial'
+
     # Configure Pod template container
     container = client.V1Container(
-        name="nginx",
-        image="nginx:1.15.4",
-        ports=[client.V1ContainerPort(container_port=80)])
+        name=name,
+        image=image,
+        ports=[client.V1ContainerPort(container_port=port)])
     # Create and configurate a spec section
     template = client.V1PodTemplateSpec(
-        metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
+        metadata=client.V1ObjectMeta(labels={"app": app}),
         spec=client.V1PodSpec(containers=[container]))
     # Create the specification of deployment
     spec = client.V1DeploymentSpec(
-        replicas=3,
+        replicas=replicas,
         template=template,
-        selector={'matchLabels': {'app': 'nginx'}})
+        selector={'matchLabels': {'app': app}})
     # Instantiate the deployment object
-    try:
-        deployment = client.V1Deployment(
+    deployment = client.V1Deployment(
         api_version="apps/v1",
-        kind="Deployment",
-        metadata=client.V1ObjectMeta(name="nginx"),
+        kind=kind,
+        metadata=client.V1ObjectMeta(name=name),
         spec=spec)
+    try:
+        api_response = extension_api.create_namespaced_deployment(
+        body=deployment,
+        namespace=namespace)
+
         return 'SuccessFull'
     except client.rest.ApiException as e:
         logging.exception(e)
         return "Error: {}".format(e)
+
+    
 
        
     
@@ -77,12 +91,6 @@ def delete_deployment(deployment_name, namespace):
         logging.exception(e)
         return "Error: {}".format(e)
 
-#Watch deployments pods
-@deployment_bp.route('/deploy/deployment/pods/',methods = ['GET'])
-def watch_pod_deployment():
-    resp = kube.list_pod_for_all_namespaces(watch=False)
-    return resp
-
 
 #Getting namespaces
 @deployment_bp.route('/deploy/get/namespaces', methods = ['GET'])
@@ -95,6 +103,16 @@ def get_namespaces():
         response.status_code = 200
         return response
 
+
+#Getting deployment pods
+@deployment_bp.route('/deploy/get/pods', methods = ['GET'])
+def get_deployment_pods():
+#     resp = kube.list_namespaced_pod(namespace=namespace)
+#     return resp
+    pods = kube.list_pod_for_all_namespaces(watch=False, _preload_content=False).read()
+    response = construct_response(pods)
+    response.status_code = 200
+    return response
    
 
 #Creating namespace
@@ -135,7 +153,6 @@ def get_cluster_Pod_usage(namespace):
 
 
 ##TODO: test the following
-
 @deployment_bp.route('/deploy/update/service/<string:deployment_name>/<string:namespace>',methods = ['POST'])
 def update_service(service_object):
     #upload file
