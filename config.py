@@ -9,7 +9,7 @@ class Development(All):
     """ development config """
 
     DEBUG = True,
-    SQLALCHEMY_DATABASE_URI = 'postgresql:///osprey'
+    SQLALCHEMY_DATABASE_URI = 'postgresql:///cc'
 
 class Testing(All):
     """ test environment config """
@@ -17,7 +17,7 @@ class Testing(All):
     TESTING = True,
     DEBUG = True,
     # use a separate db
-    SQLALCHEMY_DATABASE_URI = 'postgresql:///osprey_test_db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql:///cc_test_db'
 
 class Production(All):
     """ production config """
