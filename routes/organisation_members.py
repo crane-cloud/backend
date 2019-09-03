@@ -10,8 +10,7 @@ organisation_members_bp = Blueprint('organisation_members', __name__)
 @organisation_members_bp.route('/create/organisation_member', methods=['POST'])
 def register_organisation_member(user_id, organisation_id):
     """ create organisation Member """
-    user_id = request.get_json()['name']
-
+    
     # validate input
     if str(user_id).strip() and str(organisation_id).strip():
         organisation_member = Organisation_members(user_id, organisation_id)
