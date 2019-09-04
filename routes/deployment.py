@@ -28,28 +28,31 @@ def yamldeployment():
     try:
         resp = extension_api.create_namespaced_deployment(
             body=dep_yaml, namespace=namespace, _preload_content=False)
-        return "Deployment Successful: "+str(resp.status)
-
+        response = construct_response(resp)
+        response.status_code = 200
+        return "Deployment Successful: "+str(response)
     except client.rest.ApiException as e:
         logging.exception(e)
         return 'Error Already exits {}'.format(e)
 
+
 # Deployment from a form
 @deployment_bp.route('/deploy/form',methods = ['POST'])
-def create_deployment_object():
+def create_deployment():
     name="nginx"
     image="nginx:1.15.4"
     port = 80
-    app = name
     replicas = 2
-    kind = "deployment"
+    kind = "Deployment"
     namespace = 'trial'
+    app = name
+    dep_name = 'nginx-deployment'
 
-    # Configure Pod template container
+    # Configureate Pod template container
     container = client.V1Container(
         name=name,
         image=image,
-        ports=[client.V1ContainerPort(container_port=port)])
+        ports=[client.V1ContainerPort(container_port=80)])
     # Create and configurate a spec section
     template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(labels={"app": app}),
@@ -60,58 +63,24 @@ def create_deployment_object():
         template=template,
         selector={'matchLabels': {'app': app}})
     # Instantiate the deployment object
-    deployment = client.V1Deployment(
+    deployment = client.V1Deployment(   
         api_version="apps/v1",
-        kind="deployment",
-        metadata=client.V1ObjectMeta(name=name),
+        kind=kind,
+        metadata=client.V1ObjectMeta(name=dep_name),
         spec=spec)
-    try:
-        api_response = extension_api.create_namespaced_deployment(
-        body=deployment,
-        namespace=namespace)
 
-        return 'SuccessFull'
+    try:
+        #  Create deployement
+        resp = appsv1_api.create_namespaced_deployment(
+            body=deployment,
+            namespace=namespace)
+        response = construct_response(resp)
+        response.status_code = 200
+        return "Deployment Successful: "+str(response)
+
     except client.rest.ApiException as e:
         logging.exception(e)
-        return "Error: {}".format(e)
-       
-# # Deployment from a form
-# @deployment_bp.route('/deploy/form',methods = ['POST'])
-# def create_deployment():
-#     deployment = create_deployment_object()
-#     try:
-#         #  Create deployement
-#         resp = appsv1_api.create_namespaced_deployment(
-#             body=deployment,
-#             namespace="trial")
-#         return "Deployment Successful: "+str(resp.status)
-
-#     except client.rest.ApiException as e:
-#         logging.exception(e)
-#         return 'Error Already exits {}'.format(e)
-
-# def create_deployment_object():
-#     # Configureate Pod template container
-#     container = client.V1Container(
-#         name="nginx",
-#         image="nginx:1.15.4",
-#         ports=[client.V1ContainerPort(container_port=80)])
-#     # Create and configurate a spec section
-#     template = client.V1PodTemplateSpec(
-#         metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
-#         spec=client.V1PodSpec(containers=[container]))
-#     # Create the specification of deployment
-#     spec = client.V1DeploymentSpec(
-#         replicas=3,
-#         template=template,
-#         selector={'matchLabels': {'app': 'nginx'}})
-#     # Instantiate the deployment object
-#     deployment = client.V1Deployment(   
-#         api_version="apps/v1",
-#         kind="Deployment",
-#         metadata=client.V1ObjectMeta(name='nginx-deployment'),
-#         spec=spec)
-#     return deployment 
+        return 'Error Already exits {}'.format(e)
 
 
 #deleting a deployment
