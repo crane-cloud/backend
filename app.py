@@ -20,6 +20,7 @@ config.verify_ssl = False
 # create API instance
 kube = client.CoreV1Api(client.ApiClient(config))
 extension_api = client.ExtensionsV1beta1Api(client.ApiClient(config))
+appsv1_api = client.AppsV1Api(client.ApiClient(config))
 
 # initialize sql-alchemy
 db = SQLAlchemy()

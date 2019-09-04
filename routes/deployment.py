@@ -12,7 +12,7 @@ from routes.monitoring import prometheus
 from helpers.construct_response import *
 
 #kube being our kubernetes instance
-from app import extension_api, kube
+from app import extension_api, kube, appsv1_api
 
 deployment_bp = Blueprint('deployment', __name__)
 
@@ -75,7 +75,45 @@ def create_deployment_object():
         logging.exception(e)
         return "Error: {}".format(e)
        
-    
+# # Deployment from a form
+# @deployment_bp.route('/deploy/form',methods = ['POST'])
+# def create_deployment():
+#     deployment = create_deployment_object()
+#     try:
+#         #  Create deployement
+#         resp = appsv1_api.create_namespaced_deployment(
+#             body=deployment,
+#             namespace="trial")
+#         return "Deployment Successful: "+str(resp.status)
+
+#     except client.rest.ApiException as e:
+#         logging.exception(e)
+#         return 'Error Already exits {}'.format(e)
+
+# def create_deployment_object():
+#     # Configureate Pod template container
+#     container = client.V1Container(
+#         name="nginx",
+#         image="nginx:1.15.4",
+#         ports=[client.V1ContainerPort(container_port=80)])
+#     # Create and configurate a spec section
+#     template = client.V1PodTemplateSpec(
+#         metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
+#         spec=client.V1PodSpec(containers=[container]))
+#     # Create the specification of deployment
+#     spec = client.V1DeploymentSpec(
+#         replicas=3,
+#         template=template,
+#         selector={'matchLabels': {'app': 'nginx'}})
+#     # Instantiate the deployment object
+#     deployment = client.V1Deployment(   
+#         api_version="apps/v1",
+#         kind="Deployment",
+#         metadata=client.V1ObjectMeta(name='nginx-deployment'),
+#         spec=spec)
+#     return deployment 
+
+
 #deleting a deployment
 @deployment_bp.route('/deploy/delete/deployment/<string:deployment_name>/<string:namespace>',methods = ['POST'])
 def delete_deployment(deployment_name, namespace):
@@ -87,6 +125,7 @@ def delete_deployment(deployment_name, namespace):
     except client.rest.ApiException as e:
         logging.exception(e)
         return "Error: {}".format(e)
+
 
 
 #Getting namespaces
@@ -102,12 +141,19 @@ def get_namespaces():
 
 
 #Getting deployment pods
-@deployment_bp.route('/deploy/get/pods', methods = ['GET'])
-def get_deployment_pods():
-#     resp = kube.list_namespaced_pod(namespace=namespace)
-#     return resp
+@deployment_bp.route('/deploy/get/pods/<string:namespace>', methods = ['GET'])
+def get_deployment_pods(namespace):
     pods = kube.list_pod_for_all_namespaces(watch=False, _preload_content=False).read()
-    response = construct_response(pods)
+    resp = json.loads(pods)
+    itemsresp = resp["items"]
+    namespaced_pods=[]
+    for item in itemsresp:
+        x = item["metadata"]["namespace"]
+        if (x==namespace):
+            namespaced_pods.append(item)
+
+    resp = json.dumps(namespaced_pods)
+    response = construct_response(resp)
     response.status_code = 200
     return response
 
