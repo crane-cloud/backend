@@ -5,17 +5,19 @@ from datetime import timedelta
 
 from app import db
 
+
 class User(db.Model):
     """ user table definition """
 
-    _tablename_ = 'users'
+    _tablename_ = "users"
 
     # fields of the user table
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(256), nullable=False, default='')
-    name = db.Column(db.String(256), nullable=False, default='')
-    username = db.Column(db.String(256), nullable=False, default='')
-    password = db.Column(db.String(256), nullable=False, default='')
+    email = db.Column(db.String(256), unique=True, nullable=False, default="")
+    name = db.Column(db.String(256), nullable=False, default="")
+    username = db.Column(db.String(256), nullable=False, default="")
+    password = db.Column(db.String(256), nullable=False, default="")
+    verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     def __init__(self, email, name, password):

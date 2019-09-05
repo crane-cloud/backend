@@ -16,7 +16,7 @@ jobs:
           POSTGRES_USER: root
           POSTGRES_DB: cranecloud_test_db
     steps:
-        # clone source code from repo
+      # clone source code from repo
       - checkout
         # grant CircleCI access to dependency locations
       - run: sudo chown -R circleci:circleci /usr/local/bin
@@ -63,4 +63,3 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               ./scripts/ci-deploy.sh
             fi
-
