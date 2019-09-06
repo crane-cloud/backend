@@ -192,3 +192,44 @@ def get_persistent_volumes_claims(namespace):
 
 
 #TODO get services, cluster status
+
+
+#monitoring deployment level metrics
+
+#get percentage memory usage for deployment
+@monitor_bp.route('/monitor/deployment/percentage_memory_usage/<string:deployment>',methods=['GET'])
+def get_deployment_percmemoryusage(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (container_memory_working_set_bytes{pod_name=~"'+deployment+'.*"}) / sum (machine_memory_bytes{kubernetes_io_hostname=~".*"}) * 100')
+
+#deployment memory used raw figure
+@monitor_bp.route('/monitor/deployment/memory_used/<string:deployment>',methods=['GET'])
+def get_deployment_memoryused(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (container_memory_working_set_bytes{pod_name=~"'+deployment+'.*"})')
+
+#get percentage cpu usage for deployment
+@monitor_bp.route('/monitor/deployment/percentage_cpu_usage/<string:deployment>',methods=['GET'])
+def get_deployment_perccpuusage(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (rate (container_cpu_usage_seconds_total{pod_name=~"'+deployment+'.*",container_name!="POD"}[2m]))')
+
+#get available replicas of a deployment
+
+@monitor_bp.route('/monitor/deployment/replicas_available/<string:deployment>',methods=['GET'])
+def get_deployment_replicas_available(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum(kube_deployment_status_replicas_available{deployment=~"'+deployment+'",pod_template_hash=""})')
+
+# get all replicas of a deployment
+
+
+@monitor_bp.route('/monitor/deployment/replicas_total/<string:deployment>',methods=['GET'])
+def get_deployment_replicas_total(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum(kube_deployment_status_replicas{deployment=~"'+deployment+'",pod_template_hash=""})')

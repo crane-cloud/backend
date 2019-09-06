@@ -5,6 +5,9 @@ from app import db, app
 # import models
 from models.user import User
 from models.admin import Admin
+from models.organisation import Organisation
+from models.organisation_members import OrganisationMembers
+from models.namespaces import Namespace
 
 # register app and db with migration class
 migrate = Migrate(app, db)

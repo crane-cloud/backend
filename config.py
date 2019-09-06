@@ -10,10 +10,9 @@ class All:
 
 class Development(All):
     """ development config """
-
+    
     DEBUG = (True,)
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
-
 
 class Testing(All):
     """ test environment config """
@@ -21,8 +20,8 @@ class Testing(All):
     TESTING = (True,)
     DEBUG = (True,)
     # use a separate db
+    
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
-
 
 class Production(All):
     """ production config """
