@@ -29,6 +29,7 @@ db = SQLAlchemy()
 from routes.user import user_bp
 from routes.admin import admin_bp
 from routes.organisation_members import organisation_members_bp
+from routes.organisation import organisation_bp
 from routes.monitoring import monitor_bp
 from routes.deployment import deployment_bp
 from routes.namespaces import namespace_bp
@@ -53,6 +54,7 @@ def create_app(config_name):
     app.register_blueprint(user_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(organisation_members_bp)
+    app.register_blueprint(organisation_bp)
     app.register_blueprint(namespace_bp)
     app.register_blueprint(monitor_bp)
     app.register_blueprint(deployment_bp)

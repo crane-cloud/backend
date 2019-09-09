@@ -1,4 +1,5 @@
 from flask import request, jsonify, Blueprint
+import json
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity
@@ -85,13 +86,16 @@ def protected():
 @user_bp.route('/create/organisation', methods=['POST'])
 def create_organisation():
     current_user = get_jwt_identity()
+    # current_user = request.get_json()['user']
+    org_name = request.get_json()['org_name']
     if(current_user is not None):
         #new organisation
-        organisation_resp = register_organisation()
-        if(organisation_resp.status_code is 201):
+        organisation_resp = register_organisation(org_name)
+        if(organisation_resp['status_code'] is 201):
             """ successfull """
-
-            response = register_organisation_member(current_user, organisation_resp.id)
+            # resp = json.dumps(organisation_resp)
+            # print("----------------------"+resp.id)
+            response = register_organisation_member(current_user, organisation_resp['id'])
             return response
         else:
             response = jsonify({
