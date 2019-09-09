@@ -39,14 +39,14 @@ def yamldeployment():
 # Deployment from a form
 @deployment_bp.route('/deploy/form',methods = ['POST'])
 def create_deployment():
-    name="nginx"
-    image="nginx:1.15.4"
-    port = 80
-    replicas = 2
-    kind = "Deployment"
-    namespace = 'trial'
+    name = request.get_json()["name"]
+    image = request.get_json()["image"]
+    port = request.get_json()["port"]
+    replicas = request.get_json()["replicas"]
+    kind = request.get_json()["kind"]
+    namespace = request.get_json()["namespace"]
     app = name
-    dep_name = 'nginx-deployment'
+    dep_name = '{}-deployment'.format(name)
 
     # Configureate Pod template container
     container = client.V1Container(
@@ -117,8 +117,8 @@ def get_deployment_pods(namespace):
     itemsresp = resp["items"]
     namespaced_pods=[]
     for item in itemsresp:
-        x = item["metadata"]["namespace"]
-        if (x==namespace):
+        i = item["metadata"]["namespace"]
+        if (i==namespace):
             namespaced_pods.append(item)
 
     resp = json.dumps(namespaced_pods)
