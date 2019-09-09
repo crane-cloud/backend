@@ -45,6 +45,7 @@ def create_deployment():
     replicas = request.get_json()["replicas"]
     kind = request.get_json()["kind"]
     namespace = request.get_json()["namespace"]
+    
     app = name
     dep_name = '{}-deployment'.format(name)
 
