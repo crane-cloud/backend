@@ -123,7 +123,7 @@ def create_organisation():
 # Adding a member to an organisation
 @user_bp.route('/add/member', methods=['POST'])
 def add_member():
-    
+
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
     user = User.query.filter_by(email=email).first()
@@ -156,4 +156,9 @@ def get_organisation():
                 repsArr.append(organisation[0])
 
         response = json.dumps(repsArr)
+        return response
+    else:
+        response = jsonify({
+            "message": "Not registered user"
+        })
         return response
