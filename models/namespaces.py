@@ -19,7 +19,7 @@ class Namespace(db.Model):
     def __init__(self, name, organisation_id):
         """ initialize with name and org_id """
         self.name = name
-        self.orgainsation_id = organisation_id
+        self.organisation_id = organisation_id
 
 
     def save(self):

@@ -42,6 +42,7 @@ def add_namespace():
     organisation_name = request.get_json()['organisation_name']
 
     organisation = Organisation.query.filter_by(name=organisation_name).first()
+    # print(organisation.id)
     """ checking if organisation is in database """
     if organisation is not None:
         resp = create_namespace(namespace)
