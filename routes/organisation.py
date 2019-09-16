@@ -65,15 +65,17 @@ def add_namespace():
 
 
 # Showing all available organisations
-@organisation_bp.route('/show/all/organisations', methods=['GET'])
-def show_organisations():
-    all_orgs = Organisation.query.all()
+@organisation_bp.route('/get/organisations/<string:org_id>', methods=['GET'])
+def get_organisations(org_id):
+    if org_id == "all":
+        orgs = Organisation.query.all()
+    else:
+        orgs = Organisation.query.filter_by(id=org_id)
     result = []
-    for org in all_orgs:
+    for org in orgs:
         result.append(org.toDict())
-
     response = json.dumps(result)
-    return response 
+    return response
 
 
     

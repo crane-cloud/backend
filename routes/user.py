@@ -10,7 +10,7 @@ from flask_jwt_extended import (
 from models.user import User
 from models.organisation_members import *
 from models.organisation import *
-from routes.organisation import register_organisation
+from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import register_organisation_member
 
 # user blueprint
@@ -138,7 +138,7 @@ def add_member():
 
 
 # Show organisations list
-@user_bp.route('/user/show/organisations', methods=['GET'])
+@user_bp.route('/user/get/organisations', methods=['GET'])
 def get_organisation():
     user_id = request.get_json()['user_id']
     user = User.query.filter_by(id=user_id).first()
@@ -147,9 +147,13 @@ def get_organisation():
 
         org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
         repsArr = []
+
         for i in org_association:
             dict_obj = i.toDict()
-            organisation = Organisation.query.filter_by(id=dict_obj["id"]).first()
-            repsArr.append(dict_obj)
+            organisation = get_organisations(dict_obj["organisation_id"])
+            organisation = json.loads(organisation)
+            if len(organisation) > 0:
+                repsArr.append(organisation[0])
+
         response = json.dumps(repsArr)
         return response
