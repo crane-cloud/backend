@@ -6,7 +6,9 @@ from models.user import User
 
 from app import db
 
-class Organisation(db.Model):
+from helpers.toDict import ToDict
+
+class Organisation(db.Model, ToDict):
     """ Organisation table definition """
 
     _tablename_ = 'organisations'

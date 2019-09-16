@@ -63,4 +63,17 @@ def add_namespace():
         response.status_code = 401
         return response
 
+
+# Showing all available organisations
+@organisation_bp.route('/show/all/organisations', methods=['GET'])
+def show_organisations():
+    all_orgs = Organisation.query.all()
+    result = []
+    for org in all_orgs:
+        result.append(org.toDict())
+
+    response = json.dumps(result)
+    return response 
+
+
     
