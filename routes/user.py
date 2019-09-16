@@ -90,16 +90,19 @@ def protected():
 # Creating an Organisation
 @user_bp.route('/create/organisation', methods=['POST'])
 def create_organisation():
-    current_user = get_jwt_identity()
-    # current_user = request.get_json()['user']
+    
+    # Using current User from a form thats been sent
+    # current_user = get_jwt_identity()
+    current_user = request.get_json()['user']
     org_name = request.get_json()['org_name']
     if(current_user is not None):
-        #new organisation
+        """ Register the organisation """
+
+        
         organisation_resp = register_organisation(org_name)
-        if(organisation_resp['status_code'] is 201):
-            """ successfull """
-            # resp = json.dumps(organisation_resp)
-            # print("----------------------"+resp.id)
+        
+        if(organisation_resp['status_code'] == 201):
+            """ Register them into the association table """
             response = register_organisation_member(current_user, organisation_resp['id'])
             return response
         else:

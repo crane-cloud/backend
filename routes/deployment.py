@@ -142,7 +142,9 @@ def create_namespace(namespace):
         return response
     except client.rest.ApiException as e:
         logging.exception(e)
-        return "Error: {} /n".format(e)
+        response = e
+        response.status_code = 409
+        return response
         
         
 # Deleting namespace

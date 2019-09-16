@@ -8,7 +8,7 @@ class OrganisationMembers(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column('user_id', db.Integer, db.ForeignKey(User.id))
-    organisation_id = db.Column("orgainsation_id", db.Integer, db.ForeignKey(Organisation.id))
+    organisation_id = db.Column("organisation_id", db.Integer, db.ForeignKey(Organisation.id))
 
     def __init__(self, user_id, organisation_id):
         """ initialize with name, member and namespace """

@@ -21,12 +21,11 @@ def register_organisation(name):
         organisation.save()
 
         response = {
-            'status_code':201,
             'id': organisation.id,
             'name': organisation.name,
-            'date_created': organisation.date_created
+            'date_created': organisation.date_created,
+            'status_code': 201
         }
-
         return response
     else:
         response = jsonify({
@@ -53,7 +52,7 @@ def add_namespace():
         else:
             response = jsonify({
                 'message': 'Namespace Already exists'
-            })
+            })    
             response.status_code = 401
             return response
     else:
