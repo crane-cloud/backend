@@ -1,4 +1,5 @@
 from flask import request, jsonify, Blueprint
+
 from flask_jwt_extended import (
     JWTManager,
     jwt_required,
@@ -7,6 +8,9 @@ from flask_jwt_extended import (
 )
 
 from models.user import User
+
+from helpers.token import generate_token, validate_token
+from helpers.email import send_email
 
 # user blueprint
 user_bp = Blueprint("user", __name__)
@@ -25,7 +29,12 @@ def register():
         user = User(email, name, password)
         user.save()
 
-        # email verification
+        # send verification token
+        token = generate_token(user.email)
+        verify_url = url_for("user.verify_email", token=token, _external=True)
+        html = render_template("user/verify.html", verify_url=verify_url)
+        subject = "Please confirm your email"
+        send_email(user.email, subject, html)
 
         response = jsonify(
             {
@@ -76,9 +85,17 @@ def login():
             return response
 
 
-@user_bp.route("/protected", methods=["GET"])
+@user_bp.route("/verify/<token>")
 @jwt_required
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+def verify_email(token):
+    try:
+        email = validate_token(token)
+    except:
+        flash("The confirmation link is invalid or has expired.", "danger")
+    user = User.query.filter_by(email=email).first_or_404()
+    if user.verified:
+        flash("Account already confirmed. Please login.", "success")
+    else:
+        user.verified = True
+        db.session.add(user)
+        db.session.commit()
