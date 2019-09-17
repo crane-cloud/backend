@@ -1,5 +1,6 @@
-from flask import request, Blueprint
+from flask import request, Blueprint,jsonify
 from prometheus_http_client import Prometheus
+import json
 
 #initialise prometheus
 prometheus = Prometheus()
@@ -67,6 +68,78 @@ def get_no_replicas_unavailable(namespace):
     if (namespace == 'all'):
         namespace = '.*'
     return prometheus.query(metric='sum(kube_deployment_status_replicas_unavailable{namespace=~"'+namespace+'"})')
+
+#Monitoring deployment 
+
+
+#get percentage memory usage for deployment
+@monitor_bp.route('/monitor/deployment/percentage_memory_usage/<string:deployment>',methods=['GET'])
+def get_deployment_percmemoryusage(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (container_memory_working_set_bytes{pod_name=~"'+deployment+'.*"}) / sum (machine_memory_bytes{kubernetes_io_hostname=~".*"}) * 100')
+
+#deployment memory used raw figure
+@monitor_bp.route('/monitor/deployment/memory_used/<string:deployment>',methods=['GET'])
+def get_deployment_memoryused(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (container_memory_usage_bytes{pod_name=~"'+deployment+'.*"})/1024^3')
+
+#get percentage cpu usage for deployment
+@monitor_bp.route('/monitor/deployment/percentage_cpu_usage/<string:deployment>',methods=['GET'])
+def get_deployment_perccpuusage(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (rate (container_cpu_usage_seconds_total{pod_name=~"'+deployment+'.*",container_name!="POD"}[2m]))')
+
+#deployment cpu usage for deployment raw figure
+@monitor_bp.route('/monitor/deployment/cpu_used/<string:deployment>',methods=['GET'])
+def get_deployment_cpuused(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum (rate(container_cpu_usage_seconds_total{pod_name=~"'+deployment+'.*"}[3m]))')
+
+
+#get available replicas of a deployment
+@monitor_bp.route('/monitor/deployment/replicas_available/<string:deployment>',methods=['GET'])
+def get_deployment_replicas_available(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum(kube_deployment_status_replicas_available{deployment=~"'+deployment+'",pod_template_hash=""})')
+
+# get all replicas of a deployment
+@monitor_bp.route('/monitor/deployment/replicas_total/<string:deployment>',methods=['GET'])
+def get_deployment_replicas_total(deployment):
+    if (deployment == 'all'):
+        deployment = '.*'
+    return prometheus.query(metric='sum(kube_deployment_status_replicas{deployment=~"'+deployment+'",pod_template_hash=""})')
+
+@monitor_bp.route('/monitor/deployment/infomation/<string:deployment>',methods=['GET'])
+def dep(deployment):
+    mem = get_deployment_memoryused(deployment)
+    cpu = get_deployment_cpuused(deployment)
+    availb_replicas = get_deployment_replicas_available(deployment)
+    tot_replicas = get_deployment_replicas_total(deployment)
+
+    # change to dicts
+    mem = json.loads(mem)
+    cpu = json.loads(cpu)
+    availb_replicas = json.loads(availb_replicas)
+    tot_replicas = json.loads(tot_replicas)
+
+    xy = jsonify({
+         "memory": mem,
+         "cpuCycles":cpu,
+         "replicasAvailable":availb_replicas,
+         "totReplicas":tot_replicas
+            })
+    
+    xy.status_code = 200
+    return xy
+
+
+
 
 
 #pod info
