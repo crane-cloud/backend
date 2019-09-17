@@ -13,7 +13,7 @@ def register_organisation_member(user_id, organisation_id):
     
     # validate input
     if str(user_id).strip() and str(organisation_id).strip():
-        organisation_member = Organisation_members(user_id, organisation_id)
+        organisation_member = OrganisationMembers(user_id, organisation_id)
         organisation_member.save()
 
         response = jsonify({

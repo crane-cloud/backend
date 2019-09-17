@@ -24,7 +24,9 @@ class User(db.Model):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
+        self.username = name
         self.password = Bcrypt().generate_password_hash(password).decode()
+        
 
     def password_is_valid(self, password):
         """ checks the password against it's hash to validate the user's password """

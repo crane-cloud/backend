@@ -13,6 +13,7 @@ def register_namespace(name, organisation_id):
     
     # validate input
     if str(name).strip() and str(organisation_id).strip():
+        
         namespace = Namespace(name, organisation_id)
         namespace.save()
         response = jsonify({

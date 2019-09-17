@@ -1,4 +1,5 @@
 from flask import request, jsonify, Blueprint
+import json
 from flask_jwt_extended import (
     JWTManager,
     jwt_required,
@@ -8,7 +9,8 @@ from flask_jwt_extended import (
 
 from models.user import User
 from models.organisation_members import *
-from routes.organisation import register_organisation
+from models.organisation import *
+from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import register_organisation_member
 
 # user blueprint
@@ -89,14 +91,20 @@ def protected():
 # Creating an Organisation
 @user_bp.route('/create/organisation', methods=['POST'])
 def create_organisation():
-    current_user = get_jwt_identity()
+    
+    # Using current User from a form thats been sent
+    # current_user = get_jwt_identity()
+    current_user = request.get_json()['user']
+    org_name = request.get_json()['org_name']
     if(current_user is not None):
-        #new organisation
-        organisation_resp = register_organisation()
-        if(organisation_resp.status_code is 201):
-            """ successfull """
+        """ Register the organisation """
 
-            response = register_organisation_member(current_user, organisation_resp.id)
+        
+        organisation_resp = register_organisation(org_name)
+        
+        if(organisation_resp['status_code'] == 201):
+            """ Register them into the association table """
+            response = register_organisation_member(current_user, organisation_resp['id'])
             return response
         else:
             response = jsonify({
@@ -115,7 +123,7 @@ def create_organisation():
 # Adding a member to an organisation
 @user_bp.route('/add/member', methods=['POST'])
 def add_member():
-    
+
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
     user = User.query.filter_by(email=email).first()
@@ -129,3 +137,28 @@ def add_member():
         pass
 
 
+# Show organisations list
+@user_bp.route('/user/get/organisations', methods=['GET'])
+def get_organisation():
+    user_id = request.get_json()['user_id']
+    user = User.query.filter_by(id=user_id).first()
+
+    if user is not None:
+
+        org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
+        repsArr = []
+
+        for i in org_association:
+            dict_obj = i.toDict()
+            organisation = get_organisations(dict_obj["organisation_id"])
+            organisation = json.loads(organisation)
+            if len(organisation) > 0:
+                repsArr.append(organisation[0])
+
+        response = json.dumps(repsArr)
+        return response
+    else:
+        response = jsonify({
+            "message": "Not registered user"
+        })
+        return response
