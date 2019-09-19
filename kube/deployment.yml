@@ -26,6 +26,8 @@ spec:
               value: $DATABASE_URI
             - name: FLASK_APP_SECRET
               value: $FLASK_APP_SECRET
+            - name: FLASK_APP_SALT
+              value: $FLASK_APP_SALT
             - name: KUBE_HOST
               value: $KUBE_HOST
             - name: KUBE_TOKEN
