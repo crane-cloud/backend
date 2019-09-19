@@ -12,6 +12,9 @@ from models.organisation import *
 from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import register_organisation_member
 
+# from helpers.token import generate_token, validate_token
+# from helpers.email import send_email
+
 # user blueprint
 user_bp = Blueprint("user", __name__)
 
@@ -29,7 +32,12 @@ def register():
         user = User(email, name, password)
         user.save()
 
-        # email verification
+        # send verification token
+        # token = generate_token(user.email)
+        # verify_url = url_for("user.verify_email", token=token, _external=True)
+        # html = render_template("user/verify.html", verify_url=verify_url)
+        # subject = "Please confirm your email"
+        # send_email(user.email, subject, html)
 
         response = jsonify(
             {

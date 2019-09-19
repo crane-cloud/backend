@@ -1,20 +1,35 @@
 import os
 
 
-class All:
-    """ parent config """
+class Base:
+    """ base config """
 
-    JWT_SECRET_KEY = os.getenv("FLASK_APP_SECRET")
+    # main
+    SECRET_KEY = os.getenv("FLASK_APP_SECRET")
     PASSWORD_SALT = os.getenv("FLASK_APP_SALT")
 
+    # mail settings
+    MAIL_SERVER = "smtp.googlemail.com"
+    MAIL_PORT = 465
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
 
-class Development(All):
+    # gmail authentication
+    MAIL_USERNAME = os.environ["APP_MAIL_USERNAME"]
+    MAIL_PASSWORD = os.environ["APP_MAIL_PASSWORD"]
+
+    # mail accounts
+    MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
+
+
+class Development(Base):
     """ development config """
     
     DEBUG = (True,)
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
 
-class Testing(All):
+
+class Testing(Base):
     """ test environment config """
 
     TESTING = (True,)
@@ -23,7 +38,8 @@ class Testing(All):
     
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
 
-class Production(All):
+
+class Production(Base):
     """ production config """
 
     DEBUG = (False,)

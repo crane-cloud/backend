@@ -36,7 +36,6 @@ spec:
               value: $PROMETHEUS_URL
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -64,4 +63,4 @@ spec:
             - name: POSTGRES_USER
               value: root
             - name: POSTGRES_DB
-              value: osprey
+              value: cranecloud
