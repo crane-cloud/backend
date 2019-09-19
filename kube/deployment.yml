@@ -34,6 +34,20 @@ spec:
               value: $KUBE_CERT
             - name: PROMETHEUS_URL
               value: $PROMETHEUS_URL
+            - name: APP_MAIL_USERNAME
+              value: $APP_MAIL_USERNAME
+            - name: APP_MAIL_PASSWORD
+              value: $APP_MAIL_PASSWORD
+            - name: DOCKERHUB_USERNAME
+              value: $DOCKERHUB_USERNAME
+            - name: DOCKERHUB_PASS
+              value: $DOCKERHUB_PASS
+            - name: HARBOR_BASE_URL
+              value: $HARBOR_BASE_URL
+            - name: HARBOR_USERNAME
+              value: $HARBOR_USERNAME
+            - name: HARBOR_PASSWORD
+              value: $HARBOR_PASSWORD
 
 ---
 apiVersion: apps/v1
