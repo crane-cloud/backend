@@ -9,8 +9,8 @@ from flask_jwt_extended import (
 
 from models.user import User
 
-from helpers.token import generate_token, validate_token
-from helpers.email import send_email
+# from helpers.token import generate_token, validate_token
+# from helpers.email import send_email
 
 # user blueprint
 user_bp = Blueprint("user", __name__)
@@ -30,11 +30,11 @@ def register():
         user.save()
 
         # send verification token
-        token = generate_token(user.email)
-        verify_url = url_for("user.verify_email", token=token, _external=True)
-        html = render_template("user/verify.html", verify_url=verify_url)
-        subject = "Please confirm your email"
-        send_email(user.email, subject, html)
+        # token = generate_token(user.email)
+        # verify_url = url_for("user.verify_email", token=token, _external=True)
+        # html = render_template("user/verify.html", verify_url=verify_url)
+        # subject = "Please confirm your email"
+        # send_email(user.email, subject, html)
 
         response = jsonify(
             {
@@ -85,17 +85,17 @@ def login():
             return response
 
 
-@user_bp.route("/verify/<token>")
-@jwt_required
-def verify_email(token):
-    try:
-        email = validate_token(token)
-    except:
-        flash("The confirmation link is invalid or has expired.", "danger")
-    user = User.query.filter_by(email=email).first_or_404()
-    if user.verified:
-        flash("Account already confirmed. Please login.", "success")
-    else:
-        user.verified = True
-        db.session.add(user)
-        db.session.commit()
+# @user_bp.route("/verify/<token>")
+# @jwt_required
+# def verify_email(token):
+#     try:
+#         email = validate_token(token)
+#     except:
+#         flash("The confirmation link is invalid or has expired.", "danger")
+#     user = User.query.filter_by(email=email).first_or_404()
+#     if user.verified:
+#         flash("Account already confirmed. Please login.", "success")
+#     else:
+#         user.verified = True
+#         db.session.add(user)
+#         db.session.commit()
