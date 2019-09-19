@@ -6,7 +6,6 @@ from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
 )
-
 from models.user import User
 from models.organisation_members import *
 from models.organisation import *
@@ -80,26 +79,15 @@ def login():
 
             return response
 
-
-@user_bp.route("/protected", methods=["GET"])
-@jwt_required
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
-
 # Creating an Organisation
 @user_bp.route('/create/organisation', methods=['POST'])
+@jwt_required
 def create_organisation():
-    
-    # Using current User from a form thats been sent
-    # current_user = get_jwt_identity()
-    current_user = request.get_json()['user']
+    current_user = get_jwt_identity()
     org_name = request.get_json()['org_name']
     if(current_user is not None):
         """ Register the organisation """
 
-        
         organisation_resp = register_organisation(org_name)
         
         if(organisation_resp['status_code'] == 201):
@@ -123,7 +111,6 @@ def create_organisation():
 # Adding a member to an organisation
 @user_bp.route('/add/member', methods=['POST'])
 def add_member():
-
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
     user = User.query.filter_by(email=email).first()
@@ -139,9 +126,10 @@ def add_member():
 
 # Show organisations list
 @user_bp.route('/user/get/organisations', methods=['GET'])
+@jwt_required
 def get_organisation():
-    user_id = request.get_json()['user_id']
-    user = User.query.filter_by(id=user_id).first()
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(id=current_user).first()
 
     if user is not None:
 
