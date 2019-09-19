@@ -15,8 +15,8 @@ class Base:
     MAIL_USE_SSL = True
 
     # gmail authentication
-    MAIL_USERNAME = os.environ["APP_MAIL_USERNAME"]
-    MAIL_PASSWORD = os.environ["APP_MAIL_PASSWORD"]
+    MAIL_USERNAME = os.getenv("APP_MAIL_USERNAME")
+    MAIL_PASSWORD = os.getenv("APP_MAIL_PASSWORD")
 
     # mail accounts
     MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
@@ -24,7 +24,7 @@ class Base:
 
 class Development(Base):
     """ development config """
-    
+
     DEBUG = (True,)
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
 
@@ -35,7 +35,7 @@ class Testing(Base):
     TESTING = (True,)
     DEBUG = (True,)
     # use a separate db
-    
+
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
 
 
