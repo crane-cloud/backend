@@ -24,7 +24,7 @@ class Base:
 
 class Development(Base):
     """ development config """
-
+    
     DEBUG = (True,)
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
 
@@ -35,6 +35,7 @@ class Testing(Base):
     TESTING = (True,)
     DEBUG = (True,)
     # use a separate db
+    
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
 
 

@@ -1,13 +1,16 @@
 from flask import request, jsonify, Blueprint
-
+import json
 from flask_jwt_extended import (
     JWTManager,
     jwt_required,
     create_access_token,
     get_jwt_identity,
 )
-
 from models.user import User
+from models.organisation_members import *
+from models.organisation import *
+from routes.organisation import register_organisation, get_organisations
+from routes.organisation_members import register_organisation_member
 
 # from helpers.token import generate_token, validate_token
 # from helpers.email import send_email
@@ -84,18 +87,74 @@ def login():
 
             return response
 
+# Creating an Organisation
+@user_bp.route('/create/organisation', methods=['POST'])
+@jwt_required
+def create_organisation():
+    current_user = get_jwt_identity()
+    org_name = request.get_json()['org_name']
+    if(current_user is not None):
+        """ Register the organisation """
 
-# @user_bp.route("/verify/<token>")
-# @jwt_required
-# def verify_email(token):
-#     try:
-#         email = validate_token(token)
-#     except:
-#         flash("The confirmation link is invalid or has expired.", "danger")
-#     user = User.query.filter_by(email=email).first_or_404()
-#     if user.verified:
-#         flash("Account already confirmed. Please login.", "success")
-#     else:
-#         user.verified = True
-#         db.session.add(user)
-#         db.session.commit()
+        organisation_resp = register_organisation(org_name)
+        
+        if(organisation_resp['status_code'] == 201):
+            """ Register them into the association table """
+            response = register_organisation_member(current_user, organisation_resp['id'])
+            return response
+        else:
+            response = jsonify({
+                'message': 'Organisation failure'
+            })
+            response.status_code = 401
+            return response
+    else:
+        response = jsonify({
+                'message': 'Current user not authorised'
+        })
+        response.status_code = 401
+        return response
+
+
+# Adding a member to an organisation
+@user_bp.route('/add/member', methods=['POST'])
+def add_member():
+    email = request.get_json()['email']
+    organisation_name = request.get_json()['organisation_name']
+    user = User.query.filter_by(email=email).first()
+    organisation = Organisation.query.filter_by(name=organisation_name).first()
+    
+    if user and organisation_name: 
+        response = register_organisation_member(user.id, organisation.id)
+        return response
+    else:
+        """Send a link to user """
+        pass
+
+
+# Show organisations list
+@user_bp.route('/user/get/organisations', methods=['GET'])
+@jwt_required
+def get_organisation():
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(id=current_user).first()
+
+    if user is not None:
+
+        org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
+        repsArr = []
+
+        for i in org_association:
+            dict_obj = i.toDict()
+            organisation = get_organisations(dict_obj["organisation_id"])
+            organisation = json.loads(organisation)
+            if len(organisation) > 0:
+                repsArr.append(organisation[0])
+
+        response = json.dumps(repsArr)
+        return response
+    else:
+        response = jsonify({
+            "message": "Not registered user"
+        })
+        return response
