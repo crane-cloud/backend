@@ -6,7 +6,7 @@ metadata:
   labels:
     app: flask-api
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: flask-api
@@ -60,7 +60,7 @@ metadata:
   labels:
     app: postgres-db
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: postgres-db
