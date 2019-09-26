@@ -44,6 +44,10 @@ def register():
         response.status_code = 201
 
         return response
+    else:
+        response = jsonify({"message": "Register failure, wrong information"})
+        response.status_code = 401
+        return response
 
 # User Login
 @user_bp.route("/login", methods=["POST"])
@@ -70,6 +74,10 @@ def login():
                 response.status_code = 200
 
                 return response
+            else:
+                response = jsonify({"message": "Unable to generate token"})
+                response.status_code = 401
+                return response
         else:
             """ wrong credentials """
 
@@ -78,6 +86,10 @@ def login():
             response.status_code = 401
 
             return response
+    else:
+        response = jsonify({"message": "Login failure, wrong information"})
+        response.status_code = 401
+        return response
 
 
 # Delete User account
@@ -165,6 +177,7 @@ def remove_organisation_member():
         response.status_code = 401
         return response 
 
+
 # Show organisations list
 @user_bp.route('/user/get/organisations', methods=['GET'])
 @jwt_required
@@ -190,3 +203,18 @@ def get_organisation():
             "message": "Not registered user"
         })
         return response
+
+
+
+
+# Show user list
+# @user_bp.route('/show/all/users', methods=['GET'])
+# def show_all_users():
+#     users = User.query.first()
+#     result = []
+#     for user in users:
+#         result.append(user.toDict())
+#     response = jsonify({
+#         "message": users
+#     })
+#     return response

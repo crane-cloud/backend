@@ -5,8 +5,9 @@ from datetime import timedelta
 
 from app import db
 
+from helpers.toDict import ToDict
 
-class User(db.Model):
+class User(db.Model, ToDict):
     """ user table definition """
 
     _tablename_ = "users"

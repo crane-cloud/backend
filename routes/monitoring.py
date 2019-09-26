@@ -128,15 +128,15 @@ def dep(deployment):
     availb_replicas = json.loads(availb_replicas)
     tot_replicas = json.loads(tot_replicas)
 
-    xy = jsonify({
+    response = jsonify({
          "memory": mem,
          "cpuCycles":cpu,
          "replicasAvailable":availb_replicas,
          "totReplicas":tot_replicas
             })
     
-    xy.status_code = 200
-    return xy
+    response.status_code = 200
+    return response
 
 
 
