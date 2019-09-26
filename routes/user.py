@@ -132,7 +132,6 @@ def get_organisation():
     user = User.query.filter_by(id=current_user).first()
 
     if user is not None:
-
         org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
         repsArr = []
 

@@ -77,5 +77,25 @@ def get_organisations(org_id):
     response = json.dumps(result)
     return response
 
+# Deleting an Organisation
+@organisation_bp.route('/delete/organisation', methods=['DELETE'])
+def delete_organisation():
+
+    org_name = request.get_json()["organisation_name"]
+    organisation = Organisation.query.filter_by(name = org_name).first()
+
+    if organisation is not None:
+        organisation.delete()
+        response = jsonify({
+            'message': 'Successfully deleted'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
 
     
