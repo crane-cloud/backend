@@ -15,7 +15,7 @@ from routes.organisation_members import register_organisation_member
 # user blueprint
 user_bp = Blueprint("user", __name__)
 
-
+#  User registration
 @user_bp.route("/register", methods=["POST"])
 def register():
     """ create new user """
@@ -45,7 +45,7 @@ def register():
 
         return response
 
-
+# User Login
 @user_bp.route("/login", methods=["POST"])
 def login():
     """ user login """
@@ -78,6 +78,27 @@ def login():
             response.status_code = 401
 
             return response
+
+
+# Delete User account
+@user_bp.route('/delete/user', methods=['DELETE'])
+def delete_user_account():
+    user_id = request.get_json()['user_id']
+    user = User.query.filter_by(id = user_id).first()
+    
+    if user is not None:
+        user.delete()
+        response = jsonify({
+            'message': 'Successfully deleted'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'User does not exist'
+        })
+        response.status_code = 401
+        return response 
 
 # Creating an Organisation
 @user_bp.route('/create/organisation', methods=['POST'])
