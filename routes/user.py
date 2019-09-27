@@ -189,7 +189,7 @@ def remove_organisation_member():
 # Show organisations list
 @user_bp.route('/user/get/organisations', methods=['GET'])
 @jwt_required
-def get_organisation():
+def get_user_rganisation():
     current_user = get_jwt_identity()
     user = User.query.filter_by(id=current_user).first()
 
@@ -212,3 +212,18 @@ def get_organisation():
         })
         return response
 
+# Show all users in the database
+@user_bp.route('/show/all/users', methods=['GET'])
+@jwt_required
+def show_all_users():
+    users = User.query.all()
+    respArr = []
+    names ={}
+
+    for user in users:
+        dict_obj = user.toDict()
+        names['name'] = dict_obj['name']
+        names['email'] = dict_obj['email']
+        respArr.append(names)
+    response = json.dumps(respArr)
+    return response
