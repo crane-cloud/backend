@@ -3,7 +3,7 @@ from flask import request, jsonify, Blueprint, json
 from models.organisation import Organisation
 from models.namespaces import Namespace
 
-from routes.deployment import create_namespace, get_namespaces
+from routes.deployment import create_namespace, get_namespaces, delete_namespace
 from routes.namespaces import register_namespace
 
 # custom response helper
@@ -88,8 +88,18 @@ def add_namespace():
 # Deleting an Organisations Namespace
 @organisation_bp.route('/delete/namespace', methods=['DELETE'])
 def delete_organisation_namespace():
-    namespace = request.get_json()['namespace']
-    
+    name = request.get_json()['namespace']
+    namespace = Namespace.query.filter_by(name = name).first()
+
+    if namespace is not None:
+        namespace.delete()
+        return delete_namespace(name)
+    else:
+        response = jsonify({
+            'message': 'Namespace does not exist'
+        })
+        response.status_code = 401
+        return response 
 
 
 # Showing all available organisations

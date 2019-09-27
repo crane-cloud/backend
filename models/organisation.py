@@ -11,13 +11,13 @@ class Organisation(db.Model, ToDict):
     """ Organisation table definition """
 
     _tablename_ = 'organisations'
-    __table_args__ = (db.UniqueConstraint('name', name='customer_unique_name'),)
+    __table_args__ = (db.UniqueConstraint('name', name='organisation_unique_name'),)
 
     # fields of the Organisation table
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
-    
+
     def __init__(self, name):
         """ initialize with name, member and namespace """
         self.name = name
