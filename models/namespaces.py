@@ -10,10 +10,12 @@ class Namespace(db.Model):
     """ Namespace table definition """
 
     _tablename_ = 'namespace'
+    __table_args__ = (db.UniqueConstraint('name', name='namespace_unique_name'),)
+
     # fields of the Namespace table
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256), nullable=False)
-    organisation_id = db.Column("organisation_id", db.Integer, db.ForeignKey(Organisation.id))
+    organisation_id = db.Column("organisation_id", db.Integer, db.ForeignKey(Organisation.id, ondelete='CASCADE'))
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     def __init__(self, name, organisation_id):
@@ -24,4 +26,8 @@ class Namespace(db.Model):
 
     def save(self):
         db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
         db.session.commit()

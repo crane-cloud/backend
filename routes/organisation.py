@@ -3,7 +3,7 @@ from flask import request, jsonify, Blueprint, json
 from models.organisation import Organisation
 from models.namespaces import Namespace
 
-from routes.deployment import create_namespace, get_namespaces
+from routes.deployment import create_namespace, get_namespaces, delete_namespace
 from routes.namespaces import register_namespace
 
 # custom response helper
@@ -35,6 +35,28 @@ def register_organisation(name):
         return response
 
 
+# Deleting an Organisation
+@organisation_bp.route('/delete/organisation', methods=['DELETE'])
+def delete_organisation():
+
+    org_name = request.get_json()["organisation_name"]
+    organisation = Organisation.query.filter_by(name = org_name).first()
+
+    if organisation is not None:
+        organisation.delete()
+        response = jsonify({
+            'message': 'Successfully deleted'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
+
+
 # Creating Namespace for an Organisation
 @organisation_bp.route('/add/namespace', methods=['POST'])
 def add_namespace():
@@ -63,6 +85,22 @@ def add_namespace():
         response.status_code = 401
         return response
 
+# Deleting an Organisations Namespace
+@organisation_bp.route('/delete/namespace', methods=['DELETE'])
+def delete_organisation_namespace():
+    name = request.get_json()['namespace']
+    namespace = Namespace.query.filter_by(name = name).first()
+
+    if namespace is not None:
+        namespace.delete()
+        return delete_namespace(name)
+    else:
+        response = jsonify({
+            'message': 'Namespace does not exist'
+        })
+        response.status_code = 401
+        return response 
+
 
 # Showing all available organisations
 @organisation_bp.route('/get/organisations/<string:org_id>', methods=['GET'])
@@ -76,6 +114,3 @@ def get_organisations(org_id):
         result.append(org.toDict())
     response = json.dumps(result)
     return response
-
-
-    
