@@ -103,8 +103,8 @@ def login():
 # Delete User account
 @user_bp.route('/delete/user', methods=['DELETE'])
 def delete_user_account():
-    user_id = request.get_json()['user_id']
-    user = User.query.filter_by(id = user_id).first()
+    email = request.get_json()['email']
+    user = User.query.filter_by(email = email).first()
 
     if user is not None:
         user.delete()
@@ -134,7 +134,7 @@ def create_organisation():
         if(organisation_resp['status_code'] == 201):
             """ Register them into the association table """
             response = register_organisation_member(current_user, organisation_resp['id'])
-            return organisation_resp
+            return organisation_resp, 201
         else:
             response = jsonify({
                 'message': 'Organisation failure'
@@ -157,7 +157,7 @@ def add_member():
     user = User.query.filter_by(email=email).first()
     organisation = Organisation.query.filter_by(name=organisation_name).first()
     
-    if user and organisation_name: 
+    if user and organisation:
         response = register_organisation_member(user.id, organisation.id)
         return response
     else:
@@ -175,7 +175,7 @@ def remove_organisation_member():
     user = User.query.filter_by(email=email).first()
     organisation = Organisation.query.filter_by(name=organisation_name).first()
     
-    if user and organisation_name: 
+    if user and organisation: 
         response = delete_organisation_member(user.id, organisation.id)
         return response
     else:
@@ -193,7 +193,7 @@ def get_user_rganisation():
     current_user = get_jwt_identity()
     user = User.query.filter_by(id=current_user).first()
 
-    if user is not None:
+    if user:
         org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
         repsArr = []
 
