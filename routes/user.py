@@ -193,7 +193,7 @@ def get_user_rganisation():
     current_user = get_jwt_identity()
     user = User.query.filter_by(id=current_user).first()
 
-    if user is not None:
+    if user:
         org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
         repsArr = []
 
