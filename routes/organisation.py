@@ -85,6 +85,35 @@ def add_namespace():
         response.status_code = 401
         return response
 
+
+# Show organisations Namespace
+@organisation_bp.route('/organisation/show/namespaces', methods=['GET'])
+def get_organisations_namespaces():
+    org_name = request.get_json()["organisation_name"]
+    namespace_name = request.get_json()["namespace"]
+    organisation = Organisation.query.filter_by(name=org_name).first()
+    namespace = Namespace.query.filter_by(name= namespace_name)
+
+    if organisation and namespace:
+        org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
+        repsArr = []
+
+        for i in org_association:
+            dict_obj = i.toDict()
+            organisation = get_organisations(dict_obj["organisation_id"])
+            organisation = json.loads(organisation)
+            if len(organisation) > 0:
+                repsArr.append(organisation[0])
+
+        response = json.dumps(repsArr)
+        return response
+    else:
+        response = jsonify({
+            "message": "Namespace or Organisation does not exist"
+        })
+        return response
+
+
 # Deleting an Organisations Namespace
 @organisation_bp.route('/delete/namespace', methods=['DELETE'])
 def delete_organisation_namespace():
