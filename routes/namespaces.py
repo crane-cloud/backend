@@ -33,12 +33,12 @@ def register_namespace(name, organisation_id):
     
 
 # Showing all available namespaces
-@namespace_bp.route('/get/namespaces/<string:namespace_id>', methods=['GET'])
-def get_all_organisations_namespaces(namespace_id):
-    if namespace_id == "all":
+@namespace_bp.route('/get/namespaces/<string:organisation_id>', methods=['GET'])
+def get_all_organisations_namespaces(organisation_id):
+    if organisation_id == "all":
         namespace = Namespace.query.all()
     else:
-        namespace = Namespace.query.filter_by(id=namespace_id)
+        namespace = Namespace.query.filter_by(organisation_id=organisation_id)
     result = []
     for name in namespace:
         result.append(name.toDict())
