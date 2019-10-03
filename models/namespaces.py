@@ -1,3 +1,4 @@
+
 import jwt
 
 from datetime import datetime, timedelta
@@ -6,7 +7,9 @@ from models.organisation import Organisation
 
 from app import db
 
-class Namespace(db.Model):
+from helpers.toDict import ToDict
+
+class Namespace(db.Model, ToDict):
     """ Namespace table definition """
 
     _tablename_ = 'namespace'

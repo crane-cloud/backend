@@ -4,7 +4,7 @@ from models.organisation import Organisation
 from models.namespaces import Namespace
 
 from routes.deployment import create_namespace, get_namespaces, delete_namespace
-from routes.namespaces import register_namespace
+from routes.namespaces import register_namespace, get_all_organisations_namespaces
 
 # custom response helper
 from helpers.construct_response import *
@@ -66,7 +66,7 @@ def add_namespace():
     organisation = Organisation.query.filter_by(name=organisation_name).first()
     # print(organisation.id)
     """ checking if organisation is in database """
-    if organisation is not None:
+    if organisation:
         resp = create_namespace(namespace)
         """ checking if namespaces been created """
         if(resp.status_code == 201):
@@ -84,6 +84,27 @@ def add_namespace():
         })
         response.status_code = 401
         return response
+
+
+# Show organisations Namespace
+@organisation_bp.route('/organisation/show/namespaces', methods=['GET'])
+def get_organisations_namespaces():
+    org_name = request.get_json()["organisation_name"]
+    namespace_name = request.get_json()["namespace"]
+
+    organisation = Organisation.query.filter_by(name=org_name).first()
+    namespace = Namespace.query.filter_by(name= namespace_name)
+
+    if organisation and namespace:
+        namespaces = Namespace.query.filter_by(organisation_id=organisation.id).all()
+        namespace_list = get_all_organisations_namespaces(organisation.id)
+        return namespace_list
+    else:
+        response = jsonify({
+            "message": "Namespace or Organisation does not exist"
+        })
+        return response
+
 
 # Deleting an Organisations Namespace
 @organisation_bp.route('/delete/namespace', methods=['DELETE'])
