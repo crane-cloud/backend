@@ -38,11 +38,11 @@ def register_organisation(name):
 # Deleting an Organisation
 @organisation_bp.route('/delete/organisation', methods=['DELETE'])
 def delete_organisation():
-
+    
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name = org_name).first()
 
-    if organisation is not None:
+    if organisation:
         organisation.delete()
         response = jsonify({
             'message': 'Successfully deleted'
@@ -91,7 +91,11 @@ def add_namespace():
 def get_organisations_namespaces():
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name=org_name).first()
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 6787ff6a45a5f8f2b394c8b9631683ffb8d29c8e
     if organisation:
         namespace_list = get_all_organisations_namespaces(organisation.id)
         return namespace_list
