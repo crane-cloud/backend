@@ -35,10 +35,32 @@ def register_organisation(name):
         return response
 
 
+# Renaming an Organisation
+@organisation_bp.route('/rename/organisation', methods=['POST'])
+def rename_organisation():
+    org_name = request.get_json()["organisation_name"]
+    new_name = request.get_json()["new_name"]
+    organisation = Organisation.query.filter_by(name = org_name).first()
+
+    if organisation:
+        organisation.name = new_name
+        organisation.update()
+        response = jsonify({
+            'message': 'Successfully Renamed'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
+
+
 # Deleting an Organisation
 @organisation_bp.route('/delete/organisation', methods=['DELETE'])
 def delete_organisation():
-    
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name = org_name).first()
 
@@ -55,7 +77,6 @@ def delete_organisation():
         })
         response.status_code = 401
         return response 
-
 
 # Creating Namespace for an Organisation
 @organisation_bp.route('/add/namespace', methods=['POST'])
@@ -91,11 +112,6 @@ def add_namespace():
 def get_organisations_namespaces():
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name=org_name).first()
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> 6787ff6a45a5f8f2b394c8b9631683ffb8d29c8e
     if organisation:
         namespace_list = get_all_organisations_namespaces(organisation.id)
         return namespace_list
