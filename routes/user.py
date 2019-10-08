@@ -6,6 +6,7 @@ from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
 )
+from flask_bcrypt import Bcrypt
 from models.user import User
 from models.organisation_members import *
 from models.organisation import *
@@ -227,3 +228,42 @@ def show_all_users():
         respArr.append(names)
     response = json.dumps(respArr)
     return response
+
+# Updating User
+@user_bp.route('/update/user', methods=['POST'])
+@jwt_required
+def update_user():
+    current_user = get_jwt_identity()
+    req = request.get_json()
+    new_email = ''
+    new_name = ''
+    new_password = ''
+    if "new_email" in req:
+        new_email = req["new_email"]
+    if "new_name" in req:
+        new_name = req["new_name"]
+    if "new_password" in req:
+        new_password = req["new_password"]
+
+    user = User.query.filter_by(id = current_user).first()
+    if user:
+        if new_name:
+            user.name = new_name
+        if new_password:
+            user.password = Bcrypt().generate_password_hash(new_password).decode()
+        if new_email:
+            user.email = new_email
+
+        user.update()
+
+        response = jsonify({
+            'message': 'Successfully Updated'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'User does not exist'
+        })
+        response.status_code = 401
+        return response 
