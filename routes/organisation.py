@@ -35,14 +35,36 @@ def register_organisation(name):
         return response
 
 
+# Renaming an Organisation
+@organisation_bp.route('/rename/organisation', methods=['POST'])
+def rename_organisation():
+    org_name = request.get_json()["organisation_name"]
+    new_name = request.get_json()["new_name"]
+    organisation = Organisation.query.filter_by(name = org_name).first()
+
+    if organisation:
+        organisation.name = new_name
+        organisation.update()
+        response = jsonify({
+            'message': 'Successfully Renamed'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
+
+
 # Deleting an Organisation
 @organisation_bp.route('/delete/organisation', methods=['DELETE'])
 def delete_organisation():
-
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name = org_name).first()
 
-    if organisation is not None:
+    if organisation:
         organisation.delete()
         response = jsonify({
             'message': 'Successfully deleted'
@@ -55,7 +77,6 @@ def delete_organisation():
         })
         response.status_code = 401
         return response 
-
 
 # Creating Namespace for an Organisation
 @organisation_bp.route('/add/namespace', methods=['POST'])
@@ -90,18 +111,13 @@ def add_namespace():
 @organisation_bp.route('/organisation/show/namespaces', methods=['GET'])
 def get_organisations_namespaces():
     org_name = request.get_json()["organisation_name"]
-    namespace_name = request.get_json()["namespace"]
-
     organisation = Organisation.query.filter_by(name=org_name).first()
-    namespace = Namespace.query.filter_by(name= namespace_name)
-
-    if organisation and namespace:
-        namespaces = Namespace.query.filter_by(organisation_id=organisation.id).all()
+    if organisation:
         namespace_list = get_all_organisations_namespaces(organisation.id)
         return namespace_list
     else:
         response = jsonify({
-            "message": "Namespace or Organisation does not exist"
+            "message": "Organisation does not exist"
         })
         return response
 

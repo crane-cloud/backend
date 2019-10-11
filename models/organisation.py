@@ -30,3 +30,6 @@ class Organisation(db.Model, ToDict):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+    def update(self):
+        db.session.commit()

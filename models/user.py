@@ -45,7 +45,9 @@ class User(db.Model, ToDict):
         db.session.delete(self)
         db.session.commit()
 
-
+    def update(self):
+        db.session.commit()
+        
     def generate_token(self, id):
         """ generates the access token """
 
