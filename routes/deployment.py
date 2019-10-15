@@ -148,7 +148,7 @@ def create_namespace(namespace):
         
         
 # Deleting namespace
-@deployment_bp.route('/deploy/delete/namespace/<string:namespace>', methods = ['POST'])
+@deployment_bp.route('/deploy/delete/namespace', methods = ['POST'])
 def delete_namespace(namespace):
     try:
         resp = kube.delete_namespace(namespace)

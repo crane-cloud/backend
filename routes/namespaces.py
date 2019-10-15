@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, json
 
 from models.namespaces import Namespace
 
@@ -31,3 +31,16 @@ def register_namespace(name, organisation_id):
         response.status_code = 401
         return response
     
+
+# Showing all available namespaces
+@namespace_bp.route('/get/namespaces/<string:organisation_id>', methods=['GET'])
+def get_all_organisations_namespaces(organisation_id):
+    if organisation_id == "all":
+        namespace = Namespace.query.all()
+    else:
+        namespace = Namespace.query.filter_by(organisation_id=organisation_id)
+    result = []
+    for name in namespace:
+        result.append(name.toDict())
+    response = json.dumps(result)
+    return response

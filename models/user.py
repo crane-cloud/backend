@@ -5,8 +5,9 @@ from datetime import timedelta
 
 from app import db
 
+from helpers.toDict import ToDict
 
-class User(db.Model):
+class User(db.Model, ToDict):
     """ user table definition """
 
     _tablename_ = "users"
@@ -40,6 +41,13 @@ class User(db.Model):
         db.session.add(self)
         db.session.commit()
 
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def update(self):
+        db.session.commit()
+        
     def generate_token(self, id):
         """ generates the access token """
 

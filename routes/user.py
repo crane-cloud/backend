@@ -6,11 +6,12 @@ from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
 )
+from flask_bcrypt import Bcrypt
 from models.user import User
 from models.organisation_members import *
 from models.organisation import *
 from routes.organisation import register_organisation, get_organisations
-from routes.organisation_members import register_organisation_member
+from routes.organisation_members import *
 
 # from helpers.token import generate_token, validate_token
 # from helpers.email import send_email
@@ -18,7 +19,7 @@ from routes.organisation_members import register_organisation_member
 # user blueprint
 user_bp = Blueprint("user", __name__)
 
-
+#  User registration
 @user_bp.route("/register", methods=["POST"])
 def register():
     """ create new user """
@@ -52,8 +53,12 @@ def register():
         response.status_code = 201
 
         return response
+    else:
+        response = jsonify({"message": "Register failure, wrong information"})
+        response.status_code = 401
+        return response
 
-
+# User Login
 @user_bp.route("/login", methods=["POST"])
 def login():
     """ user login """
@@ -78,6 +83,10 @@ def login():
                 response.status_code = 200
 
                 return response
+            else:
+                response = jsonify({"message": "Unable to generate token"})
+                response.status_code = 401
+                return response
         else:
             """ wrong credentials """
 
@@ -86,13 +95,38 @@ def login():
             response.status_code = 401
 
             return response
+    else:
+        response = jsonify({"message": "Login failure, wrong information"})
+        response.status_code = 401
+        return response
+
+
+# Delete User account
+@user_bp.route('/delete/user', methods=['DELETE'])
+def delete_user_account():
+    email = request.get_json()['email']
+    user = User.query.filter_by(email = email).first()
+
+    if user is not None:
+        user.delete()
+        response = jsonify({
+            'message': 'Successfully deleted'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'User does not exist'
+        })
+        response.status_code = 401
+        return response 
 
 # Creating an Organisation
 @user_bp.route('/create/organisation', methods=['POST'])
 @jwt_required
 def create_organisation():
     current_user = get_jwt_identity()
-    org_name = request.get_json()['org_name']
+    org_name = request.get_json()['organisation_name']
     if(current_user is not None):
         """ Register the organisation """
 
@@ -101,7 +135,7 @@ def create_organisation():
         if(organisation_resp['status_code'] == 201):
             """ Register them into the association table """
             response = register_organisation_member(current_user, organisation_resp['id'])
-            return response
+            return organisation_resp, 201
         else:
             response = jsonify({
                 'message': 'Organisation failure'
@@ -124,23 +158,43 @@ def add_member():
     user = User.query.filter_by(email=email).first()
     organisation = Organisation.query.filter_by(name=organisation_name).first()
     
-    if user and organisation_name: 
+    if user and organisation:
         response = register_organisation_member(user.id, organisation.id)
         return response
     else:
-        """Send a link to user """
-        pass
+        response = jsonify({
+            'message': 'User or Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
+
+# Removing Member from an Organisation
+@user_bp.route('/delete/member/organisation', methods=['DELETE'])
+def remove_organisation_member():
+    email = request.get_json()['email']
+    organisation_name = request.get_json()['organisation_name']
+    user = User.query.filter_by(email=email).first()
+    organisation = Organisation.query.filter_by(name=organisation_name).first()
+    
+    if user and organisation: 
+        response = delete_organisation_member(user.id, organisation.id)
+        return response
+    else:
+        response = jsonify({
+            'message': 'User or Organisation does not exist'
+        })
+        response.status_code = 401
+        return response 
 
 
 # Show organisations list
 @user_bp.route('/user/get/organisations', methods=['GET'])
 @jwt_required
-def get_organisation():
+def get_user_rganisation():
     current_user = get_jwt_identity()
     user = User.query.filter_by(id=current_user).first()
 
-    if user is not None:
-
+    if user:
         org_association = OrganisationMembers.query.filter_by(user_id=user.id).all()
         repsArr = []
 
@@ -158,3 +212,58 @@ def get_organisation():
             "message": "Not registered user"
         })
         return response
+
+# Show all users in the database
+@user_bp.route('/show/all/users', methods=['GET'])
+@jwt_required
+def show_all_users():
+    users = User.query.all()
+    respArr = []
+    names ={}
+
+    for user in users:
+        dict_obj = user.toDict()
+        names['name'] = dict_obj['name']
+        names['email'] = dict_obj['email']
+        respArr.append(names)
+    response = json.dumps(respArr)
+    return response
+
+# Updating User
+@user_bp.route('/update/user', methods=['POST'])
+@jwt_required
+def update_user():
+    current_user = get_jwt_identity()
+    req = request.get_json()
+    new_email = ''
+    new_name = ''
+    new_password = ''
+    if "new_email" in req:
+        new_email = req["new_email"]
+    if "new_name" in req:
+        new_name = req["new_name"]
+    if "new_password" in req:
+        new_password = req["new_password"]
+
+    user = User.query.filter_by(id = current_user).first()
+    if user:
+        if new_name:
+            user.name = new_name
+        if new_password:
+            user.password = Bcrypt().generate_password_hash(new_password).decode()
+        if new_email:
+            user.email = new_email
+
+        user.update()
+
+        response = jsonify({
+            'message': 'Successfully Updated'
+        })
+        response.status_code = 201
+        return response 
+    else:
+        response = jsonify({
+            'message': 'User does not exist'
+        })
+        response.status_code = 401
+        return response 
