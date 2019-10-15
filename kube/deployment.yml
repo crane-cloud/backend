@@ -84,3 +84,9 @@ spec:
               value: root
             - name: POSTGRES_DB
               value: cranecloud
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5432
+            initialDelaySeconds: 240
+            periodSeconds: 30
