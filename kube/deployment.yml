@@ -69,10 +69,10 @@ spec:
       labels:
         app: postgres-db
     spec:
-      # volumes:
-      #   - name: psql-persistent-storage
-      #     persistentVolumeClaim:
-      #       claimName: psql-pvc
+      volumes:
+        - name: psql-persistent-storage
+          persistentVolumeClaim:
+            claimName: psql-pvc
       containers:
         - name: postgres-db
           image: postgres:10.8-alpine
