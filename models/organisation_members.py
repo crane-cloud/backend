@@ -14,10 +14,11 @@ class OrganisationMembers(db.Model, ToDict):
     organisation_id = db.Column("organisation_id", db.Integer, db.ForeignKey(Organisation.id, ondelete='CASCADE'), nullable=False)
     is_admin = db.Column("is_admin", db.Boolean, default=False)
     
-    def __init__(self, user_id, organisation_id):
+    def __init__(self, user_id, organisation_id, is_admin):
         """ initialize with name, member and namespace """  
         self.user_id = user_id
         self.organisation_id = organisation_id
+        self.is_admin = is_admin
 
 
     def save(self):

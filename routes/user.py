@@ -134,7 +134,7 @@ def create_organisation():
         
         if(organisation_resp['status_code'] == 201):
             """ Register them into the association table """
-            response = register_organisation_member(current_user, organisation_resp['id'])
+            response = register_organisation_member(current_user, organisation_resp['id'], True)
             return organisation_resp, 201
         else:
             response = jsonify({
@@ -159,7 +159,7 @@ def add_member():
     organisation = Organisation.query.filter_by(name=organisation_name).first()
     
     if user and organisation:
-        response = register_organisation_member(user.id, organisation.id)
+        response = register_organisation_member(user.id, organisation.id, False)
         return response
     else:
         response = jsonify({
