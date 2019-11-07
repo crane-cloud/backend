@@ -12,6 +12,7 @@ class OrganisationMembers(db.Model, ToDict):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column('user_id', db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
     organisation_id = db.Column("organisation_id", db.Integer, db.ForeignKey(Organisation.id, ondelete='CASCADE'), nullable=False)
+    is_admin = db.Column("is_admin", db.Boolean, default=False)
     
     def __init__(self, user_id, organisation_id):
         """ initialize with name, member and namespace """  
