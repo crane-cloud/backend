@@ -109,31 +109,43 @@ def delete_organisation():
 
 # Creating Namespace for an Organisation
 @organisation_bp.route('/add/namespace', methods=['POST'])
+@jwt_required
 def add_namespace():
     namespace = request.get_json()['namespace']
-    organisation_name = request.get_json()['organisation_name']
+    current_user_id = get_jwt_identity()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
+    
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        organisation_name = request.get_json()['organisation_name']
 
-    organisation = Organisation.query.filter_by(name=organisation_name).first()
-    # print(organisation.id)
-    """ checking if organisation is in database """
-    if organisation:
-        resp = create_namespace(namespace)
-        """ checking if namespaces been created """
-        if(resp.status_code == 201):
-            response = register_namespace(namespace, organisation.id)
-            return response
+        organisation = Organisation.query.filter_by(name=organisation_name).first()
+        # print(organisation.id)
+        """ checking if organisation is in database """
+        if organisation:
+            resp = create_namespace(namespace)
+            """ checking if namespaces been created """
+            if(resp.status_code == 201):
+                response = register_namespace(namespace, organisation.id)
+                return response
+            else:
+                response = jsonify({
+                    'message': 'Namespace Already exists'
+                })    
+                response.status_code = 401
+                return response
         else:
             response = jsonify({
-                'message': 'Namespace Already exists'
-            })    
+                'message': 'Organisation Does not exist'
+            })
             response.status_code = 401
             return response
     else:
         response = jsonify({
-            'message': 'Organisation Does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
-        return response
+        return response 
 
 
 # Show organisations Namespace
@@ -153,16 +165,28 @@ def get_organisations_namespaces():
 
 # Deleting an Organisations Namespace
 @organisation_bp.route('/delete/namespace', methods=['DELETE'])
+@jwt_required
 def delete_organisation_namespace():
     name = request.get_json()['namespace']
-    namespace = Namespace.query.filter_by(name = name).first()
+    current_user_id = get_jwt_identity()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
+    
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        namespace = Namespace.query.filter_by(name = name).first()
 
-    if namespace is not None:
-        namespace.delete()
-        return delete_namespace(name)
+        if namespace is not None:
+            namespace.delete()
+            return delete_namespace(name)
+        else:
+            response = jsonify({
+                'message': 'Namespace does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'Namespace does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
         return response 
