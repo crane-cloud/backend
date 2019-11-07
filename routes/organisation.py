@@ -1,7 +1,14 @@
 from flask import request, jsonify, Blueprint, json
 
+from flask_jwt_extended import (
+    JWTManager,
+    jwt_required,
+    get_jwt_identity,
+)
+
 from models.organisation import Organisation
 from models.namespaces import Namespace
+from models.organisation_members import OrganisationMembers
 
 from routes.deployment import create_namespace, get_namespaces, delete_namespace
 from routes.namespaces import register_namespace, get_all_organisations_namespaces
@@ -37,43 +44,65 @@ def register_organisation(name):
 
 # Renaming an Organisation
 @organisation_bp.route('/rename/organisation', methods=['POST'])
+@jwt_required
 def rename_organisation():
     org_name = request.get_json()["organisation_name"]
     new_name = request.get_json()["new_name"]
-    organisation = Organisation.query.filter_by(name = org_name).first()
-
-    if organisation:
-        organisation.name = new_name
-        organisation.update()
-        response = jsonify({
-            'message': 'Successfully Renamed'
-        })
-        response.status_code = 201
-        return response 
+    current_user_id = get_jwt_identity()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
+    
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        organisation = Organisation.query.filter_by(name = org_name).first()
+        if organisation:
+            organisation.name = new_name
+            organisation.update()
+            response = jsonify({
+                'message': 'Successfully Renamed'
+            })
+            response.status_code = 201
+            return response 
+        else:
+            response = jsonify({
+                'message': 'Organisation does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'Organisation does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
         return response 
 
-
 # Deleting an Organisation
 @organisation_bp.route('/delete/organisation', methods=['DELETE'])
+@jwt_required
 def delete_organisation():
     org_name = request.get_json()["organisation_name"]
-    organisation = Organisation.query.filter_by(name = org_name).first()
+    current_user_id = get_jwt_identity()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
+    
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        organisation = Organisation.query.filter_by(name = org_name).first()
 
-    if organisation:
-        organisation.delete()
-        response = jsonify({
-            'message': 'Successfully deleted'
-        })
-        response.status_code = 201
-        return response 
+        if organisation:
+            organisation.delete()
+            response = jsonify({
+                'message': 'Successfully deleted'
+            })
+            response.status_code = 201
+            return response 
+        else:
+            response = jsonify({
+                'message': 'Organisation does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'Organisation does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
         return response 
