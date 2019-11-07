@@ -152,18 +152,29 @@ def create_organisation():
 
 # Adding a member to an organisation
 @user_bp.route('/add/member', methods=['POST'])
+@jwt_required
 def add_member():
+    current_user_id = get_jwt_identity()
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
-    user = User.query.filter_by(email=email).first()
-    organisation = Organisation.query.filter_by(name=organisation_name).first()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
     
-    if user and organisation:
-        response = register_organisation_member(user.id, organisation.id, False)
-        return response
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        user = User.query.filter_by(email=email).first()
+        organisation = Organisation.query.filter_by(name=organisation_name).first()
+        if user and organisation:
+            response = register_organisation_member(user.id, organisation.id, False)
+            return response
+        else:
+            response = jsonify({
+                'message': 'User or Organisation does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'User or Organisation does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
         return response 
