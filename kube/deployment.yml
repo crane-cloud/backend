@@ -84,3 +84,13 @@ spec:
               value: root
             - name: POSTGRES_DB
               value: cranecloud
+          readinessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
