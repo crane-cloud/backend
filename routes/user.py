@@ -134,7 +134,7 @@ def create_organisation():
         
         if(organisation_resp['status_code'] == 201):
             """ Register them into the association table """
-            response = register_organisation_member(current_user, organisation_resp['id'])
+            response = register_organisation_member(current_user, organisation_resp['id'], True)
             return organisation_resp, 201
         else:
             response = jsonify({
@@ -152,45 +152,67 @@ def create_organisation():
 
 # Adding a member to an organisation
 @user_bp.route('/add/member', methods=['POST'])
+@jwt_required
 def add_member():
+    current_user_id = get_jwt_identity()
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
-    user = User.query.filter_by(email=email).first()
-    organisation = Organisation.query.filter_by(name=organisation_name).first()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
     
-    if user and organisation:
-        response = register_organisation_member(user.id, organisation.id)
-        return response
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        user = User.query.filter_by(email=email).first()
+        organisation = Organisation.query.filter_by(name=organisation_name).first()
+        if user and organisation:
+            response = register_organisation_member(user.id, organisation.id, False)
+            return response
+        else:
+            response = jsonify({
+                'message': 'User or Organisation does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'User or Organisation does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
         return response 
 
 # Removing Member from an Organisation
 @user_bp.route('/delete/member/organisation', methods=['DELETE'])
+@jwt_required
 def remove_organisation_member():
+    current_user_id = get_jwt_identity()
     email = request.get_json()['email']
     organisation_name = request.get_json()['organisation_name']
-    user = User.query.filter_by(email=email).first()
-    organisation = Organisation.query.filter_by(name=organisation_name).first()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
     
-    if user and organisation: 
-        response = delete_organisation_member(user.id, organisation.id)
-        return response
+    # check if current user in an admin
+    if current_user.is_admin is True:
+        user = User.query.filter_by(email=email).first()
+        organisation = Organisation.query.filter_by(name=organisation_name).first()
+        
+        if user and organisation: 
+            response = delete_organisation_member(user.id, organisation.id)
+            return response
+        else:
+            response = jsonify({
+                'message': 'User or Organisation does not exist'
+            })
+            response.status_code = 401
+            return response 
     else:
         response = jsonify({
-            'message': 'User or Organisation does not exist'
+            'message': 'User is not an Admin'
         })
         response.status_code = 401
-        return response 
-
+        return response
 
 # Show organisations list
 @user_bp.route('/user/get/organisations', methods=['GET'])
 @jwt_required
-def get_user_rganisation():
+def get_user_organisation():
     current_user = get_jwt_identity()
     user = User.query.filter_by(id=current_user).first()
 
