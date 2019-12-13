@@ -1,0 +1,66 @@
+version: 2
+jobs:
+  build:
+    docker:
+      # use docker to execute the containers
+      - image: circleci/python:3.6.2-stretch-browsers
+        # add python service and set environment variables
+        environment:
+          FLASK_APP: app.py
+          FLASK_ENV: testing
+          PGHOST: 127.0.0.1
+          PGUSER: root
+      - image: circleci/postgres:10.8-alpine
+        # add postgres service and set environment variables
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_DB: cranecloud_test_db
+    steps:
+      # clone source code from repo
+      - checkout
+        # grant CircleCI access to dependency locations
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - restore_cache:
+          # restore dependencies from cache
+          keys:
+            - o-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+            - o-{{ .Branch }}
+            - o
+      - run:
+          # install new dependencies
+          command: |
+            sudo pip install pipenv
+            pipenv install
+      - save_cache:
+          # cache dependencies
+          key: o-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          paths:
+            # dependency locations
+            - ".venv"
+            - "/usr/local/bin"
+            - "/usr/local/lib/python3.6/site-packages"
+      - run:
+          # run tests and return coverage
+          command: pipenv run nosetests --with-coverage --cover-package=routes
+      - run:
+          # upload test coverage to codecov
+          command: pipenv run codecov
+      - run:
+          # install envsubst
+          command: |
+            sudo apt update && sudo apt -y install gettext-base
+      - run:
+          # install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+            chmod u+x ./kubectl
+      - setup_remote_docker
+        # docker_layer_caching: true
+        # DLC is only available on Performance and Custom Plans
+      - run:
+          # deploy develop to cluster
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              ./scripts/ci-deploy.sh
+            fi

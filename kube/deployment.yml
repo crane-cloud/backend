@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-api
+  namespace: default
+  labels:
+    app: flask-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-api
+  template:
+    metadata:
+      labels:
+        app: flask-api
+    spec:
+      containers:
+        - name: flask-api
+          image: ckwagaba/crane-cloud-backend:$COMMIT_SHA1
+          ports:
+            - containerPort: 5000
+              name: flask-api
+          env:
+            - name: DATABASE_URI
+              value: $DATABASE_URI
+            - name: FLASK_APP_SECRET
+              value: $FLASK_APP_SECRET
+            - name: FLASK_APP_SALT
+              value: $FLASK_APP_SALT
+            - name: KUBE_HOST
+              value: $KUBE_HOST
+            - name: KUBE_TOKEN
+              value: $KUBE_TOKEN
+            - name: KUBE_CERT
+              value: $KUBE_CERT
+            - name: PROMETHEUS_URL
+              value: $PROMETHEUS_URL
+            - name: APP_MAIL_USERNAME
+              value: $APP_MAIL_USERNAME
+            - name: APP_MAIL_PASSWORD
+              value: $APP_MAIL_PASSWORD
+            - name: DOCKERHUB_USERNAME
+              value: $DOCKERHUB_USERNAME
+            - name: DOCKERHUB_PASS
+              value: $DOCKERHUB_PASS
+            - name: HARBOR_BASE_URL
+              value: $HARBOR_BASE_URL
+            - name: HARBOR_USERNAME
+              value: $HARBOR_USERNAME
+            - name: HARBOR_PASSWORD
+              value: $HARBOR_PASSWORD
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-db
+  namespace: default
+  labels:
+    app: postgres-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-db
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+    spec:
+      volumes:
+        - name: psql-persistent-storage
+          persistentVolumeClaim:
+            claimName: psql-pvc
+      containers:
+        - name: postgres-db
+          image: postgres:10.8-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres-db
+          env:
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_DB
+              value: cranecloud
+          readinessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
