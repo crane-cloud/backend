@@ -18,6 +18,8 @@ from helpers.construct_response import *
 
 # Organisation blueprint
 organisation_bp = Blueprint('organisation', __name__)
+
+#Create Organisation
 @organisation_bp.route('/create/org', methods=['POST'])
 def register_organisation(name):
     """ create new organisation """
@@ -149,7 +151,7 @@ def add_namespace():
 
 
 # Show organisations Namespace
-@organisation_bp.route('/organisation/show/namespaces', methods=['GET'])
+@organisation_bp.route('/organisation/show/namespaces', methods=['POST'])
 def get_organisations_namespaces():
     org_name = request.get_json()["organisation_name"]
     organisation = Organisation.query.filter_by(name=org_name).first()
