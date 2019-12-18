@@ -1,6 +1,51 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: postgres-db
+  namespace: default
+  labels:
+    app: postgres-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-db
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+    spec:
+      volumes:
+        - name: psql-persistent-storage
+          persistentVolumeClaim:
+            claimName: psql-pvc
+      containers:
+        - name: postgres-db
+          image: postgres:10.8-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres-db
+          env:
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_DB
+              value: cranecloud
+          readinessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command: ["psql", "cranecloud"]
+            initialDelaySeconds: 240
+            periodSeconds: 30
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: flask-api
   namespace: default
   labels:
@@ -51,46 +96,3 @@ spec:
             - name: HARBOR_PASSWORD
               value: $HARBOR_PASSWORD
 
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres-db
-  namespace: default
-  labels:
-    app: postgres-db
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres-db
-  template:
-    metadata:
-      labels:
-        app: postgres-db
-    spec:
-      volumes:
-        - name: psql-persistent-storage
-          persistentVolumeClaim:
-            claimName: psql-pvc
-      containers:
-        - name: postgres-db
-          image: postgres:10.8-alpine
-          ports:
-            - containerPort: 5432
-              name: postgres-db
-          env:
-            - name: POSTGRES_USER
-              value: root
-            - name: POSTGRES_DB
-              value: cranecloud
-          readinessProbe:
-            exec:
-              command: ["psql", "cranecloud"]
-            initialDelaySeconds: 240
-            periodSeconds: 30
-          livenessProbe:
-            exec:
-              command: ["psql", "cranecloud"]
-            initialDelaySeconds: 240
-            periodSeconds: 30
