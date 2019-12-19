@@ -7,6 +7,7 @@ from helpers.construct_response import *
 
 # OrganisationMembers blueprint
 organisation_members_bp = Blueprint('organisation_members', __name__)
+
 @organisation_members_bp.route('/create/organisation_member', methods=['POST'])
 def register_organisation_member(user_id, organisation_id, is_admin):
     """ create organisation Member """
