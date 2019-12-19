@@ -166,7 +166,7 @@ def get_organisations_namespaces():
 
 
 # Deleting an Organisations Namespace
-@organisation_bp.route('/delete/namespace', methods=['DELETE'])
+@organisation_bp.route('/delete/namespace', methods=['POST'])
 @jwt_required
 def delete_organisation_namespace():
     name = request.get_json()['namespace']
