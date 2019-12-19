@@ -30,6 +30,14 @@ def register():
 
     # validate input
     if str(email).strip() and str(password).strip():
+
+        user_existant = User.query.filter_by(email=email).first()
+
+        if user_existant:
+            response = jsonify({"message": "Email address already in use."})
+            response.status_code = 401
+            return response
+
         user = User(email, name, password)
         user.save()
 
