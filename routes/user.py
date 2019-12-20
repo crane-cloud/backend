@@ -13,7 +13,7 @@ from models.organisation import *
 from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import *
 
-# from helpers.token import generate_token, validate_token
+from helpers.token import generate_token, validate_token
 # from helpers.email import send_email
 
 # user blueprint
@@ -34,7 +34,7 @@ def register():
         user.save()
 
         # send verification token
-        # token = generate_token(user.email)
+        token = generate_token(user.email)
         # verify_url = url_for("user.verify_email", token=token, _external=True)
         # html = render_template("user/verify.html", verify_url=verify_url)
         # subject = "Please confirm your email"
