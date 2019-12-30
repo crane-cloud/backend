@@ -36,7 +36,7 @@ def register():
 
         if user_existant: # if email exists
             response = jsonify({"message": "Email address already in use."})
-            response.status_code = 401
+            response.status_code = 409
             return response
 
         user = User(email, name, password)
