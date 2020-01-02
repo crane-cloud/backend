@@ -1,5 +1,6 @@
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, render_template
 import json
+import sys
 from flask_jwt_extended import (
     JWTManager,
     jwt_required,
@@ -13,13 +14,22 @@ from models.organisation import *
 from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import *
 
-from helpers.token import generate_token, validate_token
-# from helpers.email import send_email
-
+# from helpers.token import generate_token, validate_token
+from helpers.email import send_email
+# from app import food
 # user blueprint
 user_bp = Blueprint("user", __name__)
 
 #  User registration
+@user_bp.route("/")
+def hello():
+    gat = sys.path
+    response = jsonify({
+        "path": gat
+        # "food": food
+    })
+    return response
+
 @user_bp.route("/register", methods=["POST"])
 def register():
     """ create new user """
@@ -34,11 +44,12 @@ def register():
         user.save()
 
         # send verification token
-        token = generate_token(user.email)
+        # token = generate_token(user.email)
         # verify_url = url_for("user.verify_email", token=token, _external=True)
         # html = render_template("user/verify.html", verify_url=verify_url)
-        # subject = "Please confirm your email"
-        # send_email(user.email, subject, html)
+        html = render_template("user/verify.html")
+        subject = "Please confirm your email"
+        send_email(user.email, subject, html)
 
         response = jsonify(
             {
@@ -99,6 +110,24 @@ def login():
         response = jsonify({"message": "Login failure, wrong information"})
         response.status_code = 401
         return response
+
+@user_bp.route('/confirm/<token>')
+# @login_required
+def confirm_email(token):
+    try:
+        email = confirm_token(token)
+    except:
+        flash('The confirmation link is invalid or has expired.', 'danger')
+    user = User.query.filter_by(email=email).first_or_404()
+    if user.confirmed:
+        flash('Account already confirmed. Please login.', 'success')
+    else:
+        user.confirmed = True
+        user.confirmed_on = datetime.datetime.now()
+      #  db.session.add(user) # can remove this
+        db.session.commit()
+        flash("You've confirmed your account. Thanks!", 'success')
+    return redirect(url_for('auth.login'))
 
 
 # Delete User account

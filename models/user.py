@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
-from app import db
+from app import db, my_app
 
 from helpers.toDict import ToDict
 
