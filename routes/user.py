@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint, render_template
+from flask import request, jsonify, Blueprint, render_template, url_for
 import json
 import sys
 from flask_jwt_extended import (
@@ -14,7 +14,7 @@ from models.organisation import *
 from routes.organisation import register_organisation, get_organisations
 from routes.organisation_members import *
 
-# from helpers.token import generate_token, validate_token
+from helpers.token import generate_token, validate_token
 from helpers.email import send_email
 # from app import food
 # user blueprint
@@ -44,10 +44,10 @@ def register():
         user.save()
 
         # send verification token
-        # token = generate_token(user.email)
-        # verify_url = url_for("user.verify_email", token=token, _external=True)
-        # html = render_template("user/verify.html", verify_url=verify_url)
-        html = render_template("user/verify.html")
+        token = generate_token(user.email)
+        verify_url = url_for("user.verify_email", token=token, _external=True)
+        html = render_template("user/verify.html", verify_url=verify_url)
+        # html = render_template("user/verify.html")
         subject = "Please confirm your email"
         send_email(user.email, subject, html)
 
@@ -112,22 +112,28 @@ def login():
         return response
 
 @user_bp.route('/confirm/<token>')
-# @login_required
-def confirm_email(token):
+def verify_email(token):
+
     try:
-        email = confirm_token(token)
+        email = validate_token(token)
     except:
-        flash('The confirmation link is invalid or has expired.', 'danger')
-    user = User.query.filter_by(email=email).first_or_404()
-    if user.confirmed:
-        flash('Account already confirmed. Please login.', 'success')
-    else:
-        user.confirmed = True
-        user.confirmed_on = datetime.datetime.now()
-      #  db.session.add(user) # can remove this
-        db.session.commit()
-        flash("You've confirmed your account. Thanks!", 'success')
-    return redirect(url_for('auth.login'))
+        response = jsonify({"message": 'The confirmation link is invalid or has expired.'})
+        response.status_code = 401
+        return response
+
+    user = User.query.filter_by(email=email).first()
+
+    if user.verified:
+        response = jsonify({"message": 'Account already confirmed. Please login.'})
+        response.status_code = 409
+        return response
+
+    user.verified = True
+    db.session.commit()
+    response = jsonify({"message": "You've confirmed your account. Thanks!"})
+    response.status_code = 200
+
+    return response
 
 
 # Delete User account
