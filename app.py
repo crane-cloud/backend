@@ -28,6 +28,7 @@ appsv1_api = client.AppsV1Api(client.ApiClient(config))
 db = SQLAlchemy()
 
 my_app = ''
+mail = Mail()
 
 # import blueprints
 from routes.user import user_bp
@@ -39,7 +40,7 @@ from routes.deployment import deployment_bp
 from routes.namespaces import namespace_bp
 #from routes.organisation import organisation_bp
 
-mail = Mail()
+
 food = "my food"
 
 def create_app(config_name):
