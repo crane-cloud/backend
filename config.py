@@ -27,7 +27,7 @@ class Development(Base):
     """ development config """
 
     DEBUG = (True,)
-    SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://postgres:donthack@localhost:5432/cranecloud"
+    SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
     # These help incase we have tests as well
     # And to help application know it surely should
     # send the emails not to mention incase of debugging 

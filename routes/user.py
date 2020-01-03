@@ -16,19 +16,11 @@ from routes.organisation_members import *
 
 from helpers.token import generate_token, validate_token
 from helpers.email import send_email
-# from app import food
+
 # user blueprint
 user_bp = Blueprint("user", __name__)
 
 #  User registration
-@user_bp.route("/")
-def hello():
-    gat = sys.path
-    response = jsonify({
-        "path": gat
-        # "food": food
-    })
-    return response
 
 @user_bp.route("/register", methods=["POST"])
 def register():
@@ -47,7 +39,6 @@ def register():
         token = generate_token(user.email)
         verify_url = url_for("user.verify_email", token=token, _external=True)
         html = render_template("user/verify.html", verify_url=verify_url)
-        # html = render_template("user/verify.html")
         subject = "Please confirm your email"
         send_email(user.email, subject, html)
 

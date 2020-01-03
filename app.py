@@ -10,6 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 # import kubernetes client
 from kubernetes import client
 
+# import Mail library
 from flask_mail import Mail
 
 # configure client
@@ -27,7 +28,7 @@ appsv1_api = client.AppsV1Api(client.ApiClient(config))
 # initialize sql-alchemy
 db = SQLAlchemy()
 
-my_app = ''
+# initialize Mail
 mail = Mail()
 
 # import blueprints
@@ -40,8 +41,6 @@ from routes.deployment import deployment_bp
 from routes.namespaces import namespace_bp
 #from routes.organisation import organisation_bp
 
-
-food = "my food"
 
 def create_app(config_name):
     """ app factory """
@@ -81,8 +80,6 @@ def create_app(config_name):
 
 # create app instance using running config
 app = create_app(os.getenv('FLASK_ENV'))
-# email_sender = app.config["MAIL_DEFAULT_SENDER"]
-my_app = app
 
 if __name__ == '__main__':
     app.run()
