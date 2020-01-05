@@ -38,8 +38,8 @@ def register():
         # send verification token
         token = generate_token(user.email)
         verify_url = url_for("user.verify_email", token=token, _external=True)
-        html = render_template("user/verify.html", verify_url=verify_url)
-        subject = "Please confirm your email"
+        html = render_template("user/verify.html", verify_url=verify_url, username=user.name)
+        subject = "Please confirm your email with CraneCloud."
         send_email(user.email, subject, html)
 
         response = jsonify(
