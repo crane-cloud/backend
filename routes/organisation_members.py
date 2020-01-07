@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, abort
 
 from models.organisation_members import OrganisationMembers
 
@@ -29,13 +29,13 @@ def register_organisation_member(user_id, organisation_id, is_admin):
         response = jsonify({
             'message': 'Creation Failure'
         })
-        response.status_code = 401
+        response.status_code = 400
         return response
 
 # deleting organisation member
 @organisation_members_bp.route('/delete/organisation_member', methods=['POST'])
 def delete_organisation_member(user_id, organisation_id):
-    org_member = OrganisationMembers.query.filter_by(user_id=user_id, organisation_id =organisation_id).first()
+    org_member = OrganisationMembers.query.filter_by(user_id=user_id, organisation_id =organisation_id).first_or_404()
     
     if org_member is not None: 
         org_member.delete()
@@ -44,9 +44,6 @@ def delete_organisation_member(user_id, organisation_id):
         })
         response.status_code = 201
         return response
-    else:
-        response = jsonify({
-            'message': 'User does not exist'
-        })
-        response.status_code = 401
-        return response
+        
+    # User does not exist
+    abort(404, description='User does not exist')

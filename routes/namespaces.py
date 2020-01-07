@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint, json
+from flask import request, jsonify, Blueprint, json, abort
 
 from models.namespaces import Namespace
 
@@ -28,7 +28,7 @@ def register_namespace(name, organisation_id):
         response = jsonify({
             'message': 'Creation Failure'
         })
-        response.status_code = 401
+        response.status_code = 400
         return response
     
 
@@ -39,8 +39,11 @@ def get_all_organisations_namespaces(organisation_id):
         namespace = Namespace.query.all()
     else:
         namespace = Namespace.query.filter_by(organisation_id=organisation_id)
+
     result = []
-    for name in namespace:
-        result.append(name.toDict())
-    response = json.dumps(result)
-    return response
+    if namespace:
+        for name in namespace:
+            result.append(name.toDict())
+        response = json.dumps(result)
+    # No Namespaces yet
+    abort(404, description='No Namespaces found.')

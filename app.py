@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
@@ -35,6 +35,11 @@ from routes.deployment import deployment_bp
 from routes.namespaces import namespace_bp
 #from routes.organisation import organisation_bp
 
+def resource_not_found(e):
+    response = jsonify(error=str(e))
+    response.status_code = 404
+    return response
+
 def create_app(config_name):
     """ app factory """
     
@@ -49,6 +54,9 @@ def create_app(config_name):
     # use running config settings on app
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # register 404 error handler
+    app.register_error_handler(404, resource_not_found)
 
     # register blueprints with the app
     app.register_blueprint(user_bp)
