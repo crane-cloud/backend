@@ -112,6 +112,7 @@ def login():
 
 # Delete User account
 @user_bp.route('/delete/user', methods=['DELETE'])
+@jwt_required
 def delete_user_account():
     email = request.get_json()['email']
     user = User.query.filter_by(email = email).first()
