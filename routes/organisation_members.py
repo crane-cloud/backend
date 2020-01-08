@@ -35,7 +35,7 @@ def register_organisation_member(user_id, organisation_id, is_admin):
 # deleting organisation member
 @organisation_members_bp.route('/delete/organisation_member', methods=['POST'])
 def delete_organisation_member(user_id, organisation_id):
-    org_member = OrganisationMembers.query.filter_by(user_id=user_id, organisation_id =organisation_id).first_or_404()
+    org_member = OrganisationMembers.query.filter_by(user_id=user_id, organisation_id =organisation_id).first()
     
     if org_member is not None: 
         org_member.delete()
