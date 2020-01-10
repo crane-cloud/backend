@@ -50,9 +50,10 @@ spec:
               value: $HARBOR_USERNAME
             - name: HARBOR_PASSWORD
               value: $HARBOR_PASSWORD
-              
+
 ---
 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres-db
