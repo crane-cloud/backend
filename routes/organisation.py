@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint, json
+from flask import request, jsonify, Blueprint, json, abort
 
 from flask_jwt_extended import (
     JWTManager,
@@ -23,7 +23,7 @@ organisation_bp = Blueprint('organisation', __name__)
 @organisation_bp.route('/create/org', methods=['POST'])
 def register_organisation(name):
     """ create new organisation """
-    print(name)
+    
     # validate input
     if str(name).strip():
         organisation = Organisation(name)
@@ -36,12 +36,12 @@ def register_organisation(name):
             'status_code': 201
         }
         return response
-    else:
-        response = jsonify({
-            'message': 'Creation Failure'
-        })
-        response.status_code = 401
-        return response
+
+    response = jsonify({
+        'message': 'Creation Failure'
+    })
+    response.status_code = 400
+    return response
 
 
 # Renaming an Organisation
@@ -51,7 +51,7 @@ def rename_organisation():
     org_name = request.get_json()["organisation_name"]
     new_name = request.get_json()["new_name"]
     current_user_id = get_jwt_identity()
-    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first()
+    current_user = OrganisationMembers.query.filter_by(user_id = current_user_id).first_or_404()
     
     # check if current user in an admin
     if current_user.is_admin is True:
@@ -64,17 +64,18 @@ def rename_organisation():
             })
             response.status_code = 201
             return response 
-        else:
-            response = jsonify({
-                'message': 'Organisation does not exist'
-            })
-            response.status_code = 401
-            return response 
+
+        response = jsonify({
+            'message': 'Organisation does not exist'
+        })
+        response.status_code = 404
+        return response
+            
     else:
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 # Deleting an Organisation
@@ -96,17 +97,15 @@ def delete_organisation():
             })
             response.status_code = 201
             return response 
-        else:
-            response = jsonify({
-                'message': 'Organisation does not exist'
-            })
-            response.status_code = 401
-            return response 
+
+        # Organisation  does not exist
+        abort(404, description='Organisation does not exist') 
+
     else:
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 # Creating Namespace for an Organisation
@@ -136,17 +135,15 @@ def add_namespace():
                 })    
                 response.status_code = 401
                 return response
-        else:
-            response = jsonify({
-                'message': 'Organisation Does not exist'
-            })
-            response.status_code = 401
-            return response
+
+        # Organisation  does not exist
+        abort(404, description='Organisation does not exist')
+
     else:
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 
@@ -158,11 +155,9 @@ def get_organisations_namespaces():
     if organisation:
         namespace_list = get_all_organisations_namespaces(organisation.id)
         return namespace_list
-    else:
-        response = jsonify({
-            "message": "Organisation does not exist"
-        })
-        return response
+
+    # Organisation  does not exist
+    abort(404, description='Organisation does not exist')
 
 
 # Deleting an Organisations Namespace
@@ -175,22 +170,19 @@ def delete_organisation_namespace():
     
     # check if current user in an admin
     if current_user.is_admin is True:
-        namespace = Namespace.query.filter_by(name = name).first()
+        namespace = Namespace.query.filter_by(
+            name = name).first_or_404(description='Namespace does not exist')
 
         if namespace is not None:
             namespace.delete()
             return delete_namespace(name)
-        else:
-            response = jsonify({
-                'message': 'Namespace does not exist'
-            })
-            response.status_code = 401
-            return response 
+
+
     else:
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 
@@ -202,7 +194,9 @@ def get_organisations(org_id):
     else:
         orgs = Organisation.query.filter_by(id=org_id)
     result = []
-    for org in orgs:
-        result.append(org.toDict())
-    response = json.dumps(result)
-    return response
+
+    if orgs:
+        for org in orgs:
+            result.append(org.toDict())
+        response = json.dumps(result)
+        return response
