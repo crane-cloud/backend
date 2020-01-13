@@ -148,7 +148,7 @@ def create_organisation():
         response = jsonify({
                 'message': 'Current user not authorised'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response
 
 
@@ -279,5 +279,5 @@ def update_user():
         response = jsonify({
             'message': 'Successfully Updated'
         })
-        response.status_code = 201
+        response.status_code = 200
         return response 

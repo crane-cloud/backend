@@ -42,7 +42,7 @@ def delete_organisation_member(user_id, organisation_id):
         response = jsonify({
             'message': 'Successfully deleted'
         })
-        response.status_code = 201
+        response.status_code = 200
         return response
         
     # User does not exist

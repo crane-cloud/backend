@@ -75,7 +75,7 @@ def rename_organisation():
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 # Deleting an Organisation
@@ -105,7 +105,7 @@ def delete_organisation():
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 # Creating Namespace for an Organisation
@@ -143,7 +143,7 @@ def add_namespace():
         response = jsonify({
             'message': 'User is not an Admin'
         })
-        response.status_code = 401
+        response.status_code = 403
         return response 
 
 
