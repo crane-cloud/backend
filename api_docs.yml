@@ -1,0 +1,83 @@
+---
+basepath: "/"
+
+paths:
+    "/users":
+        post:
+            tags:
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: user
+                  schema:
+                    type: object
+                    required:
+                        - email
+                        - name
+                        - password
+                    properties:
+                        email:
+                            type: string
+                        name:
+                            type: string
+                        password:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - users
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    "/users/login":
+        post:
+            tags:
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: user
+                  schema:
+                    type: object
+                    required:
+                        - email
+                        - password
+                    properties:
+                        email:
+                            type: string
+                        password:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "success"
+                400:
+                    description: "bad request"
+                401:
+                    description: "failed login"
+
+
+
+

@@ -1,12 +1,13 @@
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
-from app import db, app
+from app.models import db
+from server import app
 
 # import models
-from models.user import User
-from models.organisation import Organisation
-from models.organisation_members import OrganisationMembers
-from models.namespaces import Namespace
+from app.models.user import User
+# from app.models.organisation import Organisation
+# from app.models.organisation_members import OrganisationMembers
+# from app.models.namespaces import Namespace
 
 # register app and db with migration class
 migrate = Migrate(app, db)
