@@ -1,6 +1,7 @@
 import unittest
 
-from app import create_app, db
+from server import create_app
+from app.models import db
 
 class UserTestCase(unittest.TestCase):
     """ user test case """
