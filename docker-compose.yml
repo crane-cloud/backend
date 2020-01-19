@@ -6,7 +6,7 @@ services:
     container_name: postgres-db
     environment:
       POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_DB: cranecloud
     ports:
       - "4200:5432"
     volumes:

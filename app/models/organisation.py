@@ -1,13 +1,13 @@
 import jwt
 from datetime import datetime, timedelta
-from models.user import User
-from models.organisation_members import *
+from app.models.user import User
 
-from app import db
+from app.models import db
 
-from helpers.toDict import ToDict
+from app.models.model_mixin import ModelMixin
 
-class Organisation(db.Model, ToDict):
+
+class Organisation(ModelMixin):
     """ Organisation table definition """
 
     _tablename_ = 'organisations'
@@ -21,15 +21,3 @@ class Organisation(db.Model, ToDict):
     def __init__(self, name):
         """ initialize with name, member and namespace """
         self.name = name
-
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def update(self):
-        db.session.commit()

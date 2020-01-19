@@ -3,11 +3,12 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
-from app import db
+from ..models import db
 
-from helpers.toDict import ToDict
+from app.models.model_mixin import ModelMixin
 
-class User(db.Model, ToDict):
+
+class User(ModelMixin):
     """ user table definition """
 
     _tablename_ = "users"
@@ -27,27 +28,11 @@ class User(db.Model, ToDict):
         self.name = name
         self.username = name
         self.password = Bcrypt().generate_password_hash(password).decode()
-        
 
     def password_is_valid(self, password):
         """ checks the password against it's hash to validate the user's password """
         return Bcrypt().check_password_hash(self.password, password)
 
-    def save(self):
-        """
-        save a user to the database
-        this includes creating a new user and editing one.
-        """
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def update(self):
-        db.session.commit()
-        
     def generate_token(self, id):
         """ generates the access token """
 
