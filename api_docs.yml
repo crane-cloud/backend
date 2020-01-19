@@ -77,7 +77,47 @@ paths:
                     description: "bad request"
                 401:
                     description: "failed login"
+    
+    "/organisations":
+        post:
+            tags:
+                - organisations
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: organisation
+                  schema:
+                    type: object
+                    required:
+                        - name
+                    properties:
+                        name:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
 
+        get:
+            tags:
+                - organisations
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
 
 

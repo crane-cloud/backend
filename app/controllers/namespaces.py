@@ -12,7 +12,7 @@ class NamespacesView(Resource):
         """
         schema = NamespaceSchema(many=True)
 
-        namespaces = Namespace.query.all()
+        namespaces = Namespace.find_all()
 
         namespace_data, errors = schema.dumps(namespaces)
 
@@ -29,7 +29,7 @@ class NamespaceDetailView(Resource):
         """
         schema = NamespaceSchema()
 
-        namespace = Namespace.query.get(id)
+        namespace = Namespace.get_by_id(id)
 
         if not namespace:
             return dict(status='fail', message=f'Namespace with id {id} not found'), 404
@@ -50,7 +50,10 @@ class NamespaceDetailView(Resource):
         if not namespace:
             return dict(status='fail', message=f'Namespace with id {id} not found'), 404
 
-        namespace.delete()
+        deleted = namespace.delete()
+
+        if not deleted:
+            return dict(status='fail', message='Internal Server Error'), 500
 
         return dict(status='success', message='Successfully deleted'), 200
 
@@ -71,7 +74,7 @@ class OrganisationNamespaceView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
 
-        organisation = Organisation.query.get(organisation_id)
+        organisation = Organisation.get_by_id(organisation_id)
 
         if not organisation:
             return dict(status='fail', message=f'Organisation with id {organisation_id} not found'), 404
@@ -79,7 +82,10 @@ class OrganisationNamespaceView(Resource):
         name = validated_namespace_data.get('name')
 
         namespace = Namespace(name, organisation_id)
-        namespace.save()
+        saved = namespace.save()
+
+        if not saved:
+            return dict(status='fail', message='Internal Server Error'), 500
 
         new_namespace_data, errors = schema.dumps(namespace)
 
@@ -91,7 +97,7 @@ class OrganisationNamespaceView(Resource):
         """
         schema = NamespaceSchema(many=True)
 
-        organisation = Organisation.query.get(organisation_id)
+        organisation = Organisation.get_by_id(organisation_id)
 
         if not organisation:
             return dict(
