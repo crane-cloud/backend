@@ -21,7 +21,7 @@ class RolesView(Resource):
         if errors:
             return dict(status="fail", message=errors), 400
 
-        role_existant = Role.find_first(name=name)
+        role_existant = Role.find_first(name=role_name)
 
         if role_existant:
             return dict(status="fail", message=f"Name {validated_role_data['name']} is Available."), 400
@@ -34,7 +34,7 @@ class RolesView(Resource):
 
         new_role_data, errors = roles_schema.dumps(role)
 
-        return dict(status='success', data=dict(user=json.loads(new_role_data))), 201
+        return dict(status='success', data=dict(role=json.loads(new_role_data))), 201
 
     def get(self):
         """
