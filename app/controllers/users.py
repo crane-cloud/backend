@@ -28,7 +28,10 @@ class UsersView(Resource):
             return dict(status="fail", message=f"Email {validated_user_data['email']} already in use."), 400
 
         user = User(**validated_user_data)
-        user.save()
+        saved_user = user.save()
+
+        if not saved_user:
+            return dict(status='fail', message=f'Internal Server Error'), 500
 
         new_user_data, errors = user_schema.dumps(user)
 
@@ -40,7 +43,7 @@ class UsersView(Resource):
 
         user_schema = UserSchema(many=True)
 
-        users = User.query.all()
+        users = User.find_all()
 
         users_data, errors = user_schema.dumps(users)
 
@@ -69,7 +72,7 @@ class UserLoginView(Resource):
         email = validated_user_data.get('email', None)
         password = validated_user_data.get('password', None)
 
-        user = User.query.filter_by(email=email).first()
+        user = User.find_first(email=email)
 
         if user and user.password_is_valid(password):
 

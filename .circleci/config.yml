@@ -42,7 +42,7 @@ jobs:
             - "/usr/local/lib/python3.6/site-packages"
       - run:
           # run tests and return coverage
-          command: pipenv run nosetests --with-coverage --cover-package=routes
+          command: pipenv run nosetests --with-coverage --cover-package=app
       - run:
           # upload test coverage to codecov
           command: pipenv run codecov
