@@ -1,6 +1,5 @@
 import jwt
 from datetime import datetime, timedelta
-from app.models.user import User
 
 from app.models import db
 
