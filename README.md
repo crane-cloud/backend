@@ -1,2 +1,2 @@
-# Osprey Cloud
+# Crane Cloud
 Managed Kubernetes Platform
