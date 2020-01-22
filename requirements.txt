@@ -58,3 +58,4 @@ Werkzeug==0.15.4
 flask-restful
 marshmallow==2.19.2
 flasgger==0.9.3
+sqlalchemy-utils==0.36.1

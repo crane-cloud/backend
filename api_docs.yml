@@ -118,6 +118,36 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
-
-
+    
+    "/clusters":
+        post:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: cluster
+                  schema:
+                    type: object
+                    required:
+                        - name
+                        - host
+                        - token
+                    properties:
+                        name:
+                            type: string
+                        host:
+                            type: string
+                        token:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201: 
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
