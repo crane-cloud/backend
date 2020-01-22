@@ -8,7 +8,6 @@ class UserRole(ModelMixin):
     _tablename_ = "user_roles"
 
     id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(UUID(as_uuid=True), unique=True, nullable=False)
     user_id = db.Column('user_id', db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
     role_id = db.Column("role_id", db.Integer, db.ForeignKey(Role.id, ondelete='CASCADE'), nullable=False)
 
