@@ -2,11 +2,7 @@ from flask_restful import Api
 from app.controllers import (
     IndexView, UsersView, UserLoginView, OrganisationsView,
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
-<<<<<<< HEAD
-    NamespaceDetailView, DeploymentsView, ClustersView
-=======
-    NamespaceDetailView, DeploymentsView, RolesView
->>>>>>> Role model implemented
+    NamespaceDetailView, DeploymentsView, ClustersView, RolesView, UserRolesView, UserRolesDetailView
 )
 
 api = Api()
@@ -33,10 +29,15 @@ api.add_resource(NamespaceDetailView, '/namespaces/<int:id>', endpoint='namespac
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
 
-<<<<<<< HEAD
 # Clusters
 api.add_resource(ClustersView, '/clusters', endpoint='clusters')
-=======
+
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
->>>>>>> Role model implemented
+
+
+# User_Roles routes
+api.add_resource(UserRolesView, '/user_roles', endpoint='user_roles')
+
+# Single_User_Roles routes
+api.add_resource(UserRolesDetailView, '/users/roles', endpoint='users_roles')

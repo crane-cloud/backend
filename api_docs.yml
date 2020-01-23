@@ -94,6 +94,7 @@ paths:
                     properties:
                         name:
                             type: string
+                    
             produces:
                 - application/json
             responses:
@@ -193,6 +194,66 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+
+    "/user_roles":
+        post:
+            tags:
+                - user_roles
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: userRole
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                        - role_id
+                    properties:
+                        user_id:
+                            type: integer
+                        role_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
+        
+        get:
+            tags:
+                - user_roles
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    "/users/roles":
+        get:
+            tags:
+                - users_roles
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
 
 

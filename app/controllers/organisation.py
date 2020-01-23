@@ -8,6 +8,7 @@ from app.schemas import OrganisationSchema
 from app.models.organisation import Organisation
 
 
+
 class OrganisationsView(Resource):
 
     def post(self):
@@ -22,6 +23,7 @@ class OrganisationsView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
+
 
         organisation = Organisation(**validated_org_data)
 
