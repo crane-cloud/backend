@@ -16,6 +16,7 @@ class Organisation(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    users = relationship('User', secondary='organisation_members')
 
     def __init__(self, name):
         """ initialize with name, member and namespace """
