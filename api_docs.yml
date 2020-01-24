@@ -256,4 +256,69 @@ paths:
                     description: "Internal Server Error"
 
 
+<<<<<<< HEAD
+=======
+    "/organisations/members":
+        get:
+            tags:
+                - organisation_members
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+        
+        post:
+            tags:
+                - organisation_members
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: organisationMember
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                        - organisation_id
+                    properties:
+                        user_id:
+                            type: integer
+                        organisation_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
+
+
+    "/organisation/member/<int:organisation_id>":
+        get:
+            tags:
+                - organisations_members
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+    
+                
+>>>>>>> added org_member routes
 

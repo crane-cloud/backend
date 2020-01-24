@@ -51,6 +51,18 @@ class UserRolesView(Resource):
 
 class UserRolesDetailView(Resource):
 
+    def get(self, user_id):
+        role_schema = RoleSchema(many=True)
+        
+        roles = self.getUserRoles(user_id)
+
+        role_data, errors = role_schema.dumps(roles)
+
+        if errors:
+            return dict(status="fail", message="Internal Server Error"), 500
+
+        return dict(status="success", data=dict(user_roles=json.loads(role_data))), 200
+
     def getUserRoles(self, user_id):
         user = User.find_first(id=user_id)
         if not user:
@@ -72,17 +84,5 @@ class UserRolesDetailView(Resource):
             if (role.name == role_name):
                 return True
 
-    """ checking returning User roles """
-
-    def get(self, user_id):
-        role_schema = RoleSchema(many=True)
-        
-        roles = self.getUserRoles(user_id)
-
-        role_data, errors = role_schema.dumps(roles)
-
-        if errors:
-            return dict(status="fail", message="Internal Server Error"), 500
-
-        return dict(status="success", data=dict(user_roles=json.loads(role_data))), 200
+    
 

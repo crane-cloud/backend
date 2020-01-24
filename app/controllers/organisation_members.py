@@ -51,19 +51,15 @@ class OrgMemberView(Resource):
 
 class OrgMemberDetailView(Resource):
 
-    def getOrgMembers(self, org_id):
-        organisation = Organisation.find_first(id=org_id)
-        if not organisation:
-            return dict(status='fail', message='Internal Server Error'), 500
-            # return False
-        return organisation.users
-
 
     """ Get Users in an Organisation """
-    def get(self, org_id):
+    def get(self, organisation_id):
         organisation_schema = OrganisationSchema(many=True)
         
-        members = self.getOrgMembers(org_id)
+        members = self.getOrgMembers(organisation_id)
+        
+        if not members:
+            return dict(status="fail", message="Organisation doesnt Exist"), 404
 
         members_data, errors = organisation_schema.dumps(members)
 
@@ -71,4 +67,11 @@ class OrgMemberDetailView(Resource):
             return dict(status="fail", message="Internal Server Error"), 500
 
         return dict(status="success", data=dict(members=json.loads(members_data))), 200
+
+
+    def getOrgMembers(self, organisation_id):
+        organisation = Organisation.find_first(id=organisation_id)
+        if not organisation:
+            return False
+        return organisation.users
 

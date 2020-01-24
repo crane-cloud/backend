@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 
 from app.models import db
 
+from sqlalchemy.orm import relationship
+
 from app.models.model_mixin import ModelMixin
 
 

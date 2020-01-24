@@ -36,7 +36,7 @@ class OrganisationsView(Resource):
 
         return dict(status='success', data=dict(organisation=json.loads(new_org_data))), 201
 
-    @jwt_required
+    # @jwt_required
     def get(self):
         """
         """
