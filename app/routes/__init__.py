@@ -26,7 +26,7 @@ api.add_resource(OrgMemberDetailView, '/organisation/member/<int:organisation_id
 
 # Organisation Admins routes
 api.add_resource(OrgAdminView, '/organisations/admins', endpoint='org_admins')
-api.add_resource(OrgAdminDetailView, '/organisation/admin/<int:organisation_id>', endpoint='org_admins')
+api.add_resource(OrgAdminDetailView, '/organisation/admin/<int:organisation_id>', endpoint='org_admin')
 
 # Organisation Namespaces
 api.add_resource(

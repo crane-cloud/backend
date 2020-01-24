@@ -256,8 +256,6 @@ paths:
                     description: "Internal Server Error"
 
 
-<<<<<<< HEAD
-=======
     "/organisations/members":
         get:
             tags:
@@ -306,7 +304,7 @@ paths:
     "/organisation/member/<int:organisation_id>":
         get:
             tags:
-                - organisations_members
+                - organisation_members
             consumes:
                 - application/json
             produces:
@@ -320,5 +318,67 @@ paths:
                     description: "Internal Server Error"
     
                 
->>>>>>> added org_member routes
+    "/organisations/admins":
+        get:
+            tags:
+                - organisation_admins
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+        
+        post:
+            tags:
+                - organisation_admins
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: organisationAdmin
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                        - organisation_id
+                    properties:
+                        user_id:
+                            type: integer
+                        organisation_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
 
+                
+    "/organisation/admin/<int:organisation_id>":
+        get:
+            tags:
+                - organisation_admins
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+    
+                                
+                
+                

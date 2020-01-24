@@ -3,6 +3,7 @@ from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import OrganisationSchema
 from app.schemas import OrgAdminSchema
+from app.schemas import UserSchema
 from app.models.organisation_admins import OrganisationAdmins
 from app.models.user import User
 from app.models.organisation import Organisation

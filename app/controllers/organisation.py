@@ -16,7 +16,6 @@ class OrganisationsView(Resource):
         """
         Creating an Organisation
         """
-        current_user = 
         org_schema = OrganisationSchema()
 
         org_data = request.get_json()
