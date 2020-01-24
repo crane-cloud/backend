@@ -24,6 +24,7 @@ class User(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     roles = relationship('Role', secondary='user_role')
     organisations = relationship('Organisation', secondary='organisation_members')
+    admins = relationship('Organisation', secondary='organisation_admins')
 
     def __init__(self, email, name, password):
         """ initialize with email, username and password """

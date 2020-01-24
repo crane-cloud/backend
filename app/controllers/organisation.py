@@ -11,10 +11,12 @@ from app.models.organisation import Organisation
 
 class OrganisationsView(Resource):
 
+    @jwt_required
     def post(self):
         """
+        Creating an Organisation
         """
-
+        current_user = 
         org_schema = OrganisationSchema()
 
         org_data = request.get_json()
@@ -23,7 +25,6 @@ class OrganisationsView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-
 
         organisation = Organisation(**validated_org_data)
 
@@ -36,7 +37,7 @@ class OrganisationsView(Resource):
 
         return dict(status='success', data=dict(organisation=json.loads(new_org_data))), 201
 
-    # @jwt_required
+    @jwt_required
     def get(self):
         """
         """

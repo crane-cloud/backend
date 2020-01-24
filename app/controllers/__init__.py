@@ -9,3 +9,4 @@ from .clusters import ClustersView
 from .roles import RolesView
 from .user_role import UserRolesView, UserRolesDetailView
 from .organisation_members import OrgMemberView, OrgMemberDetailView
+from .organisation_admins import OrgAdminView, OrgAdminDetailView
