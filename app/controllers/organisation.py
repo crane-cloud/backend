@@ -8,12 +8,14 @@ from app.schemas import OrganisationSchema
 from app.models.organisation import Organisation
 
 
+
 class OrganisationsView(Resource):
 
+    @jwt_required
     def post(self):
         """
+        Creating an Organisation
         """
-
         org_schema = OrganisationSchema()
 
         org_data = request.get_json()
@@ -22,13 +24,22 @@ class OrganisationsView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-
+        
         organisation = Organisation(**validated_org_data)
 
         saved_organisation = organisation.save()
 
+        # get current user data
+        current_user_id = get_jwt_identity()
+        # todo :
+        # add user and org to org_member table
+        # add user and org to and admin_table
+
+        
         if not saved_organisation:
             return dict(status='fail', message='Internal Server Error'), 500
+
+        
 
         new_org_data, errors = org_schema.dumps(organisation)
 

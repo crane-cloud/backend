@@ -5,8 +5,10 @@ from server import app
 
 # import models
 from app.models.user import User
-# from app.models.organisation import Organisation
-# from app.models.organisation_members import OrganisationMembers
+from app.models.user_role import UserRole
+from app.models.organisation import Organisation
+from app.models.organisation_members import OrganisationMembers
+from app.models.organisation_admins import OrganisationAdmins
 # from app.models.namespaces import Namespace
 
 # register app and db with migration class
