@@ -151,7 +151,104 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "A list of clusters"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
         
+    "/clusters/{cluster_id}":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+
+            responses:
+                200:
+                    description: "A single cluster"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        patch:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+
+                - in: body
+                  name: cluster_update
+                  schema:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+                        host:
+                            type: string
+                        token:
+                            type: string
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        delete:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        
+
                 
     "/roles":
         post:
