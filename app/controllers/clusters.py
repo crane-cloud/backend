@@ -42,4 +42,79 @@ class ClustersView(Resource):
 
         except Exception as e:
             return dict(status='fail', message='Connection to cluster failed'), 500
-        
+
+    def get(self):
+        """
+        """
+        cluster_schema = ClusterSchema(many=True)
+
+        clusters = Cluster.find_all()
+
+        validated_cluster_data, errors = cluster_schema.dumps(clusters)
+
+        if errors:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(status='Success',
+                    data=dict(clusters=json.loads(validated_cluster_data))), 200
+
+
+class ClusterDetailView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+
+        cluster_schema = ClusterSchema()
+
+        cluster = Cluster.get_by_id(cluster_id)
+
+        if not cluster:
+            return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
+
+        validated_cluster_data, errors = cluster_schema.dumps(cluster)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='succcess', data=dict(cluster=json.loads(validated_cluster_data))), 200
+
+    def patch(self, cluster_id):
+        """
+        """
+
+        cluster_schema = ClusterSchema(partial=True)
+
+        new_cluster_data = request.get_json()
+
+        validated_cluster_data, errors = cluster_schema.load(new_cluster_data)
+
+        if errors:
+            return dict(status='fail', messgae=errors), 400
+
+        cluster = Cluster.get_by_id(cluster_id)
+
+        if not cluster:
+            return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
+
+        cluster_updated = Cluster.update(cluster, **validated_cluster_data)
+
+        if not cluster_updated:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(status='success', message='Cluster updated successfully'), 200
+
+    def delete(self, cluster_id):
+        """
+        """
+        cluster = Cluster.get_by_id(cluster_id)
+
+        if not cluster:
+            return dict(status='fail', message='Cluster not found'), 404
+
+        deleted = cluster.delete()
+
+        if not deleted:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(status='success', message=f'Cluster with id {cluster_id} deleted successfully'), 200

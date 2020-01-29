@@ -4,7 +4,7 @@ from app.controllers import (
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
     NamespaceDetailView, DeploymentsView, RolesView, UserRolesView, ClustersView, 
     UserRolesDetailView, OrgMemberView, OrgMemberDetailView, OrgAdminView,
-    OrgAdminDetailView
+    OrgAdminDetailView, ClusterDetailView
 )
 
 api = Api()
@@ -41,6 +41,8 @@ api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
 
 # Clusters
 api.add_resource(ClustersView, '/clusters', endpoint='clusters')
+api.add_resource(ClusterDetailView, '/clusters/<int:cluster_id>')
+
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
