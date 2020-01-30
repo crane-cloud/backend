@@ -14,7 +14,7 @@ class ModelMixin(db.Model):
             return True
         except SQLAlchemyError as e:
             db.session.rollback()
-            return e
+            return False
 
     def delete(self):
         try:

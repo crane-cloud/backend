@@ -9,11 +9,6 @@ class UserRole(ModelMixin):
     _tablename_ = "user_roles"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column('user_id', db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
-    role_id = db.Column("role_id", db.Integer, db.ForeignKey(Role.id, ondelete='CASCADE'), nullable=False)
-    user = relationship(User, backref=backref("role_assoc"))
-    role = relationship(Role, backref=backref("user_assoc"))
-
-    def __init__(self, user_id, role_id):
-        self.user_id = user_id
-        self.role_id = role_id
+    user_id = db.Column('user_id', db.Integer, db.ForeignKey(User.id))
+    role_id = db.Column("role_id", db.Integer, db.ForeignKey(Role.id))
+    
