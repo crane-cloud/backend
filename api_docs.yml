@@ -291,23 +291,98 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/roles/{role_id}":
+        get:
+            tags:
+                - roles
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: role_id
+                  required: true
+                  type: integer
+            
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+        patch:
+            tags:
+                - roles
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: role_id
+                  required: true
+                  type: integer
+
+                - in: body
+                  name: role
+                  schema:
+                    type: object
+                    required:
+                        - name
+                    properties:
+                        name:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
+
+        delete:
+            tags:
+                - roles
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: role_id
+                  required: true
+                  type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
 
 
-    "/user/<int:user_id/roles":
+    "/user/{user_id}/roles":
         post:
             tags:
                 - user_roles
             consumes:
                 - application/json
             parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: integer
+
                 - in: body
                   name: userRole
                   schema:
                     type: object
                     required:
-                        - user_id
+                        - role_id
                     properties:
-                        user_id:
+                        role_id:
                             type: integer
             produces:
                 - application/json
@@ -324,6 +399,12 @@ paths:
                 - user_roles
             consumes:
                 - application/json
+            parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: integer
+            
             produces:
                 - application/json
             responses:
@@ -341,14 +422,19 @@ paths:
             consumes:
                 - application/json
             parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: integer
+
                 - in: body
                   name: userRole
                   schema:
                     type: object
                     required:
-                        - user_id
+                        - role_id
                     properties:
-                        user_id:
+                        role_id:
                             type: integer
             produces:
                 - application/json
