@@ -24,7 +24,7 @@ class RolesView(Resource):
         role_existant = Role.find_first(name=role_name)
 
         if role_existant:
-            return dict(status="fail", message=f"Name {validated_role_data['name']} is Available."), 400
+            return dict(status="fail", message=f"Role {validated_role_data['name']} Already Exists."), 400
 
         role = Role(**validated_role_data)
         saved_role = role.save()
@@ -53,3 +53,6 @@ class RolesView(Resource):
             status='success',
             data=dict(users=json.loads(roles_data))
         ), 200
+
+        # Todo: Delete, Update and get Single role (Patch delete Get)
+        # 

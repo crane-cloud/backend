@@ -292,7 +292,8 @@ paths:
                     description: "Internal Server Error"
 
 
-    "/user_roles":
+
+    "/user/<int:user_id/roles":
         post:
             tags:
                 - user_roles
@@ -305,11 +306,8 @@ paths:
                     type: object
                     required:
                         - user_id
-                        - role_id
                     properties:
                         user_id:
-                            type: integer
-                        role_id:
                             type: integer
             produces:
                 - application/json
@@ -336,21 +334,31 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-    "/users/roles":
-        get:
+
+        delete:
             tags:
-                - users_roles
+                - user_roles
             consumes:
                 - application/json
+            parameters:
+                - in: body
+                  name: userRole
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                    properties:
+                        user_id:
+                            type: integer
             produces:
                 - application/json
             responses:
-                200:
+                201:
                     description: "Success"
                 400:
                     description: "Bad request"
                 500:
-                    description: "Internal Server Error"
+                    descriptiom: "Internal Server Error"
 
 
     "/organisations/members":

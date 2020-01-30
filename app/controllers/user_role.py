@@ -1,15 +1,16 @@
 import json
 from flask import current_app
 from flask_restful import Resource, request
-from app.schemas import UserRoleSchema
+from app.schemas import UserRoleSchema, UserSchema
 from app.models.user_role import UserRole
 from app.schemas.role import RoleSchema
 from app.models.user import User
+from app.models.role import Role
 
 
 class UserRolesView(Resource):
 
-    def post(self):
+    def post(self, user_id):
         """
         """
 
@@ -22,67 +23,92 @@ class UserRolesView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
 
-        user_role = UserRole(**validated_user_role_data)
+        # Get User
+        user = User.get_by_id(user_id)
+        
+        if not user:
+            return dict(status='fail', message='User not found'), 404
 
-        saved_user_role = user_role.save()
+        # Get role
+        role = Role.get_by_id(validated_user_role_data.get('role_id', None))
+
+        if not role:
+            return dict(status='fail', message='Role not found'), 404
+
+        # adding role to user roles
+        user.roles.append(role)
+
+        saved_user_role = user.save()
+
+        user_schema = UserSchema()
 
         if not saved_user_role:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        new_user_role_data, errors = user_role_schema.dumps(user_role)
+        new_user_role_data, errors = user_schema.dumps(user)
 
         return dict(status='success', data=dict(user_role=json.loads(new_user_role_data))), 201
 
-    def get(self):
+
+
+    def get(self, user_id):
         """
         """
+        role_schema = RoleSchema(many=True)
 
-        user_role_schema = UserRoleSchema(many=True)
+        user = User.get_by_id(user_id)
 
-        user_roles = UserRole.find_all()
+        if not user:
+            return dict(status='fail', message='User not found'), 404
 
-        user_role_data, errors = user_role_schema.dumps(user_roles)
+        user_roles = user.roles
+
+        user_role_data, errors = role_schema.dumps(user_roles)
 
         if errors:
             return dict(status="fail", message="Internal Server Error"), 500
 
         return dict(status="success", data=dict(user_roles=json.loads(user_role_data))), 200
 
+    # delete user role
 
-class UserRolesDetailView(Resource):
+    def delete(self, user_id):
+        """
+        """
+        user_role_schema = UserRoleSchema()
 
-    def get(self, user_id):
-        role_schema = RoleSchema(many=True)
-        
-        roles = self.getUserRoles(user_id)
+        user_role_data = request.get_json()
 
-        role_data, errors = role_schema.dumps(roles)
+        validated_user_role_data, errors = user_role_schema.load(user_role_data)
 
         if errors:
-            return dict(status="fail", message="Internal Server Error"), 500
+            return dict(status='fail', message=errors), 400
 
-        return dict(status="success", data=dict(user_roles=json.loads(role_data))), 200
-
-    def getUserRoles(self, user_id):
-        user = User.find_first(id=user_id)
-        if not user:
-            # return dict(status='fail', message='Internal Server Error'), 500
-            return False
-
-        return user.roles
-
-    """ This should return Tru if user has the role """
-    def checkUserRole(self, user_id, role_name):
-        roles = self.getUserRoles(user_id)
-
-        # TODO: handle case if is user doesnt exit
+        # Get User
+        user = User.get_by_id(user_id)
         
-        if roles is False:
-            return False
+        if not user:
+            return dict(status='fail', message='User not found'), 404
 
-        for role in roles:
-            if (role.name == role_name):
-                return True
+        # Get role
+        role = Role.get_by_id(validated_user_role_data.get('role_id', None))
 
-    
+        if not role:
+            return dict(status='fail', message='Role not found'), 404
 
+        # adding role to user roles
+        try:
+            user.roles.remove(role)
+        except Exception as e:
+            return dict(status='fail', message='User role not found'), 404
+
+        saved_user_role = user.save()
+
+        user_schema = UserSchema()
+
+        if not saved_user_role:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        new_user_role_data, errors = user_schema.dumps(user)
+
+        return dict(status='success', data=dict(user_role=json.loads(new_user_role_data))), 201

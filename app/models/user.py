@@ -22,7 +22,7 @@ class User(ModelMixin):
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
-    roles = relationship('Role', secondary='user_role')
+
     organisations = relationship('Organisation', secondary='organisation_members')
     admins = relationship('Organisation', secondary='organisation_admins')
 
