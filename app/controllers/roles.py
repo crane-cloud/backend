@@ -39,7 +39,6 @@ class RolesView(Resource):
     def get(self):
         """
         """
-
         role_schema = RoleSchema(many=True)
 
         roles = Role.find_all()
@@ -54,5 +53,73 @@ class RolesView(Resource):
             data=dict(users=json.loads(roles_data))
         ), 200
 
-        # Todo: Delete, Update and get Single role (Patch delete Get)
-        # 
+
+
+class RolesDetailView(Resource):
+
+    def get(self, role_id):
+        """
+        """
+        role_schema = RoleSchema()
+
+        role = Role.get_by_id(role_id)
+
+        if not role:
+            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+
+        role_data, errors = role_schema.dumps(role)
+
+        if errors:
+            return dict(status="fail", message=errors), 500
+
+        return dict(status='success', data=dict(role=json.loads(role_data))), 200
+
+
+
+    def patch(self, role_id):
+        """
+        """
+
+        # To do check if user is admin
+
+        role_schema = RoleSchema(partial=True)
+
+        update_data = request.get_json()
+
+        validated_update_data, errors = role_schema.load(update_data)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        role = Role.get_by_id(role_id)
+
+        if not role:
+            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+
+        if 'name' in validated_update_data:
+            role.name = validated_update_data['name']
+
+        updated_role = role.save()
+
+        if not updated_role:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(status="success", message=f"Role {role.name} updated successfully"), 200
+
+
+    def delete(self, role_id):
+        """
+        """
+        # To do get current user and check if the user is admin
+
+        role = Role.get_by_id(role_id)
+
+        if not role:
+            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+
+        deleted_role = role.delete()
+        
+        if not deleted_role:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(status='success', message="Successfully deleted"), 200

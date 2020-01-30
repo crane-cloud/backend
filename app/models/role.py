@@ -11,7 +11,6 @@ class Role(ModelMixin):
 
     # fields of the Roles table  
     id = db.Column(db.Integer, primary_key=True)  
-    # uuid = db.Column(UUID(as_uuid=True), unique=True)
     name = db.Column(db.String(256), nullable=False)
 
     users = relationship('User', secondary='user_role', backref='roles')
