@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields, validate, pre_load
 
+from .role import RoleSchema
+
 
 class UserSchema(Schema):
 
@@ -20,3 +22,5 @@ class UserSchema(Schema):
                 regex=r'^(?!\s*$)', error='password should be a valid string'
             ),
         ])
+    roles = fields.Nested(RoleSchema, many=True, dump_only=True)
+    
