@@ -1,8 +1,7 @@
 import json
 from flask import current_app
 from flask_restful import Resource, request
-from app.schemas import OrganisationSchema
-from app.schemas import OrgMemberSchema
+from app.schemas import OrganisationSchema, OrgMemberSchema, UserSchema
 from app.models.organisation_members import OrganisationMembers
 from app.models.user import User
 from app.models.organisation import Organisation
@@ -10,7 +9,7 @@ from app.models.organisation import Organisation
 
 class OrgMemberView(Resource):
 
-    def post(self):
+    def post(self, organisation_id):
         """
         """
 
@@ -23,25 +22,50 @@ class OrgMemberView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
 
-        org_member = OrganisationMembers(**validated_org_member_data)
 
-        saved_org_member = org_member.save()
+        # Get User
+        user = User.get_by_id(validated_org_member_data.get('user_id', None))
+        
+        if not user:
+            return dict(status='fail', message='User not found'), 404
+
+        # Get organisation
+        organisation = Organisation.get_by_id(organisation_id)
+
+        if not organisation:
+            return dict(status='fail', message='Organisation not found'), 404
+
+        if user in organisation.members:
+            return dict(status='fail', message='Member already exist'), 409
+
+        # adding user to organisation members
+        organisation.members.append(user)
+
+        saved_org_member = organisation.save()
+
+        user_schema = UserSchema()
 
         if not saved_org_member:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        new_org_member_data, errors = org_member_schema.dumps(org_member)
+        new_org_member_data, errors = user_schema.dumps(user)
 
         return dict(status='success', data=dict(organisation_member=json.loads(new_org_member_data))), 201
 
-    def get(self):
+
+    def get(self, organisation_id):
         """
         """
-        org_member_schema = OrgMemberSchema(many=True)
+        org_schema = OrganisationSchema(many=True)
 
-        org_member = OrganisationMembers.find_all()
+        organisation = Organisation.get_by_id(organisation_id)
 
-        org_member_data, errors = org_member_schema.dumps(org_member)
+        if not organisation:
+            return dict(status='fail', message='Organisation not found'), 404
+
+        org_members = organisation.members
+
+        org_member_data, errors = org_schema.dumps(org_members)
 
         if errors:
             return dict(status="fail", message="Internal Server Error"), 500
@@ -49,29 +73,45 @@ class OrgMemberView(Resource):
         return dict(status="success", data=dict(organisation_member=json.loads(org_member_data))), 200
 
 
-class OrgMemberDetailView(Resource):
+    # delete user role
 
+    def delete(self, organisation_id):
+        """
+        """
+        org_member_schema = OrgMemberSchema()
 
-    """ Get Users in an Organisation """
-    def get(self, organisation_id):
-        organisation_schema = OrganisationSchema(many=True)
-        
-        members = self.getOrgMembers(organisation_id)
-        
-        if not members:
-            return dict(status="fail", message="Organisation doesnt Exist"), 404
+        org_member_data = request.get_json()
 
-        members_data, errors = organisation_schema.dumps(members)
+        validated_org_member_data, errors = org_member_schema.load(org_member_data)
 
         if errors:
-            return dict(status="fail", message="Internal Server Error"), 500
+            return dict(status='fail', message=errors), 400
 
-        return dict(status="success", data=dict(members=json.loads(members_data))), 200
+        # Get User
+        user = User.get_by_id(validated_org_member_data.get('user_id', None))
+        
+        if not user:
+            return dict(status='fail', message='User not found'), 404
 
+        # Get organisation
+        organisation = Organisation.get_by_id(organisation_id)
 
-    def getOrgMembers(self, organisation_id):
-        organisation = Organisation.find_first(id=organisation_id)
         if not organisation:
-            return False
-        return organisation.users
+            return dict(status='fail', message='Organisation not found'), 404
 
+        # removing user from organisation
+        try:
+            organisation.members.remove(user)
+        except Exception as e:
+            return dict(status='fail', message='Organisation member not found'), 404
+
+        saved_org_members = organisation.save()
+
+        if not saved_org_members:
+            return dict(status='fail', message='Internal Server Error'), 500
+        
+        org_schema = OrganisationSchema()
+
+        new_org_member_data, errors = org_schema.dumps(organisation)
+
+        return dict(status='success', data=dict(org_members=json.loads(new_org_member_data))), 201
