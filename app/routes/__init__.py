@@ -44,6 +44,7 @@ api.add_resource(ClusterDetailView, '/clusters/<int:cluster_id>')
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
+api.add_resource(RolesDetailView, '/roles/<int:role_id>', endpoint='role')
 
 
 # User_Roles routes
