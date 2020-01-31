@@ -64,20 +64,67 @@ class ClusterDetailView(Resource):
     def get(self, cluster_id):
         """
         """
+        try:
 
-        cluster_schema = ClusterSchema()
+            cluster_schema = ClusterSchema()
 
-        cluster = Cluster.get_by_id(cluster_id)
+            resource_count = []
 
-        if not cluster:
-            return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
+            cluster = Cluster.get_by_id(cluster_id)
 
-        validated_cluster_data, errors = cluster_schema.dumps(cluster)
+            if not cluster:
+                return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
 
-        if errors:
-            return dict(status='fail', message=errors), 500
+            validated_cluster_data, errors = cluster_schema.dumps(cluster)
 
-        return dict(status='succcess', data=dict(cluster=json.loads(validated_cluster_data))), 200
+            if errors:
+                return dict(status='fail', message=errors), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api = create_kube_clients(kube_host, kube_token)
+
+            # get number of nodes in the cluster
+            node_count = len(kube.list_namespace().items)
+
+            resource_count.append(dict(name='nodes', count=node_count))
+
+            # get count of pvcs in the cluster
+            pvc_count = len(kube.list_persistent_volume_claim_for_all_namespaces().items)
+
+            resource_count.append(dict(name='PVCs', count=pvc_count))
+
+            # get count of all pods in the cluster
+            pod_count = len(kube.list_pod_for_all_namespaces().items)
+
+            resource_count.append(dict(name='pods', count=pod_count))
+
+            # get count of all services
+            service_count = len(kube.list_service_for_all_namespaces().items)
+
+            resource_count.append(dict(name='services', count=service_count))
+
+            # get count of all deployments
+            deployment_count = len(appsv1_api.list_deployment_for_all_namespaces().items)
+
+            resource_count.append(dict(name='deployments', count=deployment_count))
+
+            # get count of all namespaces in the cluster
+            namespace_count = len(kube.list_namespace().items)
+
+            resource_count.append(dict(name='namespaces', count=namespace_count))
+
+            resource_count_json = json.dumps(resource_count)
+
+            return dict(
+                status='succcess',
+                data=dict(
+                    cluster=json.loads(validated_cluster_data),
+                    resource_count=json.loads(resource_count_json))
+                ), 200
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
 
     def patch(self, cluster_id):
         """
@@ -118,3 +165,4 @@ class ClusterDetailView(Resource):
             return dict(status='fail', message='Internal Server Error'), 500
 
         return dict(status='success', message=f'Cluster with id {cluster_id} deleted successfully'), 200
+
