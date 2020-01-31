@@ -23,8 +23,6 @@ class User(ModelMixin):
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    organisations = relationship('Organisation', secondary='organisation_members')
-    admins = relationship('Organisation', secondary='organisation_admins')
 
     def __init__(self, email, name, password):
         """ initialize with email, username and password """

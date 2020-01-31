@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from app.models import db
 
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 
 from app.models.model_mixin import ModelMixin
 
@@ -18,8 +18,8 @@ class Organisation(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
-    users = relationship('User', secondary='organisation_members')
-    admins = relationship('User', secondary='organisation_admins')
+    members = relationship('User', secondary='organisation_members', backref='organisations')
+
 
     def __init__(self, name):
         """ initialize with name, member and namespace """

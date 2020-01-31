@@ -3,7 +3,7 @@ from app.controllers import (
     IndexView, UsersView, UserLoginView, OrganisationsView,
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
     NamespaceDetailView, DeploymentsView, RolesView, UserRolesView, ClustersView,
-    OrgMemberView, OrgMemberDetailView, OrgAdminView,
+    OrgMemberView, OrgAdminView,
     OrgAdminDetailView, ClusterDetailView
 )
 
@@ -21,8 +21,7 @@ api.add_resource(OrganisationsView, '/organisations', endpoint='organisations')
 api.add_resource(OrganisationDetailView, '/organisations/<int:org_id>', endpoint='organisation')
 
 # Organisation Members routes
-api.add_resource(OrgMemberView, '/organisations/members', endpoint='org_members')
-api.add_resource(OrgMemberDetailView, '/organisation/member/<int:organisation_id>', endpoint='org_member')
+api.add_resource(OrgMemberView, '/organisations/<int:organisation_id>/members', endpoint='org_members')
 
 # Organisation Admins routes
 api.add_resource(OrgAdminView, '/organisations/admins', endpoint='org_admins')
