@@ -39,6 +39,9 @@ class UserRolesView(Resource):
             return dict(status='fail', message='User already has role'), 409
 
         # adding role to user roles
+        if role in user.roles:
+            return dict(status='fail', message='Role already Exists'), 404
+ 
         user.roles.append(role)
 
         saved_user_role = user.save()
