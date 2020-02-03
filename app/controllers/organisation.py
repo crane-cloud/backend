@@ -11,7 +11,7 @@ from app.models.organisation import Organisation
 
 class OrganisationsView(Resource):
 
-    @jwt_required
+    # @jwt_required
     def post(self):
         """
         Creating an Organisation
@@ -45,7 +45,7 @@ class OrganisationsView(Resource):
 
         return dict(status='success', data=dict(organisation=json.loads(new_org_data))), 201
 
-    @jwt_required
+    # @jwt_required
     def get(self):
         """
         """
