@@ -2,8 +2,10 @@ from flask_restful import Api
 from app.controllers import (
     IndexView, UsersView, UserLoginView, OrganisationsView,
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
-    NamespaceDetailView, DeploymentsView, RolesView, UserRolesView, ClustersView,
-    OrgMemberView, OrgAdminView, ClusterDetailView
+    NamespaceDetailView, DeploymentsView, RolesView,
+    RolesDetailView, UserRolesView, ClustersView,
+    OrgMemberView, OrgMemberDetailView, OrgAdminView,
+    OrgAdminDetailView, ClusterDetailView
 )
 
 api = Api()

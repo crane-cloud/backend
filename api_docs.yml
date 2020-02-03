@@ -247,9 +247,6 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-        
-
-                
     "/roles":
         post:
             tags:
