@@ -1,6 +1,5 @@
 from flask import current_app
 from flask_bcrypt import Bcrypt
-from sqlalchemy.orm import relationship
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
@@ -23,8 +22,6 @@ class User(ModelMixin):
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    organisations = relationship('Organisation', secondary='organisation_members')
-    admins = relationship('Organisation', secondary='organisation_admins')
 
     def __init__(self, email, name, password):
         """ initialize with email, username and password """
