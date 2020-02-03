@@ -491,7 +491,7 @@ paths:
             produces:
                 - application/json
             responses:
-                200:
+                201:
                     description: "Success"
                 400:
                     description: "Bad request"
