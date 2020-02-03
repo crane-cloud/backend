@@ -488,15 +488,18 @@ paths:
                   name: organisation_id
                   required: true
                   type: integer
+
             produces:
                 - application/json
             responses:
-                201:
+                200:
                     description: "Success"
                 400:
                     description: "Bad request"
                 500:
-                    description: "Internal Server Error"
+                    descriptiom: "Internal Server Error"
+        
+
 
 
         delete:
@@ -509,7 +512,7 @@ paths:
                   name: organisation_id
                   required: true
                   type: integer
-
+                  
                 - in: body
                   name: organisation_member
                   schema:
@@ -527,7 +530,8 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
+
 
                 
     "/organisations/{organisation_id}/admins":
