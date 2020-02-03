@@ -35,6 +35,9 @@ class UserRolesView(Resource):
         if not role:
             return dict(status='fail', message='Role not found'), 404
 
+        if role in user.roles:
+            return dict(status='fail', message='User already has role'), 409
+
         # adding role to user roles
         if role in user.roles:
             return dict(status='fail', message='Role already Exists'), 404
@@ -99,7 +102,7 @@ class UserRolesView(Resource):
         if not role:
             return dict(status='fail', message='Role not found'), 404
 
-        # adding role to user roles
+        # removing user from role
         try:
             user.roles.remove(role)
         except Exception as e:

@@ -444,12 +444,48 @@ paths:
                     descriptiom: "Internal Server Error"
 
 
-    "/organisations/members":
+    "/organisations/{organisation_id}/members":
+        post:
+            tags:
+                - organisation_members
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
+
+                - in: body
+                  name: organisation_member
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                    properties:
+                        user_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
+        
         get:
             tags:
                 - organisation_members
             consumes:
                 - application/json
+            parameters:
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
+
             produces:
                 - application/json
             responses:
@@ -458,25 +494,64 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    description: "Internal Server Error"
+                    descriptiom: "Internal Server Error"
         
-        post:
+
+
+
+        delete:
             tags:
                 - organisation_members
             consumes:
                 - application/json
             parameters:
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
+                  
                 - in: body
-                  name: organisationMember
+                  name: organisation_member
                   schema:
                     type: object
                     required:
                         - user_id
-                        - organisation_id
                     properties:
                         user_id:
                             type: integer
-                        organisation_id:
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
+                
+    "/organisations/{organisation_id}/admins":
+
+        post:
+            tags:
+                - organisation_admins
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
+
+                - in: body
+                  name: organisation_admin
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                    properties:
+                        user_id:
                             type: integer
             produces:
                 - application/json
@@ -488,75 +563,16 @@ paths:
                 500:
                     descriptiom: "Internal Server Error"
 
-
-    "/organisation/member/<int:organisation_id>":
         get:
-            tags:
-                - organisation_members
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-    
-                
-    "/organisations/admins":
-        get:
-            tags:
-                - organisation_admins
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-        
-        post:
             tags:
                 - organisation_admins
             consumes:
                 - application/json
             parameters:
-                - in: body
-                  name: organisationAdmin
-                  schema:
-                    type: object
-                    required:
-                        - user_id
-                        - organisation_id
-                    properties:
-                        user_id:
-                            type: integer
-                        organisation_id:
-                            type: integer
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    descriptiom: "Internal Server Error"
-
-                
-    "/organisation/admin/<int:organisation_id>":
-        get:
-            tags:
-                - organisation_admins
-            consumes:
-                - application/json
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
             produces:
                 - application/json
             responses:
@@ -566,6 +582,36 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+
+        delete:
+            tags:
+                - organisation_admins
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: organisation_id
+                  required: true
+                  type: integer
+
+                - in: body
+                  name: organisation_admin
+                  schema:
+                    type: object
+                    required:
+                        - user_id
+                    properties:
+                        user_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptiom: "Internal Server Error"
     
                                 
                 
