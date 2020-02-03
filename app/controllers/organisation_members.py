@@ -114,4 +114,4 @@ class OrgMemberView(Resource):
 
         new_org_member_data, errors = org_schema.dumps(organisation)
 
-        return dict(status='success', data=dict(org_members=json.loads(new_org_member_data))), 201
+        return dict(status='success', data=dict(org_members=json.loads(new_org_member_data))), 200
