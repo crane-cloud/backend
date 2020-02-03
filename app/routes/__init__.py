@@ -4,7 +4,7 @@ from app.controllers import (
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
     NamespaceDetailView, DeploymentsView, RolesView,
     RolesDetailView, UserRolesView, ClustersView,
-    OrgMemberView, OrgMemberDetailView, OrgAdminView,
+    OrgMemberView, OrgAdminView,
     OrgAdminDetailView, ClusterDetailView
 )
 
