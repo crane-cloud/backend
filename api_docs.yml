@@ -247,6 +247,58 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/clusters/{cluster_id}/namespaces":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+
+            responses:
+                200:
+                    description: "Returns a list of namespaces"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error" 
+
+    "/clusters/{cluster_id}/namespaces/{namespace_name}":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+                - in: path
+                  name: namespace_name
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A namespace"
+                404:
+                    description: "Not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error" 
+
     "/roles":
         post:
             tags:
