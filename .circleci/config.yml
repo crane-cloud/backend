@@ -61,6 +61,6 @@ jobs:
       - run:
           # deploy develop to cluster
           command: |
-            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+            if [ "${CIRCLE_BRANCH}" == "develop-new" ]; then
               ./scripts/ci-deploy.sh
             fi
