@@ -24,6 +24,8 @@ spec:
           env:
             - name: DATABASE_URI
               value: $DATABASE_URI
+            - name: FLASK_APP
+              value: $FLASK_APP
             - name: FLASK_APP_SECRET
               value: $FLASK_APP_SECRET
             - name: FLASK_ENV
