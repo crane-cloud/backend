@@ -18,4 +18,4 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
     extension_api = client.ExtensionsV1beta1Api(client.ApiClient(config))
     appsv1_api = client.AppsV1Api(client.ApiClient(config))
 
-    return kube, extension_api, appsv1_api
+    return kube, extension_api, appsv1_api, api_client

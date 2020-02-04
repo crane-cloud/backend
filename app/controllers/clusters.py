@@ -1,5 +1,6 @@
 import json
 from flask_restful import Resource, request
+from kubernetes import client
 from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
 from app.helpers.kube import create_kube_clients
@@ -24,7 +25,7 @@ class ClustersView(Resource):
             kube_host = validated_cluster_data['host']
             kube_token = validated_cluster_data['token']
 
-            kube, extension_api, appsv1_api = create_kube_clients(kube_host, kube_token)
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
 
             # test connection by getting namespaces
             kube.list_namespace(_preload_content=False)
@@ -83,7 +84,7 @@ class ClusterDetailView(Resource):
             kube_host = cluster.host
             kube_token = cluster.token
 
-            kube, extension_api, appsv1_api = create_kube_clients(kube_host, kube_token)
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
 
             # get number of nodes in the cluster
             node_count = len(kube.list_namespace().items)
@@ -165,4 +166,71 @@ class ClusterDetailView(Resource):
             return dict(status='fail', message='Internal Server Error'), 500
 
         return dict(status='success', message=f'Cluster with id {cluster_id} deleted successfully'), 200
+
+
+class ClusterNamespacesView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+
+        try:
+            cluster_schema = ClusterSchema()
+
+            cluster = Cluster.get_by_id(cluster_id)
+
+            namespaces = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            # get all namespaces in the cluster
+            namespace_resp = kube.list_namespace()
+            
+            for item in namespace_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                namespaces.append(item)
+
+            namespaces_json = json.dumps(namespaces)
+
+            return dict(status='Success', data=dict(namespaces=json.loads(namespaces_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+
+class ClusterNamespaceDetailView(Resource):
+
+    def get(self, cluster_id, namespace_name):
+        """
+        """
+
+        try:
+            cluster_schema = ClusterSchema()
+
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            namespace = kube.read_namespace(name=namespace_name)
+            namespace = api_client.sanitize_for_serialization(namespace)
+
+            namespace_json = json.dumps(namespace)
+
+            return dict(status='Success', data=dict(namespace=json.loads(namespace_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+
 
