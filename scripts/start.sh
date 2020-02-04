@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # source env variables
-source .env
+# source .env
 
 #while ! nc -z database 5432; do
 #    sleep 0.1
