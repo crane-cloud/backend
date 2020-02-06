@@ -198,9 +198,12 @@ class ClusterNamespacesView(Resource):
 
             namespaces_json = json.dumps(namespaces)
 
-            return dict(status='Success', data=dict(namespaces=json.loads(namespaces_json))), 200
+            return dict(status='success', data=dict(namespaces=json.loads(namespaces_json))), 200
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
 
 
 class ClusterNamespaceDetailView(Resource):
@@ -210,7 +213,6 @@ class ClusterNamespaceDetailView(Resource):
         """
 
         try:
-            cluster_schema = ClusterSchema()
 
             cluster = Cluster.get_by_id(cluster_id)
 
@@ -227,10 +229,139 @@ class ClusterNamespaceDetailView(Resource):
 
             namespace_json = json.dumps(namespace)
 
-            return dict(status='Success', data=dict(namespace=json.loads(namespace_json))), 200
+            return dict(status='success', data=dict(namespace=json.loads(namespace_json))), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
 
 
+class ClusterNodesView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            nodes = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            # get all nodes in the cluster
+            node_resp = kube.list_node()
+
+            for item in node_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                nodes.append(item)
+
+            nodes_json = json.dumps(nodes)
+
+            return dict(status='success', data=dict(nodes=json.loads(nodes_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterNodeDetailView(Resource):
+
+    def get(self, cluster_id, node_name):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            node = kube.read_node(name=node_name)
+            node = api_client.sanitize_for_serialization(node)
+
+            node_json = json.dumps(node)
+
+            return dict(status='success', data=dict(node=json.loads(node_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterDeploymentsView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            deployments = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            deployment_resp = appsv1_api.list_deployment_for_all_namespaces()
+
+            for item in deployment_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                deployments.append(item)
+
+            deployments_json = json.dumps(deployments)
+
+            return dict(status='success', data=dict(deployments=json.loads(deployments_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterDeploymentDetailView(Resource):
+
+    def get(self, cluster_id, namespace_name, deployment_name):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            deployment = appsv1_api.read_namespaced_deployment(deployment_name, namespace_name)
+            deployment = api_client.sanitize_for_serialization(deployment)
+
+            deployment_json = json.dumps(deployment)
+
+            return dict(status='success', data=dict(deployment=json.loads(deployment_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
