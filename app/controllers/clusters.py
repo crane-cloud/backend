@@ -365,3 +365,66 @@ class ClusterDeploymentDetailView(Resource):
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
+
+class ClusterPvcsView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            pvcs = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            pvcs_resp = kube.list_persistent_volume_claim_for_all_namespaces()
+
+            for item in pvcs_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                pvcs.append(item)
+
+            pvcs_json = json.dumps(pvcs)
+
+            return dict(status='success', data=dict(pvcs=json.loads(pvcs_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterPvcDetailView(Resource):
+
+    def get(self, cluster_id, namespace_name, pvc_name):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            pvc = kube.read_namespaced_persistent_volume_claim(pvc_name, namespace_name)
+            pvc = api_client.sanitize_for_serialization(pvc)
+
+            pvc_json = json.dumps(pvc)
+
+            return dict(status='success', data=dict(pvc=json.loads(pvc_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500

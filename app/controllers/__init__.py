@@ -8,7 +8,8 @@ from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
-    ClusterDeploymentsView, ClusterDeploymentDetailView)
+    ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView,
+    ClusterPvcDetailView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
 from .organisation_admins import OrgAdminView
