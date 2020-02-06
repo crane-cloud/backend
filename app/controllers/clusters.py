@@ -493,3 +493,66 @@ class ClusterPVDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+
+class ClusterPodsView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            pods = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            pods_resp = kube.list_pod_for_all_namespaces()
+
+            for item in pods_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                pods.append(item)
+
+            pods_json = json.dumps(pods)
+
+            return dict(status='success', data=dict(pods=json.loads(pods_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterPodDetailView(Resource):
+
+    def get(self, cluster_id, namespace_name, pod_name):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            pod = kube.read_namespaced_pod(pod_name, namespace_name)
+            pod = api_client.sanitize_for_serialization(pod)
+
+            pod_json = json.dumps(pod)
+
+            return dict(status='success', data=dict(pod=json.loads(pod_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
