@@ -556,3 +556,67 @@ class ClusterPodDetailView(Resource):
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
+
+
+class ClusterServicesView(Resource):
+
+    def get(self, cluster_id):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            services = []
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            service_resp = kube.list_service_for_all_namespaces ()
+
+            for item in service_resp.items:
+                item = api_client.sanitize_for_serialization(item)
+                services.append(item)
+
+            services_json = json.dumps(services)
+
+            return dict(status='success', data=dict(services=json.loads(services_json))), 200
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
+class ClusterServiceDetailView(Resource):
+
+    def get(self, cluster_id, namespace_name, service_name):
+        """
+        """
+        try:
+            cluster = Cluster.get_by_id(cluster_id)
+
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client = create_kube_clients(kube_host, kube_token)
+
+            service = kube.read_namespaced_service(service_name, namespace_name)
+            service = api_client.sanitize_for_serialization(service)
+
+            service_json = json.dumps(service)
+
+            return dict(status='success', data=dict(deployment=json.loads(service_json))), 200
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=e.reason), e.status
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
