@@ -7,7 +7,8 @@ from app.controllers import (
     OrgMemberView, OrgAdminView, ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
-    ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView
+    ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
+    ClusterServiceDetailView, ClusterServicesView
 )
 
 api = Api()
@@ -55,6 +56,8 @@ api.add_resource(ClusterPVsView, '/clusters/<int:cluster_id>/pvs')
 api.add_resource(ClusterPVDetailView, '/clusters/<int:cluster_id>/pvs/<string:pv_name>')
 api.add_resource(ClusterPodsView, '/clusters/<int:cluster_id>/pods')
 api.add_resource(ClusterPodDetailView, '/clusters/<int:cluster_id>/pods/<string:namespace_name>/<string:pod_name>')
+api.add_resource(ClusterServicesView, '/clusters/<int:cluster_id>/services')
+api.add_resource(ClusterServiceDetailView, '/clusters/<int:cluster_id>/services/<string:namespace_name>/<string:service_name>')
 
 
 # Roles routes
