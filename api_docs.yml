@@ -178,7 +178,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -201,7 +201,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: cluster_update
@@ -235,7 +235,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -259,7 +259,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -283,7 +283,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
@@ -311,7 +311,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -335,7 +335,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: node_name
                   required: true
@@ -364,7 +364,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -388,7 +388,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
@@ -420,7 +420,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -444,7 +444,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
@@ -477,7 +477,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -501,7 +501,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: pv_name
                   required: true
@@ -530,7 +530,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -554,7 +554,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
@@ -587,7 +587,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -612,7 +612,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
@@ -685,7 +685,7 @@ paths:
                 - in: path
                   name: role_id
                   required: true
-                  type: integer
+                  type: string
             
             produces:
                 - application/json
@@ -705,7 +705,7 @@ paths:
                 - in: path
                   name: role_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: role
@@ -735,7 +735,7 @@ paths:
                 - in: path
                   name: role_id
                   required: true
-                  type: integer
+                  type: string
             produces:
                 - application/json
             responses:
@@ -757,7 +757,7 @@ paths:
                 - in: path
                   name: user_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: userRole
@@ -767,7 +767,7 @@ paths:
                         - role_id
                     properties:
                         role_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:
@@ -787,7 +787,7 @@ paths:
                 - in: path
                   name: user_id
                   required: true
-                  type: integer
+                  type: string
             
             produces:
                 - application/json
@@ -809,7 +809,7 @@ paths:
                 - in: path
                   name: user_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: userRole
@@ -819,7 +819,7 @@ paths:
                         - role_id
                     properties:
                         role_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:
@@ -841,7 +841,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: organisation_member
@@ -851,7 +851,7 @@ paths:
                         - user_id
                     properties:
                         user_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:
@@ -871,7 +871,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
 
             produces:
                 - application/json
@@ -895,7 +895,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
                   
                 - in: body
                   name: organisation_member
@@ -905,7 +905,7 @@ paths:
                         - user_id
                     properties:
                         user_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:
@@ -929,7 +929,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: organisation_admin
@@ -939,7 +939,7 @@ paths:
                         - user_id
                     properties:
                         user_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:
@@ -959,7 +959,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
             produces:
                 - application/json
             responses:
@@ -979,7 +979,7 @@ paths:
                 - in: path
                   name: organisation_id
                   required: true
-                  type: integer
+                  type: string
 
                 - in: body
                   name: organisation_admin
@@ -989,7 +989,7 @@ paths:
                         - user_id
                     properties:
                         user_id:
-                            type: integer
+                            type: string
             produces:
                 - application/json
             responses:

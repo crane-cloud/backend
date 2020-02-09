@@ -1,4 +1,6 @@
 from flask import current_app
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import text as sa_text
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
@@ -14,7 +16,7 @@ class User(ModelMixin):
     _tablename_ = "users"
 
     # fields of the user table
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     email = db.Column(db.String(256), unique=True, nullable=False, default="")
     name = db.Column(db.String(256), nullable=False, default="")
     username = db.Column(db.String(256), nullable=False, default="")

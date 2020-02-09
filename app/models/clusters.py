@@ -1,4 +1,6 @@
 import os
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import text as sa_text
 from sqlalchemy_utils import EncryptedType
 from flask import current_app as app
 from app.models import db
@@ -11,7 +13,7 @@ class Cluster(ModelMixin):
 
     __tablename__ = 'clusters'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String, nullable=False, unique=True)
     host = db.Column(db.String, nullable=False, unique=True)
     token = db.Column(EncryptedType(db.String, secret), nullable=False)

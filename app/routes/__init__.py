@@ -22,46 +22,46 @@ api.add_resource(UserLoginView, '/users/login', endpoint='login')
 
 # Organisation routes
 api.add_resource(OrganisationsView, '/organisations', endpoint='organisations')
-api.add_resource(OrganisationDetailView, '/organisations/<int:org_id>', endpoint='organisation')
+api.add_resource(OrganisationDetailView, '/organisations/<string:org_id>', endpoint='organisation')
 
 # Organisation Members routes
-api.add_resource(OrgMemberView, '/organisations/<int:organisation_id>/members', endpoint='org_members')
+api.add_resource(OrgMemberView, '/organisations/<string:organisation_id>/members', endpoint='org_members')
 
 # Organisation Admins routes
-api.add_resource(OrgAdminView, '/organisations/<int:organisation_id>/admins', endpoint='org_admins')
+api.add_resource(OrgAdminView, '/organisations/<string:organisation_id>/admins', endpoint='org_admins')
 
 # Organisation Namespaces
 api.add_resource(
-    OrganisationNamespaceView, '/organisations/<int:organisation_id>/namespaces', endpoint='org_namespaces')
+    OrganisationNamespaceView, '/organisations/<string:organisation_id>/namespaces', endpoint='org_namespaces')
 
 # Namespaces
 api.add_resource(NamespacesView, '/namespaces', endpoint='namespaces')
-api.add_resource(NamespaceDetailView, '/namespaces/<int:id>', endpoint='namespace')
+api.add_resource(NamespaceDetailView, '/namespaces/<string:id>', endpoint='namespace')
 
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
 
 # Clusters
 api.add_resource(ClustersView, '/clusters', endpoint='clusters')
-api.add_resource(ClusterDetailView, '/clusters/<int:cluster_id>')
-api.add_resource(ClusterNamespacesView, '/clusters/<int:cluster_id>/namespaces')
-api.add_resource(ClusterNamespaceDetailView, '/clusters/<int:cluster_id>/namespaces/<string:namespace_name>')
-api.add_resource(ClusterNodesView, '/clusters/<int:cluster_id>/nodes')
-api.add_resource(ClusterNodeDetailView, '/clusters/<int:cluster_id>/nodes/<string:node_name>')
-api.add_resource(ClusterDeploymentsView, '/clusters/<int:cluster_id>/deployments')
-api.add_resource(ClusterDeploymentDetailView, '/clusters/<int:cluster_id>/deployments/<string:namespace_name>/<string:deployment_name>')
-api.add_resource(ClusterPvcsView, '/clusters/<int:cluster_id>/pvcs')
-api.add_resource(ClusterPvcDetailView, '/clusters/<int:cluster_id>/pvcs/<string:namespace_name>/<string:pvc_name>')
-api.add_resource(ClusterPVsView, '/clusters/<int:cluster_id>/pvs')
-api.add_resource(ClusterPVDetailView, '/clusters/<int:cluster_id>/pvs/<string:pv_name>')
-api.add_resource(ClusterPodsView, '/clusters/<int:cluster_id>/pods')
-api.add_resource(ClusterPodDetailView, '/clusters/<int:cluster_id>/pods/<string:namespace_name>/<string:pod_name>')
-api.add_resource(ClusterServicesView, '/clusters/<int:cluster_id>/services')
-api.add_resource(ClusterServiceDetailView, '/clusters/<int:cluster_id>/services/<string:namespace_name>/<string:service_name>')
+api.add_resource(ClusterDetailView, '/clusters/<string:cluster_id>')
+api.add_resource(ClusterNamespacesView, '/clusters/<string:cluster_id>/namespaces')
+api.add_resource(ClusterNamespaceDetailView, '/clusters/<string:cluster_id>/namespaces/<string:namespace_name>')
+api.add_resource(ClusterNodesView, '/clusters/<string:cluster_id>/nodes')
+api.add_resource(ClusterNodeDetailView, '/clusters/<string:cluster_id>/nodes/<string:node_name>')
+api.add_resource(ClusterDeploymentsView, '/clusters/<string:cluster_id>/deployments')
+api.add_resource(ClusterDeploymentDetailView, '/clusters/<string:cluster_id>/deployments/<string:namespace_name>/<string:deployment_name>')
+api.add_resource(ClusterPvcsView, '/clusters/<string:cluster_id>/pvcs')
+api.add_resource(ClusterPvcDetailView, '/clusters/<string:cluster_id>/pvcs/<string:namespace_name>/<string:pvc_name>')
+api.add_resource(ClusterPVsView, '/clusters/<string:cluster_id>/pvs')
+api.add_resource(ClusterPVDetailView, '/clusters/<string:cluster_id>/pvs/<string:pv_name>')
+api.add_resource(ClusterPodsView, '/clusters/<string:cluster_id>/pods')
+api.add_resource(ClusterPodDetailView, '/clusters/<string:cluster_id>/pods/<string:namespace_name>/<string:pod_name>')
+api.add_resource(ClusterServicesView, '/clusters/<string:cluster_id>/services')
+api.add_resource(ClusterServiceDetailView, '/clusters/<string:cluster_id>/services/<string:namespace_name>/<string:service_name>')
 
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
 
 # User_Roles routes
-api.add_resource(UserRolesView, '/user/<int:user_id>/roles', endpoint='user_roles')
+api.add_resource(UserRolesView, '/user/<string:user_id>/roles', endpoint='user_roles')
