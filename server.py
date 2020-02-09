@@ -35,7 +35,7 @@ def create_app(config_name):
     api.init_app(app)
 
     # initialize jwt with app
-    JWTManager(app)
+    jwt = JWTManager(app)
 
     # swagger
     app.config['SWAGGER'] = {
@@ -66,6 +66,16 @@ def create_app(config_name):
                                 ' overloaded or there is an error in the application'))
         response.status_code = 500
         return response
+
+    @jwt.user_claims_loader
+    def add_claims_to_access_token(user):
+        return {
+            'roles': user.get('roles', None)
+        }
+
+    @jwt.user_identity_loader
+    def user_identity_lookup(user):
+        return user.get('id', None)
 
     return app
 

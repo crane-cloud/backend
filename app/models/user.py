@@ -34,13 +34,13 @@ class User(ModelMixin):
         """ checks the password against it's hash to validate the user's password """
         return Bcrypt().check_password_hash(self.password, password)
 
-    def generate_token(self, id):
+    def generate_token(self, user):
         """ generates the access token """
 
         # set token expiry period
         expiry = timedelta(days=10)
 
-        return create_access_token(id, expires_delta=expiry)
+        return create_access_token(user, expires_delta=expiry)
 
     def __repr__(self):
         return "<User: {}>".format(self.email)
