@@ -23,6 +23,7 @@ class UserTestCase(unittest.TestCase):
             """ bind app to current context """
 
             # create all tables
+            db.engine.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
             db.create_all()
 
     def tearDown(self):
@@ -38,7 +39,7 @@ class UserTestCase(unittest.TestCase):
 
         response = self.client.post('/users', json=self.test_user)
 
-        # self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
         self.assertIn('test_email@testdomain.com', str(response.data))
         self.assertIn('test_name', str(response.data))
 
