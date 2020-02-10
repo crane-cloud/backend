@@ -8,7 +8,7 @@ from app.controllers import (
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
-    ClusterServiceDetailView, ClusterServicesView
+    ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView
 )
 
 api = Api()
@@ -43,21 +43,23 @@ api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
 
 # Clusters
 api.add_resource(ClustersView, '/clusters', endpoint='clusters')
-api.add_resource(ClusterDetailView, '/clusters/<string:cluster_id>')
-api.add_resource(ClusterNamespacesView, '/clusters/<string:cluster_id>/namespaces')
-api.add_resource(ClusterNamespaceDetailView, '/clusters/<string:cluster_id>/namespaces/<string:namespace_name>')
-api.add_resource(ClusterNodesView, '/clusters/<string:cluster_id>/nodes')
-api.add_resource(ClusterNodeDetailView, '/clusters/<string:cluster_id>/nodes/<string:node_name>')
-api.add_resource(ClusterDeploymentsView, '/clusters/<string:cluster_id>/deployments')
-api.add_resource(ClusterDeploymentDetailView, '/clusters/<string:cluster_id>/deployments/<string:namespace_name>/<string:deployment_name>')
-api.add_resource(ClusterPvcsView, '/clusters/<string:cluster_id>/pvcs')
-api.add_resource(ClusterPvcDetailView, '/clusters/<string:cluster_id>/pvcs/<string:namespace_name>/<string:pvc_name>')
-api.add_resource(ClusterPVsView, '/clusters/<string:cluster_id>/pvs')
-api.add_resource(ClusterPVDetailView, '/clusters/<string:cluster_id>/pvs/<string:pv_name>')
-api.add_resource(ClusterPodsView, '/clusters/<string:cluster_id>/pods')
-api.add_resource(ClusterPodDetailView, '/clusters/<string:cluster_id>/pods/<string:namespace_name>/<string:pod_name>')
-api.add_resource(ClusterServicesView, '/clusters/<string:cluster_id>/services')
-api.add_resource(ClusterServiceDetailView, '/clusters/<string:cluster_id>/services/<string:namespace_name>/<string:service_name>')
+api.add_resource(ClusterDetailView, '/clusters/<int:cluster_id>')
+api.add_resource(ClusterNamespacesView, '/clusters/<int:cluster_id>/namespaces')
+api.add_resource(ClusterNamespaceDetailView, '/clusters/<int:cluster_id>/namespaces/<string:namespace_name>')
+api.add_resource(ClusterNodesView, '/clusters/<int:cluster_id>/nodes')
+api.add_resource(ClusterNodeDetailView, '/clusters/<int:cluster_id>/nodes/<string:node_name>')
+api.add_resource(ClusterDeploymentsView, '/clusters/<int:cluster_id>/deployments')
+api.add_resource(ClusterDeploymentDetailView, '/clusters/<int:cluster_id>/deployments/<string:namespace_name>/<string:deployment_name>')
+api.add_resource(ClusterPvcsView, '/clusters/<int:cluster_id>/pvcs')
+api.add_resource(ClusterPvcDetailView, '/clusters/<int:cluster_id>/pvcs/<string:namespace_name>/<string:pvc_name>')
+api.add_resource(ClusterPVsView, '/clusters/<int:cluster_id>/pvs')
+api.add_resource(ClusterPVDetailView, '/clusters/<int:cluster_id>/pvs/<string:pv_name>')
+api.add_resource(ClusterPodsView, '/clusters/<int:cluster_id>/pods')
+api.add_resource(ClusterPodDetailView, '/clusters/<int:cluster_id>/pods/<string:namespace_name>/<string:pod_name>')
+api.add_resource(ClusterServicesView, '/clusters/<int:cluster_id>/services')
+api.add_resource(ClusterServiceDetailView, '/clusters/<int:cluster_id>/services/<string:namespace_name>/<string:service_name>')
+api.add_resource(ClusterJobsView, '/clusters/<int:cluster_id>/jobs')
+api.add_resource(ClusterJobDetailView, '/clusters/<int:cluster_id>/jobs/<string:namespace_name>/<string:job_name>')
 
 
 # Roles routes
