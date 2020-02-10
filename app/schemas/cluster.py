@@ -3,7 +3,7 @@ from marshmallow import Schema, fields, validate
 
 class ClusterSchema(Schema):
 
-    id = fields.Integer(dump_only=True)
+    id = fields.UUID(dump_only=True)
     name = fields.String(required=True, error_message={
         "required": "name is required"},
         validate=[

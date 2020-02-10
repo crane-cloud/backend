@@ -1,4 +1,6 @@
 from flask import current_app
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import text as sa_text
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
@@ -14,7 +16,7 @@ class User(ModelMixin):
     _tablename_ = "users"
 
     # fields of the user table
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     email = db.Column(db.String(256), unique=True, nullable=False, default="")
     name = db.Column(db.String(256), nullable=False, default="")
     username = db.Column(db.String(256), nullable=False, default="")
@@ -34,13 +36,13 @@ class User(ModelMixin):
         """ checks the password against it's hash to validate the user's password """
         return Bcrypt().check_password_hash(self.password, password)
 
-    def generate_token(self, id):
+    def generate_token(self, user):
         """ generates the access token """
 
         # set token expiry period
         expiry = timedelta(days=10)
 
-        return create_access_token(id, expires_delta=expiry)
+        return create_access_token(user, expires_delta=expiry)
 
     def __repr__(self):
         return "<User: {}>".format(self.email)

@@ -50,7 +50,7 @@ class RolesView(Resource):
 
         return dict(
             status='success',
-            data=dict(users=json.loads(roles_data))
+            data=dict(roles=json.loads(roles_data))
         ), 200
 
 

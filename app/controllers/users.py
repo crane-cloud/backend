@@ -62,6 +62,8 @@ class UserLoginView(Resource):
 
         user_schema = UserSchema(only=("email", "password"))
 
+        token_schema = UserSchema()
+
         login_data = request.get_json()
 
         validated_user_data, errors = user_schema.load(login_data)
@@ -74,9 +76,11 @@ class UserLoginView(Resource):
 
         user = User.find_first(email=email)
 
+        user_dict, errors = token_schema.dump(user)
+
         if user and user.password_is_valid(password):
 
-            access_token = user.generate_token(user.id)
+            access_token = user.generate_token(user_dict)
 
             if not access_token:
                 return dict(status="fail", message="Unable to generate token"), 401
