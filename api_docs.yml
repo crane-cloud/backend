@@ -634,6 +634,65 @@ paths:
 
 
 
+    "/clusters/{cluster_id}/jobs":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+
+            responses:
+                200:
+                    description: "Returns a list of jobs"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+                    
+    "/clusters/{cluster_id}/jobs/{namespace_name}/{job_name}":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: integer
+                - in: path
+                  name: namespace_name
+                  required: true
+                  type: string
+                - in: path
+                  name: job_name
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A job"
+                404:
+                    description: "Not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
+
     "/roles":
         post:
             tags:

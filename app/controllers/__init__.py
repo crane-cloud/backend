@@ -11,7 +11,7 @@ from .clusters import (
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView,
     ClusterPvcDetailView, ClusterPVsView, ClusterPVDetailView,
     ClusterPodsView, ClusterPodDetailView,ClusterServicesView,
-    ClusterServiceDetailView)
+    ClusterServiceDetailView, ClusterJobsView, ClusterJobDetailView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
 from .organisation_admins import OrgAdminView
