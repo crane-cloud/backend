@@ -8,7 +8,8 @@ from app.controllers import (
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
-    ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView
+    ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
+    ProjectsView, ProjectDetailView, UserProjectsView
 )
 
 api = Api()
@@ -67,3 +68,10 @@ api.add_resource(RolesView, '/roles', endpoint='roles')
 
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles', endpoint='user_roles')
+
+# Project route
+api.add_resource(ProjectsView, '/projects', endpoint='projects')
+api.add_resource(ProjectDetailView, '/projects/<string:project_id>')
+
+# User Project routes
+api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')

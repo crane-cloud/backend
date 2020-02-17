@@ -9,6 +9,8 @@ from app.models.user_role import UserRole
 from app.models.organisation import Organisation
 from app.models.organisation_members import OrganisationMembers
 from app.models.organisation_admins import OrganisationAdmins
+from app.models.clusters import Cluster
+from app.models.project import Project
 # from app.models.namespaces import Namespace
 
 # register app and db with migration class

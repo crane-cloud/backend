@@ -17,3 +17,4 @@ class Cluster(ModelMixin):
     name = db.Column(db.String, nullable=False, unique=True)
     host = db.Column(db.String, nullable=False, unique=True)
     token = db.Column(EncryptedType(db.String, secret), nullable=False)
+    projects = db.relationship('Project', backref='cluster', lazy=True)

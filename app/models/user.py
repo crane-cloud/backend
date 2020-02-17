@@ -23,6 +23,7 @@ class User(ModelMixin):
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    projects = db.relationship('Project', backref='owner', lazy=True)
 
 
     def __init__(self, email, name, password):
