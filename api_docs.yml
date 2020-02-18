@@ -77,6 +77,29 @@ paths:
                     description: "bad request"
                 401:
                     description: "failed login"
+
+    "/users/{user_id}/projects":
+        get:
+            tags:
+                - user projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: string
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
     
     "/organisations":
         post:
@@ -1058,6 +1081,133 @@ paths:
                     description: "Bad request"
                 500:
                     descriptiom: "Internal Server Error"
+    
+    "/projects":
+
+        post:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: project
+                  schema:
+                    required:
+                        - name
+                        - alias
+                        - owner_id
+                        - cluster_id
+                    properties:
+                        name:
+                            type: string
+                        alias:
+                            type: string
+                        owner_id:
+                            type: string
+                        cluster_id:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    "/projects/{project_id}":
+        get:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A single Project"
+                404:
+                    description: "Project not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        patch:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+                - in: body
+                  name: project_update
+                  schema:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "Project not found"
+                400:
+                    description: "Internal Server Error"
+
+        delete:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+            
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "Project not found"
+                400:
+                    description: "Bad request"
+                500:
+                    descriptopm: "Internal Server Error"
+
+                  
     
                                 
                 
