@@ -11,9 +11,9 @@ Follow these steps to have a local running copy of the app.
 
 ##### Clone The Repo
 
-`git clone https://github.com/ckwagaba/osprey-backend.git`
+`git clone https://github.com/crane-cloud/backend.git`
 
-If `master` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
+If `master` is not up to date, `git checkout develop-new`. However, note that code on develop-new could be having some minor issues to sort.
 
 ##### Install PostgreSQL
 
@@ -21,13 +21,15 @@ Here's a great resource to check out:
 
 [How To Install and Use PostgreSQL](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04)
 
-Create the two databases `osprey` (for development) and `osprey_test_db` (for unit testing).
+Create the two databases `cranecloud` (for development) and `cranecloud_test_db` (for unit testing).
 
 ##### Create a Virtual Environment
 
 App was developed with `Python 3.6`.
 
 Make sure you have `pip` installed on your machine.
+
+Create a pip virtual environment you can call it `venv`
 
 Install the dependencies.
 
@@ -43,8 +45,6 @@ export FLASK_ENV=development
 export FLASK_DEBUG=1
 export FLASK_RUN_PORT=5000
 export FLASK_APP_SECRET=<app_secret>
-export KUBE_HOST=<cluster IP>
-export KUBE_TOKEN=<cluster access_token>
 ```
 
 Activate the virtual environment.
