@@ -7,9 +7,10 @@ class Base:
     # main
     SECRET_KEY = os.getenv("FLASK_APP_SECRET")
     PASSWORD_SALT = os.getenv("FLASK_APP_SALT")
+    VERIFICATION_SALT = os.getenv("FLASK_VERIFY_SALT")
 
     # mail settings
-    MAIL_SERVER = "smtp.googlemail.com"
+    MAIL_SERVER = "smtp.gmail.com"
     MAIL_PORT = 465
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
@@ -25,15 +26,15 @@ class Base:
 class Development(Base):
     """ development config """
 
-    DEBUG = (True,)
+    DEBUG = True
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
 
 
 class Testing(Base):
     """ test environment config """
 
-    TESTING = (True,)
-    DEBUG = (True,)
+    TESTING = True
+    DEBUG = True
     # use a separate db
 
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
@@ -47,4 +48,3 @@ class Production(Base):
 
 
 app_config = {"development": Development, "testing": Testing, "production": Production}
-

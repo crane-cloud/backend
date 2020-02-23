@@ -1,22 +1,19 @@
 from itsdangerous import URLSafeTimedSerializer
 
-from app import app
 
-
-def generate_token(email):
+def generate_token(email, secret_key, password_salt):
     """ generate verification token """
 
-    serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
-    return serializer.dumps(email, salt=app.config["PASSWORD_SALT"])
+    serializer = URLSafeTimedSerializer(secret_key)
+    return serializer.dumps(email, salt=password_salt)
 
 
-def validate_token(token, expiration=3600):
-    serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
+def validate_token(token, secret_key, password_salt, expiration=3600):
+    serializer = URLSafeTimedSerializer(secret_key)
     try:
         email = serializer.loads(
-            token, salt=app.config["PASSWORD_SALT"], max_age=expiration
+            token, salt=password_salt, max_age=expiration
         )
     except:
         return False
     return email
-

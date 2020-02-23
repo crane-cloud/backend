@@ -1,7 +1,7 @@
 # import all controllers
 
 from .index import IndexView
-from .users import UsersView, UserLoginView
+from .users import UsersView, UserLoginView, UserEmailVerificationView, EmailVerificationRequest
 from .organisation import OrganisationsView, OrganisationDetailView
 from .namespaces import NamespacesView, OrganisationNamespaceView, NamespaceDetailView
 from .deployments import DeploymentsView
@@ -10,7 +10,7 @@ from .clusters import (
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView,
     ClusterPvcDetailView, ClusterPVsView, ClusterPVDetailView,
-    ClusterPodsView, ClusterPodDetailView,ClusterServicesView,
+    ClusterPodsView, ClusterPodDetailView, ClusterServicesView,
     ClusterServiceDetailView, ClusterJobsView, ClusterJobDetailView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView

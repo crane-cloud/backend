@@ -1,15 +1,20 @@
-from flaskext.mail import Mail, Message
+import os
+from flask_mail import Mail, Message
+from threading import Thread
 
-from app import app
-
-mail = Mail(app)
+mail = Mail()
 
 
-def send_email(to, subject, template):
+def async_mail(app, message):
+    with app.app_context():
+        mail.send(message)
+
+
+def send_email(to, subject, template, sender, app):
     msg = Message(
         subject,
         recipients=[to],
         html=template,
-        sender=app.config["MAIL_DEFAULT_SENDER"],
+        sender=sender,
     )
-    mail.send(msg)
+    Thread(target=async_mail, args=(app, msg)).start()
