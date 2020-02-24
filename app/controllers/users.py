@@ -1,8 +1,11 @@
 import json
+import os
 from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import UserSchema
 from app.models.user import User
+from app.helpers.confirmation import send_verification
+from app.helpers.token import validate_token
 
 
 class UsersView(Resource):
@@ -18,6 +21,13 @@ class UsersView(Resource):
         validated_user_data, errors = user_schema.load(user_data)
 
         email = validated_user_data.get('email', None)
+        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+
+        # To do change to a frontend url
+        verification_url = f"{client_base_url}/verify/"
+        secret_key = current_app.config["SECRET_KEY"]
+        password_salt = current_app.config["VERIFICATION_SALT"]
+        sender = current_app.config["MAIL_DEFAULT_SENDER"]
 
         if errors:
             return dict(status="fail", message=errors), 400
@@ -32,6 +42,9 @@ class UsersView(Resource):
 
         if not saved_user:
             return dict(status='fail', message=f'Internal Server Error'), 500
+
+        # send verification
+        send_verification(email, verification_url, secret_key, password_salt, sender, current_app._get_current_object())
 
         new_user_data, errors = user_schema.dumps(user)
 
@@ -76,6 +89,12 @@ class UserLoginView(Resource):
 
         user = User.find_first(email=email)
 
+        if not user:
+            return dict(status='fail', message="login failed"), 401
+
+        if not user.verified:
+            return dict(status='fail', message='email not verified', data=dict(verified=user.verified)), 401
+
         user_dict, errors = token_schema.dump(user)
 
         if user and user.password_is_valid(password):
@@ -83,8 +102,108 @@ class UserLoginView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
-                return dict(status="fail", message="Unable to generate token"), 401
+                return dict(status="fail", message="Internal Server Error"), 500
 
-            return dict(status='success', data=dict(acess_token=access_token)), 200
+            return dict(
+                status='success',
+                data=dict(
+                    acess_token=access_token,
+                    email=user.email,
+                    username=user.username,
+                    verified=user.verified,
+                    id=str(user.id),
+                    )), 200
 
         return dict(status='fail', message="login failed"), 401
+
+
+class UserEmailVerificationView(Resource):
+
+    def get(self, token):
+        """
+        """
+
+        user_schema = UserSchema()
+
+        secret = current_app.config["SECRET_KEY"]
+        salt = current_app.config["VERIFICATION_SALT"]
+
+        email = validate_token(token, secret, salt)
+
+        if not email:
+            return dict(status="fail", message="invalid token"), 401
+
+        user = User.find_first(**{'email': email})
+
+        if not user:
+            return dict(status='fail', message=f'User with email {email} not found'), 404
+
+        if user.verified:
+            return dict(status='fail', message='Email is already verified'), 400
+
+        user.verified = True
+
+        user_saved = user.save()
+
+        user_dict, _ = user_schema.dump(user)
+
+        if user_saved:
+
+            # generate access token
+            access_token = user.generate_token(user_dict)
+
+            if not access_token:
+                return dict(status='fail', message='internal server error'), 500
+
+            return dict(
+                status='success',
+                message='Email verified successfully',
+                data=dict(
+                    access_token=access_token,
+                    email=user.email,
+                    username=user.username,
+                    verified=user.verified,
+                    id=str(user.id),
+                    )), 200
+
+        return dict(status='fail', message='internal server error'), 500
+
+
+class EmailVerificationRequest(Resource):
+
+    def post(self):
+        """
+        """
+        email_schema = UserSchema(only=("email",))
+
+        request_data = request.get_json()
+
+        validated_data, errors = email_schema.load(request_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        email = validated_data.get('email', None)
+        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+
+        # To do, change to a frontend url
+        verification_url = f"{client_base_url}/verify/"
+        secret_key = current_app.config["SECRET_KEY"]
+        password_salt = current_app.config["VERIFICATION_SALT"]
+        sender = current_app.config["MAIL_DEFAULT_SENDER"]
+
+        user = User.find_first(**{'email': email})
+
+        if not user:
+            return dict(status='fail', message=f'user with email {email} not found'), 404
+
+        # send verification
+        send_verification(
+            email,
+            verification_url,
+            secret_key,
+            password_salt,
+            sender,
+            current_app._get_current_object()
+            )
+        return dict(status='success', message=f'verification link sent to {email}'), 200

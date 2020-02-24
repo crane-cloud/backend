@@ -11,6 +11,8 @@ from app.routes import api
 
 from app.models import db
 
+from app.helpers.email import mail
+
 
 def create_app(config_name):
     """ app factory """
@@ -27,7 +29,6 @@ def create_app(config_name):
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-
     # register app with the db
     db.init_app(app)
 
@@ -36,6 +37,9 @@ def create_app(config_name):
 
     # initialize jwt with app
     jwt = JWTManager(app)
+
+    # initialize mail
+    mail.init_app(app)
 
     # swagger
     app.config['SWAGGER'] = {

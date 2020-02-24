@@ -78,6 +78,58 @@ paths:
                 401:
                     description: "failed login"
 
+    "/users/verify":
+        post:
+            tags:
+                - auth
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: email
+                  schema:
+                    type: object
+                    required:
+                        - email
+                    properties:
+                        email:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "User not found"
+                500:
+                    description: "Internal Server Error"
+
+    "/users/verify/{token}":
+        get:
+            tags:
+                - auth
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: token
+                  required: true
+                  type: string
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+                
+
     "/users/{user_id}/projects":
         get:
             tags:
