@@ -43,7 +43,7 @@ class Testing(Base):
 class Production(Base):
     """ production config """
 
-    DEBUG = (False,)
+    DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
 
 
