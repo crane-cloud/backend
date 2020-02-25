@@ -128,8 +128,69 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
-                
 
+    "/users/forgot_password":
+        post:
+            tags:
+                - users
+                - auth
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: email
+                  schema:
+                    type: object
+                    required:
+                        - email
+                    properties:
+                        email:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "User not found"
+                500:
+                    description: "Internal Server Error"
+
+    "/users/reset_password/{token}":
+        post:
+            tags:
+                - users
+                - auth
+            consumes:
+                - application/json
+            parameters:
+                - in: path
+                  name: token
+                  required: true
+                  type: string
+                - in: body
+                  name: password
+                  schema:
+                    type: object
+                    required:
+                        - password
+                    properties:
+                        password:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "User not found"
+                500:
+                    description: "Internal Server Error"
+            
     "/users/{user_id}/projects":
         get:
             tags:

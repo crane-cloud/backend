@@ -10,7 +10,7 @@ from app.controllers import (
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
-    EmailVerificationRequest
+    EmailVerificationRequest, ForgotPasswordView, ResetPasswordView
 )
 
 api = Api()
@@ -23,6 +23,8 @@ api.add_resource(UsersView, '/users', endpoint='users')
 api.add_resource(UserLoginView, '/users/login', endpoint='login')
 api.add_resource(UserEmailVerificationView, '/users/verify/<string:token>')
 api.add_resource(EmailVerificationRequest, '/users/verify')
+api.add_resource(ForgotPasswordView, '/users/forgot_password')
+api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 
 # Organisation routes
 api.add_resource(OrganisationsView, '/organisations', endpoint='organisations')

@@ -2,6 +2,7 @@ import json
 import os
 from flask import current_app
 from flask_restful import Resource, request
+from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema
 from app.models.user import User
 from app.helpers.confirmation import send_verification
@@ -28,6 +29,8 @@ class UsersView(Resource):
         secret_key = current_app.config["SECRET_KEY"]
         password_salt = current_app.config["VERIFICATION_SALT"]
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
+        template = "user/verify.html"
+        subject = "please confirm your email"
 
         if errors:
             return dict(status="fail", message=errors), 400
@@ -44,7 +47,7 @@ class UsersView(Resource):
             return dict(status='fail', message=f'Internal Server Error'), 500
 
         # send verification
-        send_verification(email, verification_url, secret_key, password_salt, sender, current_app._get_current_object())
+        send_verification(email, user.name, verification_url, secret_key, password_salt, sender, current_app._get_current_object(), template, subject)
 
         new_user_data, errors = user_schema.dumps(user)
 
@@ -72,6 +75,8 @@ class UsersView(Resource):
 class UserLoginView(Resource):
 
     def post(self):
+        """
+        """
 
         user_schema = UserSchema(only=("email", "password"))
 
@@ -191,6 +196,8 @@ class EmailVerificationRequest(Resource):
         secret_key = current_app.config["SECRET_KEY"]
         password_salt = current_app.config["VERIFICATION_SALT"]
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
+        template = "user/verify.html"
+        subject = "Please confirm your email"
 
         user = User.find_first(**{'email': email})
 
@@ -200,10 +207,100 @@ class EmailVerificationRequest(Resource):
         # send verification
         send_verification(
             email,
+            user.name,
             verification_url,
             secret_key,
             password_salt,
             sender,
-            current_app._get_current_object()
+            current_app._get_current_object(),
+            template,
+            subject
             )
         return dict(status='success', message=f'verification link sent to {email}'), 200
+
+
+class ForgotPasswordView(Resource):
+
+    def post(self):
+        """
+        """
+
+        email_schema = UserSchema(only=("email",))
+
+        request_data = request.get_json()
+        validated_data, errors = email_schema.load(request_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        email = validated_data.get('email', None)
+        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+
+        verification_url = f"{client_base_url}/reset_password/"
+        secret_key = current_app.config["SECRET_KEY"]
+        password_salt = current_app.config["PASSWORD_SALT"]
+        sender = current_app.config["MAIL_DEFAULT_SENDER"]
+        template = "user/reset.html"
+        subject = "Password reset"
+
+        user = User.find_first(**{'email': email})
+
+        if not user:
+            return dict(status='fail', message=f'user with email {email} not found'), 404
+
+        # send password reset link
+        send_verification(
+            email,
+            user.name,
+            verification_url,
+            secret_key,
+            password_salt,
+            sender,
+            current_app._get_current_object(),
+            template,
+            subject
+        )
+
+        return dict(status='success', message=f'password reset link sent to {email}'), 200
+
+
+class ResetPasswordView(Resource):
+
+    def post(self, token):
+
+        password_schema = UserSchema(only=("password",))
+
+        secret = current_app.config["SECRET_KEY"]
+        salt = current_app.config["PASSWORD_SALT"]
+
+        request_data = request.get_json()
+        validated_data, errors = password_schema.load(request_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        password = validated_data['password']
+
+        hashed_password = Bcrypt().generate_password_hash(password).decode()
+
+        email = validate_token(token, secret, salt)
+
+        if not email:
+            return dict(status='fail', message="invalid token"), 401
+
+        user = User.find_first(**{'email': email})
+
+        if not user:
+            return dict(status="fail", message=f'user with email {email} not found'), 404
+
+        if not user.verified:
+            return dict(status='fail', message=f'email {email} is not verified'), 400
+
+        user.password = hashed_password
+
+        user_saved = user.save()
+
+        if not user_saved:
+            return dict(status='fail', message='internal server error'), 500
+
+        return dict(status='success', message='password reset successfully'), 200
