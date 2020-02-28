@@ -87,7 +87,7 @@ class ClusterDetailView(Resource):
             kube, extension_api, appsv1_api, api_client, batchv1_api = create_kube_clients(kube_host, kube_token)
 
             # get number of nodes in the cluster
-            node_count = len(kube.list_namespace().items)
+            node_count = len(kube.list_node().items)
 
             resource_count.append(dict(name='nodes', count=node_count))
 
