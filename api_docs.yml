@@ -829,6 +829,61 @@ paths:
 
 
 
+
+    "/clusters/{cluster_id}/storage_classes":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "Returns a list of Storage Classes"
+                404:
+                    description: "Cluster not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+                    
+    "/clusters/{cluster_id}/storage_classes/{storage_class_name}":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: cluster_id
+                  required: true
+                  type: string
+                - in: path
+                  name: storage_class_name
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A Storage Class"
+                404:
+                    description: "Not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/roles":
         post:
             tags:

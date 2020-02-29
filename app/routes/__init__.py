@@ -9,6 +9,7 @@ from app.controllers import (
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
+    ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView
 )
@@ -66,7 +67,8 @@ api.add_resource(ClusterServicesView, '/clusters/<string:cluster_id>/services')
 api.add_resource(ClusterServiceDetailView, '/clusters/<string:cluster_id>/services/<string:namespace_name>/<string:service_name>')
 api.add_resource(ClusterJobsView, '/clusters/<string:cluster_id>/jobs')
 api.add_resource(ClusterJobDetailView, '/clusters/<string:cluster_id>/jobs/<string:namespace_name>/<string:job_name>')
-
+api.add_resource(ClusterStorageClassView, '/clusters/<string:cluster_id>/storage_classes')
+api.add_resource(ClusterStorageClassDetailView, '/clusters/<string:cluster_id>/storage_classes/<string:storage_class_name>')
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
