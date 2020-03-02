@@ -34,7 +34,7 @@ class ProjectsView(Resource):
             kube_host = cluster.host
             kube_token = cluster.token
 
-            kube, extension_api, appsv1_api, api_client, batchv1_api = create_kube_clients(kube_host, kube_token)
+            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
 
             # create namespace in cluster
             cluster_namespace = kube.create_namespace(
@@ -117,7 +117,7 @@ class ProjectDetailView(Resource):
             kube_host = cluster.host
             kube_token = cluster.token
 
-            kube, extension_api, appsv1_api, api_client, batchv1_api = create_kube_clients(kube_host, kube_token)
+            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
 
             # get corresponding namespace
 
