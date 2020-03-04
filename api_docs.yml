@@ -782,7 +782,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
 
             responses:
                 200:
@@ -807,7 +807,7 @@ paths:
                 - in: path
                   name: cluster_id
                   required: true
-                  type: integer
+                  type: string
                 - in: path
                   name: namespace_name
                   required: true
