@@ -60,3 +60,9 @@ Run the application.
 This app uses `nose` to run tests.
 
 `nosetests --with-coverage --cover-package=routes`
+
+##### Creating default admin account
+
+To create an admin account run
+
+`python manage.py admin_user --email=<an email> --password=<the password> --confirm_password=<the password>`
