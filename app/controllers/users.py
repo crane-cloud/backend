@@ -5,6 +5,7 @@ from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema
 from app.models.user import User
+from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
 
@@ -35,12 +36,19 @@ class UsersView(Resource):
         if errors:
             return dict(status="fail", message=errors), 400
 
+        # get the customer role
+        user_role = Role.find_first(name='customer')
+
         user_existant = User.query.filter_by(email=email).first()
 
         if user_existant:
             return dict(status="fail", message=f"Email {validated_user_data['email']} already in use."), 400
 
         user = User(**validated_user_data)
+
+        if user_role:
+            user.roles.append(user_role)
+
         saved_user = user.save()
 
         if not saved_user:
