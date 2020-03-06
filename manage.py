@@ -4,7 +4,7 @@ from app.models import db
 from server import app
 
 # import models
-from app.helpers.admin import create_superuser
+from app.helpers.admin import create_superuser, create_default_roles
 from app.models.user import User
 from app.models.user_role import UserRole
 from app.models.organisation import Organisation
@@ -26,6 +26,11 @@ manager.add_command('db', MigrateCommand)
 @manager.option('-c', '--confirm_password', dest='confirm_password')
 def admin_user(email, password, confirm_password):
     create_superuser(email, password, confirm_password)
+
+
+@manager.command
+def create_roles():
+    create_default_roles()
 
 if __name__ == '__main__':
     manager.run()

@@ -45,3 +45,29 @@ def create_superuser(email, password, confirm_password):
     except Exception as e:
         print(str(e))
         return
+
+
+def create_default_roles():
+    admin = 'administrator'
+    user = 'customer'
+
+    # create admin role
+    admin_role = Role.find_first(name=admin)
+
+    if not admin_role:
+        try:
+            admin_role = Role(name=admin)
+            admin_role.save()
+        except Exception as e:
+            print(str(e))
+            return
+    # create user role
+    user_role = Role.find_first(name=user)
+
+    if not user_role:
+        try:
+            user_role = Role(name=user)
+            user_role.save()
+        except Exception as e:
+            print(str(e))
+            return

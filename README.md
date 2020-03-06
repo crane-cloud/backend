@@ -61,6 +61,13 @@ This app uses `nose` to run tests.
 
 `nosetests --with-coverage --cover-package=routes`
 
+##### Creating default roles
+
+To create the default roles
+
+`python manage.py create_roles`
+
+
 ##### Creating default admin account
 
 To create an admin account run
