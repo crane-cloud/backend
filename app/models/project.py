@@ -13,3 +13,4 @@ class Project(ModelMixin):
     alias = db.Column(db.String(256), nullable=False, unique=True)
     owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False)
     cluster_id = db.Column(UUID(as_uuid=True), db.ForeignKey('clusters.id'), nullable=False)
+    apps = db.relationship('App', backref='project', lazy=True)
