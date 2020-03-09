@@ -25,3 +25,10 @@ class ClusterSchema(Schema):
                 regex=r'^(?!\s*$)', error='token should be a valid string'
             ),
         ])
+    description = fields.String(required=True, error_message={
+        "required": "description is required"},
+        validate=[
+            validate.Regexp(
+                regex=r'^(?!\s*$)', error='description should be a valid string'
+            ),
+        ])
