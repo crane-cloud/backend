@@ -1,8 +1,7 @@
-# Osprey Cloud
-
 [![CircleCI](https://circleci.com/gh/crane-cloud/backend/tree/develop.svg?style=svg)](https://circleci.com/gh/crane-cloud/backend/tree/develop)
 [![codecov](https://codecov.io/gh/crane-cloud/backend/branch/develop/graph/badge.svg)](https://codecov.io/gh/crane-cloud/backend)
 
+# Crane Cloud
 Managed Kubernetes Platform
 
 ### Project Setup
