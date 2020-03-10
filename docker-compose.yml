@@ -1,0 +1,32 @@
+version: "3"
+services:
+  database:
+    restart: always
+    image: postgres:10.8-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      - "4200:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+  api:
+    restart: always
+    build: .
+    image: ckwagaba/osprey-backend:latest
+    container_name: flask-api
+    environment:
+      DATABASE_URI:
+      FLASK_APP_SECRET:
+      KUBE_HOST:
+      KUBE_TOKEN:
+      KUBE_CERT:
+    ports:
+      - "4100:5000"
+    volumes:
+      - .:/app
+    links:
+      - database
+volumes:
+  db-data:
