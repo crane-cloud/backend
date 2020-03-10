@@ -3,6 +3,8 @@ from marshmallow import Schema, fields, validate
 
 class AppSchema(Schema):
 
+    id = fields.String(dump_only=True)
+
     name = fields.String(required=True, error_messgae={
         "required": "name is required"},
         validate=[
@@ -24,3 +26,4 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
         ])
+    url = fields.Url(dump_only=True)

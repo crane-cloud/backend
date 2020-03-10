@@ -8,5 +8,6 @@ class App(ModelMixin):
     __tablename__ = 'app'
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String(256), nullable=True)
-    image = db.Column(db.String(256), nullable=False, unique=True)
+    image = db.Column(db.String(256), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
+    url = db.Column(db.String(256), nullable=True)

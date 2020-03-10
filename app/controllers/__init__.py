@@ -20,3 +20,4 @@ from .user_role import UserRolesView
 from .organisation_admins import OrgAdminView
 from .organisation_members import OrgMemberView
 from .project import ProjectsView, ProjectDetailView, UserProjectsView
+from .app import AppsView
