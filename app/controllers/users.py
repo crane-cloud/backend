@@ -120,7 +120,7 @@ class UserLoginView(Resource):
             return dict(
                 status='success',
                 data=dict(
-                    acess_token=access_token,
+                    access_token=access_token,
                     email=user.email,
                     username=user.username,
                     verified=user.verified,
@@ -128,6 +128,74 @@ class UserLoginView(Resource):
                     )), 200
 
         return dict(status='fail', message="login failed"), 401
+
+
+class UserDetailView(Resource):
+
+    def get(self, user_id):
+        """
+        """
+        user_schema = UserSchema()
+
+        user = User.get_by_id(user_id)
+
+        if not user:
+            return dict(status='fail', message=f'user {user_id} not found'), 404
+
+        user_data, errors = user_schema.dumps(user)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(
+            user=json.loads(user_data))), 200
+
+    def delete(self, user_id):
+        """
+        """
+
+        try:
+            user = User.get_by_id(user_id)
+
+            if not user:
+                return dict(status='fail', message=f'user {user_id} not found'), 404
+
+            deleted = user.delete()
+
+            if not deleted:
+                return dict(status='fail', message='deletion failed'), 500
+
+            return dict(status='success', message=f'user {user_id} deleted successfully'), 200
+        
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+    def patch(self, user_id):
+        """
+        """
+        try:
+            user_schema = UserSchema(only=("name",))
+
+            user_data = request.get_json()
+
+            validate_user_data, errors = user_schema.load(user_data)
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            user = User.get_by_id(user_id)
+
+            if not user:
+                return dict(status='fail', message=f'User {user_id} not found'), 404
+
+            updated = User.update(user, **validate_user_data)
+
+            if not updated:
+                return dict(status='fail', message='internal sserver error'), 500
+
+            return dict(status='success', message=f'User {user_id} updated successfully'), 200
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
 
 
 class UserEmailVerificationView(Resource):
