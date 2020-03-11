@@ -41,6 +41,7 @@ def create_superuser(email, password, confirm_password):
         admin_user.roles.append(admin_role)
         admin_user.save()
         print("Admin user created successfully")
+        print('password: ', password)
         return
     except Exception as e:
         print(str(e))
