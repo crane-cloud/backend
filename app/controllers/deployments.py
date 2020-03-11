@@ -1,10 +1,9 @@
 """
 Commented out till finalisation of adding multi cluster support
 """
-import json, yaml, base64, logging, json
+import json
 from flask_restful import Resource, request
-from kubernetes import client, config, utils
-
+from kubernetes import client
 from app.schemas import DeploymentSchema
 
 # from app.helpers.kube import extension_api, kube, appsv1_api, api_client
