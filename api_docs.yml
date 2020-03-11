@@ -49,6 +49,85 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/users/{user_id}":
+        get:
+            tags:
+                - users
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A single user"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        patch:
+            tags:
+                - users
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: string
+
+                - in: body
+                  name: user_update
+                  schema:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+                        
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        delete:
+            tags:
+                - users
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/users/login":
         post:
             tags:
@@ -239,7 +318,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
 
         get:
             tags:
@@ -271,12 +350,15 @@ paths:
                         - name
                         - host
                         - token
+                        - description
                     properties:
                         name:
                             type: string
                         host:
                             type: string
                         token:
+                            type: string
+                        description:
                             type: string
             produces:
                 - application/json
@@ -908,7 +990,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
         
         get:
             tags:
@@ -974,7 +1056,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
 
         delete:
             tags:
@@ -994,7 +1076,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
 
 
     "/user/{user_id}/roles":
@@ -1026,7 +1108,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
         
         get:
             tags:
@@ -1078,7 +1160,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
 
 
     "/organisations/{organisation_id}/members":
@@ -1110,7 +1192,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
         
         get:
             tags:
@@ -1131,7 +1213,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
         
 
 
@@ -1198,7 +1280,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
 
         get:
             tags:
@@ -1248,7 +1330,7 @@ paths:
                 400:
                     description: "Bad request"
                 500:
-                    descriptiom: "Internal Server Error"
+                    description: "Internal Server Error"
     
     "/projects":
 
