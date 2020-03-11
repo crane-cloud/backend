@@ -157,6 +157,35 @@ paths:
                 401:
                     description: "failed login"
 
+    "/users/admin_login":
+        post:
+            tags:
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: body
+                  name: user
+                  schema:
+                    type: object
+                    required:
+                        - email
+                        - password
+                    properties:
+                        email:
+                            type: string
+                        password:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "success"
+                400:
+                    description: "bad request"
+                401:
+                    description: "failed login"
+
     "/users/verify":
         post:
             tags:

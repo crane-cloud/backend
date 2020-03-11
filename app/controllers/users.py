@@ -198,6 +198,57 @@ class UserDetailView(Resource):
             return dict(status='fail', message=str(e)), 500
 
 
+class AdminLoginView(Resource):
+
+    def post(self):
+        """
+        """
+
+        user_schema = UserSchema(only=("email", "password"))
+
+        token_schema = UserSchema()
+
+        login_data = request.get_json()
+
+        validated_user_data, errors = user_schema.load(login_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        email = validated_user_data.get('email', None)
+        password = validated_user_data.get('password', None)
+
+        user = User.find_first(email=email)
+        admin_role = Role.find_first(name='administrator')
+
+        if not user or not admin_role or (admin_role not in user.roles):
+            return dict(status='fail', message="login failed"), 401
+
+        if not user.verified:
+            return dict(status='fail', message='email not verified', data=dict(verified=user.verified)), 401
+
+        user_dict, errors = token_schema.dump(user)
+
+        if user and user.password_is_valid(password):
+
+            access_token = user.generate_token(user_dict)
+
+            if not access_token:
+                return dict(status="fail", message="Internal Server Error"), 500
+
+            return dict(
+                status='success',
+                data=dict(
+                    acess_token=access_token,
+                    email=user.email,
+                    username=user.username,
+                    verified=user.verified,
+                    id=str(user.id),
+                    )), 200
+
+        return dict(status='fail', message="login failed"), 401
+
+
 class UserEmailVerificationView(Resource):
 
     def get(self, token):

@@ -11,7 +11,7 @@ from app.controllers import (
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
-    EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView
+    EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView
 )
 
 api = Api()
@@ -22,6 +22,7 @@ api.add_resource(IndexView, '/')
 # User routes
 api.add_resource(UsersView, '/users', endpoint='users')
 api.add_resource(UserLoginView, '/users/login', endpoint='login')
+api.add_resource(AdminLoginView, '/users/admin_login', endpoint='admin_login')
 api.add_resource(UserEmailVerificationView, '/users/verify/<string:token>')
 api.add_resource(EmailVerificationRequest, '/users/verify')
 api.add_resource(ForgotPasswordView, '/users/forgot_password')
