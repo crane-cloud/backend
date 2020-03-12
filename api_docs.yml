@@ -371,6 +371,10 @@ paths:
             consumes:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: body
                   name: cluster
                   schema:
@@ -405,6 +409,12 @@ paths:
                 - application/json
             produces:
                 - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+
             responses:
                 200:
                     description: "A list of clusters"
@@ -422,6 +432,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -445,6 +459,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -479,6 +497,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -503,6 +525,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -527,6 +553,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -555,6 +585,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -579,6 +613,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -608,6 +646,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -632,6 +674,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -664,6 +710,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -688,6 +738,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -721,6 +775,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -745,6 +803,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -774,6 +836,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -798,6 +864,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -831,6 +901,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -856,6 +930,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -890,6 +968,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -915,6 +997,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -950,6 +1036,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -975,6 +1065,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: cluster_id
                   required: true
@@ -1519,6 +1613,13 @@ paths:
                     description: "Error"
                 500:
                     description: "Internal Server Error"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
                   
     
