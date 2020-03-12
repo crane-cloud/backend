@@ -239,7 +239,7 @@ class AdminLoginView(Resource):
             return dict(
                 status='success',
                 data=dict(
-                    acess_token=access_token,
+                    access_token=access_token,
                     email=user.email,
                     username=user.username,
                     verified=user.verified,
