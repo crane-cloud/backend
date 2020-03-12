@@ -4,10 +4,12 @@ from kubernetes import client
 from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
 from app.helpers.kube import create_kube_clients
+from app.helpers.decorators import admin_required
 
 
 class ClustersView(Resource):
 
+    @admin_required
     def post(self):
         """
         """
@@ -44,6 +46,7 @@ class ClustersView(Resource):
         except Exception as e:
             return dict(status='fail', message='Connection to cluster failed'), 500
 
+    @admin_required
     def get(self):
         """
         """
@@ -62,6 +65,7 @@ class ClustersView(Resource):
 
 class ClusterDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -127,6 +131,7 @@ class ClusterDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+    @admin_required
     def patch(self, cluster_id):
         """
         """
@@ -152,6 +157,7 @@ class ClusterDetailView(Resource):
 
         return dict(status='success', message='Cluster updated successfully'), 200
 
+    @admin_required
     def delete(self, cluster_id):
         """
         """
@@ -168,8 +174,10 @@ class ClusterDetailView(Resource):
         return dict(status='success', message=f'Cluster with id {cluster_id} deleted successfully'), 200
 
 
+
 class ClusterNamespacesView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -208,6 +216,7 @@ class ClusterNamespacesView(Resource):
 
 class ClusterNamespaceDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name):
         """
         """
@@ -240,6 +249,7 @@ class ClusterNamespaceDetailView(Resource):
 
 class ClusterNodesView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -275,6 +285,7 @@ class ClusterNodesView(Resource):
 
 class ClusterNodeDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, node_name):
         """
         """
@@ -305,6 +316,7 @@ class ClusterNodeDetailView(Resource):
 
 class ClusterDeploymentsView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -339,6 +351,7 @@ class ClusterDeploymentsView(Resource):
 
 class ClusterDeploymentDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name, deployment_name):
         """
         """
@@ -368,6 +381,7 @@ class ClusterDeploymentDetailView(Resource):
 
 class ClusterPvcsView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -402,6 +416,7 @@ class ClusterPvcsView(Resource):
 
 class ClusterPvcDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name, pvc_name):
         """
         """
@@ -432,6 +447,7 @@ class ClusterPvcDetailView(Resource):
 
 class ClusterPVsView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -466,6 +482,7 @@ class ClusterPVsView(Resource):
 
 class ClusterPVDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, pv_name):
         """
         """
@@ -496,6 +513,7 @@ class ClusterPVDetailView(Resource):
 
 class ClusterPodsView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -530,6 +548,7 @@ class ClusterPodsView(Resource):
 
 class ClusterPodDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name, pod_name):
         """
         """
@@ -560,6 +579,7 @@ class ClusterPodDetailView(Resource):
 
 class ClusterServicesView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -594,6 +614,7 @@ class ClusterServicesView(Resource):
 
 class ClusterServiceDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name, service_name):
         """
         """
@@ -624,6 +645,7 @@ class ClusterServiceDetailView(Resource):
 
 class ClusterJobsView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -658,6 +680,7 @@ class ClusterJobsView(Resource):
 
 class ClusterJobDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, namespace_name, job_name):
         """
         """
@@ -691,6 +714,7 @@ class ClusterJobDetailView(Resource):
 
 class ClusterStorageClassView(Resource):
 
+    @admin_required
     def get(self, cluster_id):
         """
         """
@@ -725,6 +749,7 @@ class ClusterStorageClassView(Resource):
 
 class ClusterStorageClassDetailView(Resource):
 
+    @admin_required
     def get(self, cluster_id, storage_class_name):
         """
         """
