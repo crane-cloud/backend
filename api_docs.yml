@@ -1463,6 +1463,10 @@ paths:
             consumes:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: body
                   name: project
                   schema:
@@ -1497,6 +1501,11 @@ paths:
                 - application/json
             produces:
                 - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
             responses:
                 200:
                     description: "Success"
@@ -1514,6 +1523,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: project_id
                   required: true
@@ -1537,6 +1550,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: project_id
                   required: true
@@ -1565,6 +1582,10 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
                 - in: path
                   name: project_id
                   required: true
