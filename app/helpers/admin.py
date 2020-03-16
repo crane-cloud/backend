@@ -2,6 +2,7 @@
 import re
 from app.models.role import Role
 from app.models.user import User
+from .role_search import has_role
 
 
 def create_superuser(email, password, confirm_password):
@@ -72,3 +73,20 @@ def create_default_roles():
         except Exception as e:
             print(str(e))
             return
+
+
+def is_owner_or_admin(resource, user_id, user_roles):
+    is_admin = has_role(user_roles, 'administrator')
+    if resource.owner.id:
+        is_owner = str(resource.owner.id) == str(user_id)
+    else:
+        is_owner = False
+
+    return is_admin or is_owner
+
+
+def is_current_or_admin(route_user_id, auth_user_id, user_roles):
+    is_admin = has_role(user_roles, 'administrator')
+    is_current = route_user_id == auth_user_id
+
+    return is_admin or is_current
