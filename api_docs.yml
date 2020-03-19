@@ -1601,7 +1601,7 @@ paths:
                 500:
                     descriptopm: "Internal Server Error"
 
-    "/apps":
+    "/projects/{project_id}/apps":
 
         post:
             tags:
@@ -1609,6 +1609,14 @@ paths:
             consumes:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
                 - in: body
                   name: project
                   schema:
@@ -1634,6 +1642,67 @@ paths:
                     description: "Error"
                 500:
                     description: "Internal Server Error"
+
+        get:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A single App"
+                404:
+                    description: "App not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    "/apps":
+
+            post:
+                tags:
+                    - apps
+                consumes:
+                    - application/json
+                parameters:
+                    - in: body
+                      name: project
+                      schema:
+                        required:
+                            - name
+                            - image
+                            - project_id
+                        properties:
+                            name:
+                                type: string
+                            image:
+                                type: string
+                            project_id:
+                                type: string
+                produces:
+                    - application/json
+                responses:
+                    201:
+                        description: "Success"
+                    400:
+                        description: "Bad request"
+                    409:
+                        description: "Error"
+                    500:
+                        description: "Internal Server Error"
 
 components:
   securitySchemes:
