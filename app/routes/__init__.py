@@ -12,7 +12,7 @@ from app.controllers import (
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView
+    ProjectAppsView, AppDetailView
 )
 
 api = Api()
@@ -89,3 +89,4 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 
 # App routes 
 api.add_resource(AppsView, '/apps')
+api.add_resource(AppDetailView, '/apps/<string:app_id>')
