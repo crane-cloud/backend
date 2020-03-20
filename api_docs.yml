@@ -1662,9 +1662,9 @@ paths:
 
             responses:
                 200:
-                    description: "A single App"
+                    description: "Success"
                 404:
-                    description: "App not found"
+                    description: "Project not found"
                 400:
                     description: "Bad request"
                 500:
@@ -1703,6 +1703,34 @@ paths:
                         description: "Error"
                     500:
                         description: "Internal Server Error"
+    
+    "/apps/{app_id}":
+        get:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: app_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "App not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
 
 components:
   securitySchemes:

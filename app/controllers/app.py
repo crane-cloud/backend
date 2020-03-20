@@ -313,3 +313,36 @@ class ProjectAppsView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(apps=json.loads(apps_data))), 200
+
+
+class AppDetailView(Resource):
+
+    @jwt_required
+    def get(self, app_id):
+        """
+        """
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app_schema = AppSchema()
+
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(status='fail', message=f'app {app_id} not found'), 404
+
+        project = app.project
+
+        if not project:
+            return dict(status='fail', message='Internal server error'), 500
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        app_data, errors = app_schema.dumps(app)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(apps=json.loads(app_data))), 200
