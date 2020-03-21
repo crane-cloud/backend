@@ -1730,6 +1730,31 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+        delete:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: app_id
+                  required: true
+                  type: string
+            
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "App not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
 
 
 components:

@@ -346,3 +346,65 @@ class AppDetailView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(apps=json.loads(app_data))), 200
+
+    @jwt_required
+    def delete(self, app_id):
+        """
+        """
+
+        try:
+
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(status='fail', message=f'app {app_id} not found'), 404
+
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='internal server error'), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube, extension_api, appsv1_api, api_client, batchv1_api, \
+                storageV1Api = create_kube_clients(kube_host, kube_token)
+
+            # delete deployment and service for the app
+            deployment_name = f'{app.name}-deployment'
+            service_name = f'{app.name}-service'
+            deployment = appsv1_api.read_namespaced_deployment(name=deployment_name, namespace=namespace)
+
+            if deployment:
+                appsv1_api.delete_namespaced_deployment(name=deployment_name, namespace=namespace)
+
+            service = kube.read_namespaced_service(name=service_name, namespace=namespace)
+
+            if service:
+                kube.delete_namespaced_service(name=service_name, namespace=namespace)
+
+            # delete the app from the database
+            deleted = app.delete()
+
+            if not deleted:
+                return dict(status='fail', message='internal server error'), 500
+
+            return dict(status='success', message=f'app {app_id} deleted successfully')
+
+        except client.rest.ApiException as e:
+            return dict(status='fail', message=json.loads(e.body)), 500
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
