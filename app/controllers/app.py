@@ -31,6 +31,7 @@ class AppsView(Resource):
             app_name = validated_app_data['name']
             app_image = validated_app_data['image']
             project_id = validated_app_data['project_id']
+            env_vars = validated_app_data['env_vars']
             project = Project.get_by_id(project_id)
             replicas = 1
 
@@ -57,11 +58,22 @@ class AppsView(Resource):
             # create deployment
             dep_name = f'{app_name}-deployment'
 
+            # EnvVar
+            env = []
+
+            if env_vars:
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
+
             # pod template
             container = client.V1Container(
                 name=app_name,
                 image=app_image,
-                ports=[client.V1ContainerPort(container_port=80)]
+                ports=[client.V1ContainerPort(container_port=80)],
+                env=env
             )
 
             # spec
@@ -169,6 +181,7 @@ class ProjectAppsView(Resource):
         try:
             app_name = validated_app_data['name']
             app_image = validated_app_data['image']
+            env_vars = validated_app_data['env_vars']
             project = Project.get_by_id(project_id)
             replicas = 1
 
@@ -198,11 +211,21 @@ class ProjectAppsView(Resource):
             # create deployment
             dep_name = f'{app_name}-deployment'
 
+            # EnvVar
+            env = []
+
+            if env_vars:
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
             # pod template
             container = client.V1Container(
                 name=app_name,
                 image=app_image,
-                ports=[client.V1ContainerPort(container_port=80)]
+                ports=[client.V1ContainerPort(container_port=80)],
+                env=env
             )
 
             # spec
@@ -212,7 +235,7 @@ class ProjectAppsView(Resource):
                 }),
                 spec=client.V1PodSpec(containers=[container])
             )
-            
+
             # spec of deployment
             spec = client.V1DeploymentSpec(
                 replicas=replicas,

@@ -1631,6 +1631,10 @@ paths:
                             type: string
                         project_id:
                             type: string
+                        env_vars:
+                            type: object
+                            additionalProperties:
+                                type: string
             produces:
                 - application/json
             responses:
@@ -1678,6 +1682,9 @@ paths:
                 consumes:
                     - application/json
                 parameters:
+                    - in: header
+                      name: Authorization
+                      required: true
                     - in: body
                       name: project
                       schema:
@@ -1692,6 +1699,10 @@ paths:
                                 type: string
                             project_id:
                                 type: string
+                            env_vars:
+                                type: object
+                                additionalProperties:
+                                    type: string
                 produces:
                     - application/json
                 responses:
