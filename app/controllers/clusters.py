@@ -1,6 +1,7 @@
 import json
 from flask_restful import Resource, request
 from kubernetes import client
+from flask_jwt_extended import jwt_required
 from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
 from app.helpers.kube import create_kube_clients
@@ -46,7 +47,7 @@ class ClustersView(Resource):
         except Exception as e:
             return dict(status='fail', message='Connection to cluster failed'), 500
 
-    @admin_required
+    @jwt_required
     def get(self):
         """
         """
