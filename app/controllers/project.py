@@ -10,6 +10,7 @@ from app.models.user import User
 from app.helpers.kube import create_kube_clients
 from app.helpers.role_search import has_role
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
+from app.helpers.alias import create_alias
 
 
 class ProjectsView(Resource):
@@ -33,8 +34,10 @@ class ProjectsView(Resource):
 
         if not has_role(current_user_roles, 'administrator'):
             validated_project_data['owner_id'] = current_user_id
-        
+
         try:
+            validated_project_data['alias'] = create_alias(validated_project_data['name'])
+            # alias = create_alias(validated_project_data['name'])
             namespace_name = validated_project_data['alias']
             cluster_id = validated_project_data['cluster_id']
             cluster = Cluster.get_by_id(cluster_id)
@@ -53,7 +56,7 @@ class ProjectsView(Resource):
                     metadata=client.V1ObjectMeta(name=namespace_name)
                     ))
             # create project in database
-            cluster_namespace = "to be reinstated"
+            # cluster_namespace = "to be reinstated"
             if cluster_namespace:
                 project = Project(**validated_project_data)
 
