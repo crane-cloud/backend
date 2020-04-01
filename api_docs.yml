@@ -1484,6 +1484,8 @@ paths:
                             type: string
                         cluster_id:
                             type: string
+                        description:
+                            type: string
             produces:
                 - application/json
             responses:

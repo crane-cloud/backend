@@ -24,3 +24,4 @@ class ProjectSchema(Schema):
     cluster_id = fields.UUID(required=True, error_message={
         "required": "cluster_id is required"
     })
+    description = fields.String()
