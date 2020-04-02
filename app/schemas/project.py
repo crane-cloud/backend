@@ -11,13 +11,6 @@ class ProjectSchema(Schema):
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
         ])
-    alias = fields.String(required=True, error_message={
-        "required": "alias is required"},
-        validate=[
-            validate.Regexp(
-                regex=r'^(?!\s*$)', error='alias should be a valid string'
-            ),
-        ])
     owner_id = fields.UUID(required=True, error_message={
         "required": "owner_id is required"
     })

@@ -1472,13 +1472,10 @@ paths:
                   schema:
                     required:
                         - name
-                        - alias
                         - owner_id
                         - cluster_id
                     properties:
                         name:
-                            type: string
-                        alias:
                             type: string
                         owner_id:
                             type: string

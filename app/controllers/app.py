@@ -9,6 +9,7 @@ from app.helpers.kube import create_kube_clients
 from app.schemas import AppSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
+from app.helpers.alias import create_alias
 
 
 class AppsView(Resource):
@@ -29,6 +30,7 @@ class AppsView(Resource):
 
         try:
             app_name = validated_app_data['name']
+            app_alias = create_alias(validated_app_data['name'])
             app_image = validated_app_data['image']
             project_id = validated_app_data['project_id']
             env_vars = validated_app_data['env_vars']
@@ -52,11 +54,11 @@ class AppsView(Resource):
 
 
             # create the app
-            new_app = App(name=app_name, image=app_image, project_id=project_id)
+            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias)
  
 
             # create deployment
-            dep_name = f'{app_name}-deployment'
+            dep_name = f'{app_alias}-deployment'
 
             # EnvVar
             env = []
@@ -70,7 +72,7 @@ class AppsView(Resource):
 
             # pod template
             container = client.V1Container(
-                name=app_name,
+                name=app_alias,
                 image=app_image,
                 ports=[client.V1ContainerPort(container_port=80)],
                 env=env
@@ -79,7 +81,7 @@ class AppsView(Resource):
             # spec
             template = client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={
-                    'app': app_name
+                    'app': app_alias
                 }),
                 spec=client.V1PodSpec(containers=[container])
             )
@@ -88,7 +90,7 @@ class AppsView(Resource):
             spec = client.V1DeploymentSpec(
                 replicas=replicas,
                 template=template,
-                selector={'matchLabels': {'app': app_name}}
+                selector={'matchLabels': {'app': app_alias}}
             )
 
             # Instantiate the deployment
@@ -113,17 +115,17 @@ class AppsView(Resource):
                 )
 
             # create service in the cluster
-            service_name = f'{app_name}-service'
+            service_name = f'{app_alias}-service'
 
             service_meta = client.V1ObjectMeta(
                 name=service_name,
-                labels={'app': app_name}
+                labels={'app': app_alias}
                 )
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
                 ports=[client.V1ServicePort(port=3000, target_port=80)],
-                selector={'app': app_name}
+                selector={'app': app_alias}
             )
 
             service = client.V1Service(
@@ -180,6 +182,7 @@ class ProjectAppsView(Resource):
 
         try:
             app_name = validated_app_data['name']
+            app_alias = create_alias(validated_app_data['name'])
             app_image = validated_app_data['image']
             env_vars = validated_app_data['env_vars']
             project = Project.get_by_id(project_id)
@@ -205,11 +208,11 @@ class ProjectAppsView(Resource):
 
 
             # create the app
-            new_app = App(name=app_name, image=app_image, project_id=project_id)
+            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias)
  
 
             # create deployment
-            dep_name = f'{app_name}-deployment'
+            dep_name = f'{app_alias}-deployment'
 
             # EnvVar
             env = []
@@ -222,7 +225,7 @@ class ProjectAppsView(Resource):
 
             # pod template
             container = client.V1Container(
-                name=app_name,
+                name=app_alias,
                 image=app_image,
                 ports=[client.V1ContainerPort(container_port=80)],
                 env=env
@@ -231,7 +234,7 @@ class ProjectAppsView(Resource):
             # spec
             template = client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={
-                    'app': app_name
+                    'app': app_alias
                 }),
                 spec=client.V1PodSpec(containers=[container])
             )
@@ -240,7 +243,7 @@ class ProjectAppsView(Resource):
             spec = client.V1DeploymentSpec(
                 replicas=replicas,
                 template=template,
-                selector={'matchLabels': {'app': app_name}}
+                selector={'matchLabels': {'app': app_alias}}
             )
 
             # Instantiate the deployment
@@ -269,13 +272,13 @@ class ProjectAppsView(Resource):
 
             service_meta = client.V1ObjectMeta(
                 name=service_name,
-                labels={'app': app_name}
+                labels={'app': app_alias}
                 )
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
                 ports=[client.V1ServicePort(port=3000, target_port=80)],
-                selector={'app': app_name}
+                selector={'app': app_alias}
             )
 
             service = client.V1Service(
