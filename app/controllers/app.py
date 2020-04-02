@@ -57,6 +57,8 @@ class AppsView(Resource):
             new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias)
  
 
+        # hold till pg is ready
+
             # create deployment
             dep_name = f'{app_alias}-deployment'
 
