@@ -308,6 +308,9 @@ paths:
             produces:
                 - application/json
             parameters:
+                - in: header
+                  name: Authorization
+                  required: true
                 - in: path
                   name: user_id
                   required: true

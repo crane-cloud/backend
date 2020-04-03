@@ -35,9 +35,18 @@ class ProjectsView(Resource):
         if not has_role(current_user_roles, 'administrator'):
             validated_project_data['owner_id'] = current_user_id
 
+        # check if project already exists
+        existing_project = Project.find_first(
+            name=validated_project_data['name'],
+            owner_id=validated_project_data['owner_id'])
+
+        if existing_project:
+            return dict(
+                status='fail',
+                message=f'project with name {validated_project_data["name"]} already exists'), 409
+
         try:
             validated_project_data['alias'] = create_alias(validated_project_data['name'])
-            # alias = create_alias(validated_project_data['name'])
             namespace_name = validated_project_data['alias']
             cluster_id = validated_project_data['cluster_id']
             cluster = Cluster.get_by_id(cluster_id)
@@ -56,7 +65,6 @@ class ProjectsView(Resource):
                     metadata=client.V1ObjectMeta(name=namespace_name)
                     ))
             # create project in database
-            # cluster_namespace = "to be reinstated"
             if cluster_namespace:
                 project = Project(**validated_project_data)
 
@@ -193,6 +201,15 @@ class ProjectDetailView(Resource):
 
             if errors:
                 return dict(status='fail', message=errors), 400
+
+            existing_project = Project.find_first(
+                name=validate_project_data['name'],
+                owner_id=current_user_id)
+
+            if existing_project:
+                return dict(
+                    status='fail',
+                    message=f'project with name {validate_project_data["name"]} already exists'), 409
 
             project = Project.get_by_id(project_id)
 
