@@ -25,6 +25,17 @@ class AppsView(Resource):
 
         validated_app_data, errors = app_schema.load(app_data)
 
+        # check for existing app based on name and project_id
+        existing_app = App.find_first(
+            name=validated_app_data['name'],
+            project_id=validated_app_data['project_id'])
+
+        if existing_app:
+            return dict(
+                status='fail',
+                message=f'app with name {validated_app_data["name"]} already exists'
+            ), 409
+
         if errors:
             return dict(status='fail', message=errors), 400
 
@@ -182,6 +193,16 @@ class ProjectAppsView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
 
+        existing_app = App.find_first(
+            name=validated_app_data['name'],
+            project_id=project_id)
+
+        if existing_app:
+            return dict(
+                status='fail',
+                message=f'app with name {validated_app_data["name"]} already exists'
+            ), 409
+
         try:
             app_name = validated_app_data['name']
             app_alias = create_alias(validated_app_data['name'])
@@ -270,7 +291,7 @@ class ProjectAppsView(Resource):
                 )
 
             # create service in the cluster
-            service_name = f'{app_name}-service'
+            service_name = f'{app_alias}-service'
 
             service_meta = client.V1ObjectMeta(
                 name=service_name,
