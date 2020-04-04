@@ -432,8 +432,8 @@ class AppDetailView(Resource):
                 storageV1Api = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
-            deployment_name = f'{app.name}-deployment'
-            service_name = f'{app.name}-service'
+            deployment_name = f'{app.alias}-deployment'
+            service_name = f'{app.alias}-service'
             deployment = appsv1_api.read_namespaced_deployment(name=deployment_name, namespace=namespace)
 
             if deployment:
