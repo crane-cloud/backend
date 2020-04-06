@@ -4,15 +4,7 @@ FROM python:3.6
 # set the (container) working directory
 WORKDIR /app
 
-# install netcat
-RUN apt-get update && \
-    apt-get install netcat -y
-
 COPY requirements.txt /app/requirements.txt
-
-# define environment variables
-# ENV FLASK_APP app.py
-# ENV FLASK_ENV production
 
 # install dependencies
 RUN pip install -r requirements.txt
