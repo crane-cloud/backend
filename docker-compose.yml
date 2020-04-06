@@ -13,7 +13,9 @@ services:
       - db-data:/var/lib/postgresql/data
   api:
     restart: always
-    build: .
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile
     image: ckwagaba/osprey-backend:latest
     container_name: flask-api
     environment:
