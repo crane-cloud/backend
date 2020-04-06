@@ -1,5 +1,6 @@
 #! /bin/bash
 
+
 # apply migrations onto db
 python manage.py db upgrade
 
