@@ -5,7 +5,7 @@ set -e
 # tag image with hash of commit it was built from
 IMAGE=ckwagaba/crane-cloud-backend:$CIRCLE_SHA1
 # build image
-docker build -t $IMAGE .
+docker build -f docker/prod/Dockerfile -t $IMAGE .
 
 # push image to dockerhub
 echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin

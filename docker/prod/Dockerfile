@@ -11,5 +11,7 @@ COPY . .
 
 RUN chmod +x /app/scripts/start-prod.sh
 
+EXPOSE 5000
+
 CMD ["/app/scripts/start-prod.sh"]
 
