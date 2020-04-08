@@ -1637,6 +1637,8 @@ paths:
                             type: object
                             additionalProperties:
                                 type: string
+                        port:
+                                type: number
             produces:
                 - application/json
             responses:
@@ -1705,6 +1707,8 @@ paths:
                                 type: object
                                 additionalProperties:
                                     type: string
+                            port:
+                                type: number
                 produces:
                     - application/json
                 responses:

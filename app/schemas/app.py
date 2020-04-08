@@ -28,3 +28,4 @@ class AppSchema(Schema):
         ])
     url = fields.Url(dump_only=True)
     env_vars = fields.Dict()
+    port = fields.Int()
