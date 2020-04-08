@@ -39,14 +39,18 @@ class AppsView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
 
+        validated_app_data['port'] = validated_app_data.get('port', 80)
+
         try:
             app_name = validated_app_data['name']
             app_alias = create_alias(validated_app_data['name'])
             app_image = validated_app_data['image']
             project_id = validated_app_data['project_id']
-            env_vars = validated_app_data['env_vars']
+            # env_vars = validated_app_data['env_vars']
+            env_vars = validated_app_data.get('env_vars', None)
             project = Project.get_by_id(project_id)
             replicas = 1
+            app_port = validated_app_data['port']
 
             if not project:
                 return dict(status='fail', message=f'project {project_id} not found'), 404
@@ -65,7 +69,7 @@ class AppsView(Resource):
 
 
             # create the app
-            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias)
+            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias, port=app_port)
  
 
         # hold till pg is ready
@@ -87,7 +91,7 @@ class AppsView(Resource):
             container = client.V1Container(
                 name=app_alias,
                 image=app_image,
-                ports=[client.V1ContainerPort(container_port=80)],
+                ports=[client.V1ContainerPort(container_port=app_port)],
                 env=env
             )
 
@@ -137,7 +141,7 @@ class AppsView(Resource):
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
-                ports=[client.V1ServicePort(port=3000, target_port=80)],
+                ports=[client.V1ServicePort(port=3000, target_port=app_port)],
                 selector={'app': app_alias}
             )
 
@@ -203,6 +207,8 @@ class ProjectAppsView(Resource):
                 message=f'app with name {validated_app_data["name"]} already exists'
             ), 409
 
+        validated_app_data['port'] = validated_app_data.get('port', 80)
+
         try:
             app_name = validated_app_data['name']
             app_alias = create_alias(validated_app_data['name'])
@@ -210,6 +216,7 @@ class ProjectAppsView(Resource):
             env_vars = validated_app_data['env_vars']
             project = Project.get_by_id(project_id)
             replicas = 1
+            app_port = validated_app_data['port']
 
             if not project:
                 return dict(status='fail', message=f'project {project_id} not found'), 404
@@ -231,7 +238,7 @@ class ProjectAppsView(Resource):
 
 
             # create the app
-            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias)
+            new_app = App(name=app_name, image=app_image, project_id=project_id, alias=app_alias, port=app_port)
  
 
             # create deployment
@@ -250,7 +257,7 @@ class ProjectAppsView(Resource):
             container = client.V1Container(
                 name=app_alias,
                 image=app_image,
-                ports=[client.V1ContainerPort(container_port=80)],
+                ports=[client.V1ContainerPort(container_port=app_port)],
                 env=env
             )
 
@@ -300,7 +307,7 @@ class ProjectAppsView(Resource):
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
-                ports=[client.V1ServicePort(port=3000, target_port=80)],
+                ports=[client.V1ServicePort(port=3000, target_port=app_port)],
                 selector={'app': app_alias}
             )
 
