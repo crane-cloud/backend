@@ -15,7 +15,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: docker/dev/Dockerfile
+      dockerfile: Dockerfile
     image: ckwagaba/osprey-backend:latest
     container_name: flask-api
     environment:
