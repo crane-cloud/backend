@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# source .env
+
 # apply migrations onto db
 python manage.py db upgrade
 
