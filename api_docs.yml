@@ -1568,6 +1568,8 @@ paths:
                     properties:
                         name:
                             type: string
+                        description:
+                            type: string
             responses:
                 200:
                     description: "Success"

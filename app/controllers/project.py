@@ -193,18 +193,21 @@ class ProjectDetailView(Resource):
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
 
-            project_schema = ProjectSchema(only=("name",))
+            project_schema = ProjectSchema(only=("name", "description"), partial=True)
 
             project_data = request.get_json()
 
             validate_project_data, errors = project_schema.load(project_data)
+            
+            existing_project = False
 
             if errors:
                 return dict(status='fail', message=errors), 400
 
-            existing_project = Project.find_first(
-                name=validate_project_data['name'],
-                owner_id=current_user_id)
+            if 'name' in validate_project_data:
+                existing_project = Project.find_first(
+                    name=validate_project_data['name'],
+                    owner_id=current_user_id)
 
             if existing_project:
                 return dict(
