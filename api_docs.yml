@@ -1639,6 +1639,10 @@ paths:
                                 type: string
                         port:
                                 type: number
+                        command:
+                            type: string
+                        need_db:
+                            type: boolean
             produces:
                 - application/json
             responses:
