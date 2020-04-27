@@ -35,7 +35,7 @@ class AppsView(Resource):
         if existing_app:
             return dict(
                 status='fail',
-                message=f'app with name {validated_app_data["name"]} already exists'
+                message=f'App with name {validated_app_data["name"]} already exists'
             ), 409
 
         if errors:
@@ -59,7 +59,7 @@ class AppsView(Resource):
             command = command.split() if command else None
 
             if not project:
-                return dict(status='fail', message=f'project {project_id} not found'), 404
+                return dict(status='fail', message=f'Project {project_id} not found'), 404
 
             cluster = project.cluster
             namespace = project.alias
@@ -71,7 +71,7 @@ class AppsView(Resource):
             app = App.find_first(**{'name': app_name})
 
             if app:
-                return dict(status='fail', message=f'app {app_name} already exists'), 409
+                return dict(status='fail', message=f'App {app_name} already exists'), 409
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -307,7 +307,7 @@ class ProjectAppsView(Resource):
         if existing_app:
             return dict(
                 status='fail',
-                message=f'app with name {validated_app_data["name"]} already exists'
+                message=f'App with name {validated_app_data["name"]} already exists'
             ), 409
 
         validated_app_data['port'] = validated_app_data.get('port', 80)
@@ -329,7 +329,7 @@ class ProjectAppsView(Resource):
                 return dict(status='fail', message=f'project {project_id} not found'), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='unauthorised'), 403
+                return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
@@ -341,7 +341,7 @@ class ProjectAppsView(Resource):
             app = App.find_first(**{'name': app_name})
 
             if app:
-                return dict(status='fail', message=f'app {app_name} already exists'), 409
+                return dict(status='fail', message=f'App {app_name} already exists'), 409
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -566,7 +566,7 @@ class ProjectAppsView(Resource):
             return dict(status='fail', message=f'project {project_id} not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            return dict(status='fail', message='Unauthorised'), 403
 
         apps = App.find_all(project_id=project_id)
 
@@ -593,7 +593,7 @@ class AppDetailView(Resource):
         app = App.get_by_id(app_id)
 
         if not app:
-            return dict(status='fail', message=f'app {app_id} not found'), 404
+            return dict(status='fail', message=f'App {app_id} not found'), 404
 
         project = app.project
 
@@ -601,7 +601,7 @@ class AppDetailView(Resource):
             return dict(status='fail', message='Internal server error'), 500
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            return dict(status='fail', message='Unauthorised'), 403
 
         app_data, errors = app_schema.dumps(app)
 
@@ -628,16 +628,16 @@ class AppDetailView(Resource):
             project = app.project
 
             if not project:
-                return dict(status='fail', message='internal server error'), 500
+                return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='unauthorised'), 403
+                return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
 
             if not cluster or not namespace:
-                return dict(status='fail', message='internal server error'), 500
+                return dict(status='fail', message='Internal server error'), 500
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -662,9 +662,9 @@ class AppDetailView(Resource):
             deleted = app.delete()
 
             if not deleted:
-                return dict(status='fail', message='internal server error'), 500
+                return dict(status='fail', message='Internal server error'), 500
 
-            return dict(status='success', message=f'app {app_id} deleted successfully'), 200
+            return dict(status='success', message=f'App {app_id} deleted successfully'), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=json.loads(e.body)), 500
