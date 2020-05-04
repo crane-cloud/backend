@@ -55,6 +55,7 @@ class AppsView(Resource):
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
+            DATABASE_URI = None
 
             command = command.split() if command else None
 
@@ -322,6 +323,7 @@ class ProjectAppsView(Resource):
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
+            DATABASE_URI = None
 
             command = command.split() if command else None
 
