@@ -73,3 +73,10 @@ To create the default roles
 To create an admin account run
 
 `python manage.py admin_user --email=<an email> --password=<the password> --confirm_password=<the password>`
+
+##### Add image repositories
+
+To add image repositories to the database run
+
+`python manage.py create_registries`
+
