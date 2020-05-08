@@ -5,6 +5,7 @@ from server import app
 
 # import models
 from app.helpers.admin import create_superuser, create_default_roles
+from app.helpers.registry import add_registries
 from app.models.user import User
 from app.models.user_role import UserRole
 from app.models.organisation import Organisation
@@ -32,6 +33,11 @@ def admin_user(email, password, confirm_password):
 @manager.command
 def create_roles():
     create_default_roles()
+
+
+@manager.command
+def create_registries():
+    add_registries()
 
 if __name__ == '__main__':
     manager.run()
