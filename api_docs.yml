@@ -1645,6 +1645,16 @@ paths:
                             type: string
                         need_db:
                             type: boolean
+                        private_image:
+                            type: boolean
+                        docker_server:
+                            type: string
+                        docker_username:
+                            type: string
+                        docker_password:
+                            type: string
+                        docker_email:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -1719,6 +1729,16 @@ paths:
                                 type: string
                             need_db:
                                 type: boolean
+                            private_image:
+                                type: boolean
+                            docker_server:
+                                type: string
+                            docker_username:
+                                type: string
+                            docker_password:
+                                type: string
+                            docker_email:
+                                type: string
                 produces:
                     - application/json
                 responses:
