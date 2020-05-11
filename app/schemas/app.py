@@ -31,3 +31,8 @@ class AppSchema(Schema):
     port = fields.Int()
     command = fields.String()
     need_db = fields.Bool()
+    private_image = fields.Bool()
+    docker_server = fields.String()
+    docker_username = fields.String()
+    docker_password = fields.String()
+    docker_email = fields.String()

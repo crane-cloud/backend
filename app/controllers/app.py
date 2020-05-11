@@ -1,5 +1,6 @@
 import json
 from urllib.parse import urlsplit
+import base64
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -52,10 +53,16 @@ class AppsView(Resource):
             project_id = validated_app_data['project_id']
             # env_vars = validated_app_data['env_vars']
             env_vars = validated_app_data.get('env_vars', None)
+            private_repo = validated_app_data.get('private_image', False)
+            docker_server = validated_app_data.get('docker_server', None)
+            docker_username = validated_app_data.get('docker_username', None)
+            docker_password = validated_app_data.get('docker_password', None)
+            docker_email = validated_app_data.get('docker_email', None)
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
             DATABASE_URI = None
+            image_pull_secret = None
 
             command = command.split() if command else None
 
@@ -177,6 +184,33 @@ class AppsView(Resource):
                 if not is_database_ready(service_host, pg_service_port, 20):
                     return dict(status='fail', message='Failed at Database creation'), 500
 
+            if private_repo:
+                # create image pull secrets
+                authstring = base64.b64encode(
+                    f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+                secret_dict = dict(auths={
+                    docker_server: {
+                        "username": docker_username,
+                        "password": docker_password,
+                        "email": docker_email,
+                        "auth": str(authstring, "utf-8")
+                    }
+                })
+
+                secret_b64 = base64.b64encode(json.dumps(secret_dict).encode("utf-8"))
+
+                secret_body = client.V1Secret(
+                    metadata=client.V1ObjectMeta(name=app_alias),
+                    type='kubernetes.io/dockerconfigjson',
+                    data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+                kube.create_namespaced_secret(
+                    namespace=namespace,
+                    body=secret_body,
+                    _preload_content=False)
+
+                image_pull_secret = client.V1LocalObjectReference(name=app_alias)
 
             # create deployment
             dep_name = f'{app_alias}-deployment'
@@ -195,7 +229,6 @@ class AppsView(Resource):
                         name=str(key), value=str(value)
                     ))
 
-
             # pod template
             container = client.V1Container(
                 name=app_alias,
@@ -210,9 +243,12 @@ class AppsView(Resource):
                 metadata=client.V1ObjectMeta(labels={
                     'app': app_alias
                 }),
-                spec=client.V1PodSpec(containers=[container])
+                spec=client.V1PodSpec(
+                    containers=[container],
+                    image_pull_secrets=[image_pull_secret]
+                    )
             )
-            
+
             # spec of deployment
             spec = client.V1DeploymentSpec(
                 replicas=replicas,
@@ -320,10 +356,17 @@ class ProjectAppsView(Resource):
             command = validated_app_data.get('command', None)
             need_db = validated_app_data.get('need_db', True)
             env_vars = validated_app_data['env_vars']
+            private_repo = validated_app_data.get('private_image', False)
+            docker_server = validated_app_data.get('docker_server', None)
+            docker_username = validated_app_data.get('docker_username', None)
+            docker_password = validated_app_data.get('docker_password', None)
+            docker_email = validated_app_data.get('docker_email', None)
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
             DATABASE_URI = None
+            image_pull_secret = None
+
 
             command = command.split() if command else None
 
@@ -448,6 +491,34 @@ class ProjectAppsView(Resource):
                 if not is_database_ready(service_host, pg_service_port, 20):
                     return dict(status='fail', message='Failed at Database creation'), 500
 
+            if private_repo:
+                # create image pull secrets
+                authstring = base64.b64encode(
+                    f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+                secret_dict = dict(auths={
+                    docker_server: {
+                        "username": docker_username,
+                        "password": docker_password,
+                        "email": docker_email,
+                        "auth": str(authstring, "utf-8")
+                    }
+                })
+
+                secret_b64 = base64.b64encode(json.dumps(secret_dict).encode("utf-8"))
+
+                secret_body = client.V1Secret(
+                    metadata=client.V1ObjectMeta(name=app_alias),
+                    type='kubernetes.io/dockerconfigjson',
+                    data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+                kube.create_namespaced_secret(
+                    namespace=namespace,
+                    body=secret_body,
+                    _preload_content=False)
+                
+                image_pull_secret = client.V1LocalObjectReference(name=app_alias)
+
             # create deployment
             dep_name = f'{app_alias}-deployment'
 
@@ -479,7 +550,10 @@ class ProjectAppsView(Resource):
                 metadata=client.V1ObjectMeta(labels={
                     'app': app_alias
                 }),
-                spec=client.V1PodSpec(containers=[container])
+                spec=client.V1PodSpec(
+                    containers=[container],
+                    image_pull_secrets=[image_pull_secret]
+                    )
             )
 
             # spec of deployment
@@ -531,7 +605,6 @@ class ProjectAppsView(Resource):
 
             service = kube.read_namespaced_service(name=service_name, namespace=namespace)
             service_port = service.spec.ports[0].node_port
-
 
             service_url = f'http://{service_host}:{service_port}'
 
