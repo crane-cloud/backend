@@ -664,10 +664,33 @@ class ProjectAppsView(Resource):
 
         if err:
             return dict(status='fail', message=err), 500
-
+        
         for app in apps_data_list:
-            app_status = appsv1_api.read_namespaced_deployment_status(app['alias']+"-deployment",project.alias)
-            app['app_running_status']= app_status.status.conditions[1].status
+            app_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-deployment",project.alias)
+            app_deployment_status_conditions = app_status_object.status.conditions
+            app_has_db = True
+
+            for deplyoment_status_condition in app_deployment_status_conditions:
+                if deplyoment_status_condition.type == "Available":
+                    app_deployment_status = deplyoment_status_condition.status
+                    app['app_running_status'] = app_deployment_status
+
+
+            try: 
+                app_db_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-postgres-db",project.alias)
+                app_db_state_conditions = app_db_status_object.status.conditions
+
+                for app_db_condition in app_db_state_conditions:
+                    if (app_db_condition.type == "Available"):
+                        app_db_status = app_db_condition.status
+
+                        
+                
+            except client.rest.ApiException as e:
+                app_has_db = False
+            
+            if app_deployment_status == True and app_db_status == True and app_has_db == True:
+                            app['app_running_status'] = True
 
         return dict(status='success', data=dict(apps=apps_data_list)), 200
 
