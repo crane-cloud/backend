@@ -185,6 +185,11 @@ class AppsView(Resource):
                     return dict(status='fail', message='Failed at Database creation'), 500
 
             if private_repo:
+
+                # handle gcr credentials
+                if 'gcr' in docker_server and docker_username == '_json_key':
+                    docker_password = json.dumps(json.loads(base64.b64decode(docker_password)))
+
                 # create image pull secrets
                 authstring = base64.b64encode(
                     f'{docker_username}:{docker_password}'.encode("utf-8"))
@@ -192,7 +197,7 @@ class AppsView(Resource):
                 secret_dict = dict(auths={
                     docker_server: {
                         "username": docker_username,
-                        "password": docker_password,
+                        "password": str(docker_password),
                         "email": docker_email,
                         "auth": str(authstring, "utf-8")
                     }
@@ -492,6 +497,11 @@ class ProjectAppsView(Resource):
                     return dict(status='fail', message='Failed at Database creation'), 500
 
             if private_repo:
+
+                # handle gcr credentials
+                if 'gcr' in docker_server and docker_username == '_json_key':
+                    docker_password = json.dumps(json.loads(base64.b64decode(docker_password)))
+
                 # create image pull secrets
                 authstring = base64.b64encode(
                     f'{docker_username}:{docker_password}'.encode("utf-8"))
