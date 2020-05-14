@@ -26,7 +26,7 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
         ])
-    alias= fields.String()
+    alias = fields.String()
     url = fields.Url()
     env_vars = fields.Dict()
     port = fields.Int()

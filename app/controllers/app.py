@@ -667,7 +667,7 @@ class ProjectAppsView(Resource):
 
         for app in apps_data_list:
             app_status = appsv1_api.read_namespaced_deployment_status(app['alias']+"-deployment",project.alias)
-            app['app_running_status']= app_status.status.conditions[0].status
+            app['app_running_status']= app_status.status.conditions[1].status
 
         return dict(status='success', data=dict(apps=apps_data_list)), 200
 
