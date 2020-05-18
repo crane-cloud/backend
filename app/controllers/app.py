@@ -730,7 +730,51 @@ class AppDetailView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(apps=json.loads(app_data))), 200
+        app_list, err = app_schema.loads(app_data)
+
+        if err:
+            return dict(status='fail', message=err), 500
+
+        
+        cluster = Cluster.get_by_id(project.cluster_id)
+
+        if not cluster:
+                return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
+
+        kube_host = cluster.host
+        kube_token = cluster.token
+        kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
+
+        app_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-deployment",project.alias)
+        app_deployment_status_conditions = app_status_object.status.conditions
+        app_has_db = True
+
+        for deplyoment_status_condition in app_deployment_status_conditions:
+            if deplyoment_status_condition.type == "Available":
+                app_deployment_status = deplyoment_status_condition.status
+                app_list['app_running_status'] = app_deployment_status
+
+
+        try: 
+            app_db_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-postgres-db",project.alias)
+            app_db_state_conditions = app_db_status_object.status.conditions
+
+            for app_db_condition in app_db_state_conditions:
+                if app_db_condition.type == "Available":
+                    app_db_status = app_db_condition.status
+
+        except client.rest.ApiException:
+            app_has_db = False
+        
+        if not app_deployment_status and app_db_status and app_has_db:
+            app_list['app_running_status'] = True
+
+        if app_list['app_running_status'] == "True":
+            app_list['app_running_status'] = 'running'
+        else:
+            app_list['app_running_status'] = 'failed'  
+
+        return dict(status='success', data=dict(apps=app_list)), 200
 
     @jwt_required
     def delete(self, app_id):
