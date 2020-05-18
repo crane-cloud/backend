@@ -681,16 +681,21 @@ class ProjectAppsView(Resource):
                 app_db_state_conditions = app_db_status_object.status.conditions
 
                 for app_db_condition in app_db_state_conditions:
-                    if (app_db_condition.type == "Available"):
+                    if app_db_condition.type == "Available":
                         app_db_status = app_db_condition.status
 
                         
                 
-            except client.rest.ApiException as e:
+            except client.rest.ApiException:
                 app_has_db = False
             
-            if app_deployment_status == True and app_db_status == True and app_has_db == True:
-                            app['app_running_status'] = True
+            if not app_deployment_status and app_db_status and app_has_db:
+                app['app_running_status'] = True
+
+            if app['app_running_status'] == "True":
+                app['app_running_status'] = 'running'
+            else:
+                app['app_running_status'] = 'failed'  
 
         return dict(status='success', data=dict(apps=apps_data_list)), 200
 
