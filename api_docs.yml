@@ -1627,13 +1627,10 @@ paths:
                     required:
                         - name
                         - image
-                        - project_id
                     properties:
                         name:
                             type: string
                         image:
-                            type: string
-                        project_id:
                             type: string
                         env_vars:
                             type: object
