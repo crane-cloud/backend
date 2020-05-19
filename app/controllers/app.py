@@ -647,7 +647,7 @@ class ProjectAppsView(Resource):
         cluster = Cluster.get_by_id(project.cluster_id)
 
         if not cluster:
-                return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
+            return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
 
         kube_host = cluster.host
         kube_token = cluster.token
@@ -739,7 +739,7 @@ class AppDetailView(Resource):
         cluster = Cluster.get_by_id(project.cluster_id)
 
         if not cluster:
-                return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
+            return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
 
         kube_host = cluster.host
         kube_token = cluster.token
