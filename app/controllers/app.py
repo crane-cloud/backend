@@ -630,74 +630,80 @@ class ProjectAppsView(Resource):
     def get(self, project_id):
         """
         """
+        try: 
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
 
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+            app_schema = AppSchema(many=True)
 
-        app_schema = AppSchema(many=True)
+            project = Project.get_by_id(project_id)
 
-        project = Project.get_by_id(project_id)
+            if not project:
+                return dict(status='fail', message=f'project {project_id} not found'), 404
 
-        if not project:
-            return dict(status='fail', message=f'project {project_id} not found'), 404
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
 
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='Unauthorised'), 403
+            cluster = Cluster.get_by_id(project.cluster_id)
 
-        cluster = Cluster.get_by_id(project.cluster_id)
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
 
-        if not cluster:
-            return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
+            kube_host = cluster.host
+            kube_token = cluster.token
+            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
 
-        kube_host = cluster.host
-        kube_token = cluster.token
-        kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
+            apps = App.find_all(project_id=project_id) 
 
-        apps = App.find_all(project_id=project_id) 
+            apps_data, errors = app_schema.dumps(apps)
 
-        apps_data, errors = app_schema.dumps(apps)
+            if errors:
+                return dict(status='fail', message=errors), 500
 
-        if errors:
-            return dict(status='fail', message=errors), 500
+            apps_data_list, err = app_schema.loads(apps_data)
 
-        apps_data_list, err = app_schema.loads(apps_data)
-
-        if err:
-            return dict(status='fail', message=err), 500
-        
-        for app in apps_data_list:
-            app_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-deployment",project.alias)
-            app_deployment_status_conditions = app_status_object.status.conditions
-            app_has_db = True
-
-            for deplyoment_status_condition in app_deployment_status_conditions:
-                if deplyoment_status_condition.type == "Available":
-                    app_deployment_status = deplyoment_status_condition.status
-                    app['app_running_status'] = app_deployment_status
-
-
-            try: 
-                app_db_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-postgres-db",project.alias)
-                app_db_state_conditions = app_db_status_object.status.conditions
-
-                for app_db_condition in app_db_state_conditions:
-                    if app_db_condition.type == "Available":
-                        app_db_status = app_db_condition.status
-
-                        
-                
-            except client.rest.ApiException:
-                app_has_db = False
+            if err:
+                return dict(status='fail', message=err), 500
             
-            if not app_deployment_status and app_db_status and app_has_db:
-                app['app_running_status'] = True
+            for app in apps_data_list:
+                app_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-deployment",project.alias)
+                app_deployment_status_conditions = app_status_object.status.conditions
 
-            if app['app_running_status'] == "True":
-                app['app_running_status'] = 'running'
-            else:
-                app['app_running_status'] = 'failed'  
+                for deplyoment_status_condition in app_deployment_status_conditions:
+                    if deplyoment_status_condition.type == "Available":
+                        app_deployment_status = deplyoment_status_condition.status
 
-        return dict(status='success', data=dict(apps=apps_data_list)), 200
+                try: 
+                    app_db_status_object = appsv1_api.read_namespaced_deployment_status(app['alias']+"-postgres-db",project.alias)
+                    app_db_state_conditions = app_db_status_object.status.conditions
+
+                    for app_db_condition in app_db_state_conditions:
+                        if app_db_condition.type == "Available":
+                            app_db_status = app_db_condition.status
+                    
+                except client.rest.ApiException:
+                    app_db_status = None
+                
+                if app_deployment_status and not app_db_status:
+                    if app_deployment_status == "True":
+                        app['app_running_status'] = "running"
+                    else:
+                        app['app_running_status'] = "failed"
+                elif app_deployment_status and app_db_status:
+                    if app_deployment_status == "True" and app_db_status == "True":
+                        app['app_running_status'] = "running"
+                    else:
+                        app['app_running_status'] = "failed"
+                else:
+                    app['app_running_status'] = "unknown"
+
+            return dict(status='success', data=dict(apps=apps_data_list)), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500    
 
 
 class AppDetailView(Resource):
@@ -706,75 +712,82 @@ class AppDetailView(Resource):
     def get(self, app_id):
         """
         """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
 
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+            app_schema = AppSchema()
 
-        app_schema = AppSchema()
+            app = App.get_by_id(app_id)
 
-        app = App.get_by_id(app_id)
+            if not app:
+                return dict(status='fail', message=f'App {app_id} not found'), 404
 
-        if not app:
-            return dict(status='fail', message=f'App {app_id} not found'), 404
+            project = app.project
 
-        project = app.project
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
 
-        if not project:
-            return dict(status='fail', message='Internal server error'), 500
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
 
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='Unauthorised'), 403
+            app_data, errors = app_schema.dumps(app)
 
-        app_data, errors = app_schema.dumps(app)
+            if errors:
+                return dict(status='fail', message=errors), 500
 
-        if errors:
-            return dict(status='fail', message=errors), 500
+            app_list, err = app_schema.loads(app_data)
 
-        app_list, err = app_schema.loads(app_data)
+            if err:
+                return dict(status='fail', message=err), 500
+            
+            cluster = Cluster.get_by_id(project.cluster_id)
+            
+            if not cluster:
+                return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
 
-        if err:
-            return dict(status='fail', message=err), 500
+            kube_host = cluster.host
+            kube_token = cluster.token
+            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
 
-        
-        cluster = Cluster.get_by_id(project.cluster_id)
+            app_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-deployment",project.alias)
+            app_deployment_status_conditions = app_status_object.status.conditions
 
-        if not cluster:
-            return dict(status='fail', message=f'cluster with id {project.cluster_id} does not exist'), 404
+            for deplyoment_status_condition in app_deployment_status_conditions:
+                if deplyoment_status_condition.type == "Available":
+                    app_deployment_status = deplyoment_status_condition.status
 
-        kube_host = cluster.host
-        kube_token = cluster.token
-        kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
+            try: 
+                app_db_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-postgres-db",project.alias)
+                app_db_state_conditions = app_db_status_object.status.conditions
 
-        app_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-deployment",project.alias)
-        app_deployment_status_conditions = app_status_object.status.conditions
-        app_has_db = True
+                for app_db_condition in app_db_state_conditions:
+                    if app_db_condition.type == "Available":
+                        app_db_status = app_db_condition.status
 
-        for deplyoment_status_condition in app_deployment_status_conditions:
-            if deplyoment_status_condition.type == "Available":
-                app_deployment_status = deplyoment_status_condition.status
-                app_list['app_running_status'] = app_deployment_status
+            except client.rest.ApiException:
+                    app_db_status = None
+                
+            if app_deployment_status and not app_db_status:
+                if app_deployment_status == "True":
+                    app_list['app_running_status'] = "running"
+                else:
+                    app_list['app_running_status'] = "failed"
+            elif app_deployment_status and app_db_status:
+                if app_deployment_status == "True" and app_db_status == "True":
+                    app_list['app_running_status'] = "running"
+                else:
+                    app_list['app_running_status'] = "failed"
+            else:
+                app_list['app_running_status'] = "unknown" 
 
+            return dict(status='success', data=dict(apps=app_list)), 200
 
-        try: 
-            app_db_status_object = appsv1_api.read_namespaced_deployment_status(app_list['alias']+"-postgres-db",project.alias)
-            app_db_state_conditions = app_db_status_object.status.conditions
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
 
-            for app_db_condition in app_db_state_conditions:
-                if app_db_condition.type == "Available":
-                    app_db_status = app_db_condition.status
-
-        except client.rest.ApiException:
-            app_has_db = False
-        
-        if not app_deployment_status and app_db_status and app_has_db:
-            app_list['app_running_status'] = True
-
-        if app_list['app_running_status'] == "True":
-            app_list['app_running_status'] = 'running'
-        else:
-            app_list['app_running_status'] = 'failed'  
-
-        return dict(status='success', data=dict(apps=app_list)), 200
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500    
 
     @jwt_required
     def delete(self, app_id):
