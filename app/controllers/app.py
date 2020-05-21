@@ -337,6 +337,10 @@ class ProjectAppsView(Resource):
 
         app_data = request.get_json()
 
+        app_data['project_id'] = project_id
+
+        print(app_data)
+
         validated_app_data, errors = app_schema.load(app_data)
 
         if errors:
@@ -344,7 +348,7 @@ class ProjectAppsView(Resource):
 
         existing_app = App.find_first(
             name=validated_app_data['name'],
-            project_id=project_id)
+            project_id=validated_app_data['project_id'])
 
         if existing_app:
             return dict(
