@@ -59,6 +59,9 @@ class AppsView(Resource):
             docker_username = validated_app_data.get('docker_username', None)
             docker_password = validated_app_data.get('docker_password', None)
             docker_email = validated_app_data.get('docker_email', None)
+            db_user = validated_app_data.get('db_user', None)
+            db_password = validated_app_data.get('db_password', None)
+            db_name = validated_app_data.get('db_name', None)
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
@@ -108,9 +111,9 @@ class AppsView(Resource):
                 pg_app_name = f'{app_alias}-postgres-db'
 
                 # pg vars
-                POSTGRES_PASSWORD = generate_password(10)
-                POSTGRES_USER = app_name
-                POSTGRES_DB = app_name
+                POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
+                POSTGRES_USER = db_user if db_user else app_name
+                POSTGRES_DB = db_name if db_name else app_name
 
                 DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
 
@@ -367,6 +370,9 @@ class ProjectAppsView(Resource):
             docker_username = validated_app_data.get('docker_username', None)
             docker_password = validated_app_data.get('docker_password', None)
             docker_email = validated_app_data.get('docker_email', None)
+            db_user = validated_app_data.get('db_user', None)
+            db_password = validated_app_data.get('db_password', None)
+            db_name = validated_app_data.get('db_name', None)
             project = Project.get_by_id(project_id)
             replicas = 1
             app_port = validated_app_data['port']
@@ -420,9 +426,9 @@ class ProjectAppsView(Resource):
                 pg_app_name = f'{app_alias}-postgres-db'
 
                 # pg vars
-                POSTGRES_PASSWORD = generate_password(10)
-                POSTGRES_USER = app_name
-                POSTGRES_DB = app_name
+                POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
+                POSTGRES_USER = db_user if db_user else app_name
+                POSTGRES_DB = db_name if db_name else app_name
 
                 DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
 

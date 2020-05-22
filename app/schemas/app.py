@@ -37,3 +37,6 @@ class AppSchema(Schema):
     docker_username = fields.String()
     docker_password = fields.String()
     docker_email = fields.String()
+    db_user = fields.String()
+    db_password = fields.String()
+    db_name = fields.String()

@@ -1655,6 +1655,12 @@ paths:
                             type: string
                         docker_email:
                             type: string
+                        db_user:
+                            type: string
+                        db_password:
+                            type: string
+                        db_name:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -1738,6 +1744,12 @@ paths:
                             docker_password:
                                 type: string
                             docker_email:
+                                type: string
+                            db_user:
+                                type: string
+                            db_password:
+                                type: string
+                            db_name:
                                 type: string
                 produces:
                     - application/json
