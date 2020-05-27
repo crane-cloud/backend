@@ -23,7 +23,10 @@ class UsersView(Resource):
         validated_user_data, errors = user_schema.load(user_data)
 
         email = validated_user_data.get('email', None)
-        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+        client_base_url = os.getenv(
+            'CLIENT_BASE_URL',
+            f'http://{request.host}/users'
+            )
 
         # To do change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -42,7 +45,10 @@ class UsersView(Resource):
         user_existant = User.query.filter_by(email=email).first()
 
         if user_existant:
-            return dict(status="fail", message=f"Email {validated_user_data['email']} already in use."), 400
+            return dict(
+                status="fail",
+                message=f"Email {validated_user_data['email']} already in use."
+                ), 400
 
         user = User(**validated_user_data)
 
@@ -55,11 +61,24 @@ class UsersView(Resource):
             return dict(status='fail', message=f'Internal Server Error'), 500
 
         # send verification
-        send_verification(email, user.name, verification_url, secret_key, password_salt, sender, current_app._get_current_object(), template, subject)
+        send_verification(
+            email,
+            user.name,
+            verification_url,
+            secret_key,
+            password_salt,
+            sender,
+            current_app._get_current_object(),
+            template,
+            subject
+            )
 
         new_user_data, errors = user_schema.dumps(user)
 
-        return dict(status='success', data=dict(user=json.loads(new_user_data))), 201
+        return dict(
+            status='success',
+            data=dict(user=json.loads(new_user_data))
+            ), 201
 
     def get(self):
         """
@@ -106,7 +125,10 @@ class UserLoginView(Resource):
             return dict(status='fail', message="login failed"), 401
 
         if not user.verified:
-            return dict(status='fail', message='email not verified', data=dict(verified=user.verified)), 401
+            return dict(
+                status='fail',
+                message='email not verified', data=dict(verified=user.verified)
+                ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -115,7 +137,10 @@ class UserLoginView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
-                return dict(status="fail", message="Internal Server Error"), 500
+                return dict(
+                    status="fail",
+                    message="Internal Server Error"
+                    ), 500
 
             return dict(
                 status='success',
@@ -140,7 +165,10 @@ class UserDetailView(Resource):
         user = User.get_by_id(user_id)
 
         if not user:
-            return dict(status='fail', message=f'user {user_id} not found'), 404
+            return dict(
+                status='fail',
+                message=f'user {user_id} not found'
+                ), 404
 
         user_data, errors = user_schema.dumps(user)
 
@@ -158,15 +186,21 @@ class UserDetailView(Resource):
             user = User.get_by_id(user_id)
 
             if not user:
-                return dict(status='fail', message=f'user {user_id} not found'), 404
+                return dict(
+                    status='fail',
+                    message=f'user {user_id} not found'
+                    ), 404
 
             deleted = user.delete()
 
             if not deleted:
                 return dict(status='fail', message='deletion failed'), 500
 
-            return dict(status='success', message=f'user {user_id} deleted successfully'), 200
-        
+            return dict(
+                status='success',
+                message=f'user {user_id} deleted successfully'
+                ), 200
+
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
@@ -186,14 +220,24 @@ class UserDetailView(Resource):
             user = User.get_by_id(user_id)
 
             if not user:
-                return dict(status='fail', message=f'User {user_id} not found'), 404
+                return dict(
+                    status='fail',
+                    message=f'User {user_id} not found'
+                    ), 404
 
             updated = User.update(user, **validate_user_data)
 
             if not updated:
-                return dict(status='fail', message='internal sserver error'), 500
+                return dict(
+                    status='fail',
+                    message='internal sserver error'
+                    ), 500
 
-            return dict(status='success', message=f'User {user_id} updated successfully'), 200
+            return dict(
+                status='success',
+                message=f'User {user_id} updated successfully'
+                ), 200
+
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
@@ -225,7 +269,11 @@ class AdminLoginView(Resource):
             return dict(status='fail', message="login failed"), 401
 
         if not user.verified:
-            return dict(status='fail', message='email not verified', data=dict(verified=user.verified)), 401
+            return dict(
+                status='fail',
+                message='email not verified',
+                data=dict(verified=user.verified)
+                ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -234,7 +282,8 @@ class AdminLoginView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
-                return dict(status="fail", message="Internal Server Error"), 500
+                return dict(
+                    status="fail", message="Internal Server Error"), 500
 
             return dict(
                 status='success',
@@ -268,10 +317,14 @@ class UserEmailVerificationView(Resource):
         user = User.find_first(**{'email': email})
 
         if not user:
-            return dict(status='fail', message=f'User with email {email} not found'), 404
+            return dict(
+                status='fail',
+                message=f'User with email {email} not found'
+                ), 404
 
         if user.verified:
-            return dict(status='fail', message='Email is already verified'), 400
+            return dict(
+                status='fail', message='Email is already verified'), 400
 
         user.verified = True
 
@@ -285,7 +338,8 @@ class UserEmailVerificationView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
-                return dict(status='fail', message='internal server error'), 500
+                return dict(
+                    status='fail', message='internal server error'), 500
 
             return dict(
                 status='success',
@@ -316,7 +370,10 @@ class EmailVerificationRequest(Resource):
             return dict(status='fail', message=errors), 400
 
         email = validated_data.get('email', None)
-        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+        client_base_url = os.getenv(
+            'CLIENT_BASE_URL',
+            f'http://{request.host}/users'
+            )
 
         # To do, change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -329,7 +386,10 @@ class EmailVerificationRequest(Resource):
         user = User.find_first(**{'email': email})
 
         if not user:
-            return dict(status='fail', message=f'user with email {email} not found'), 404
+            return dict(
+                status='fail',
+                message=f'user with email {email} not found'
+                ), 404
 
         # send verification
         send_verification(
@@ -343,7 +403,11 @@ class EmailVerificationRequest(Resource):
             template,
             subject
             )
-        return dict(status='success', message=f'verification link sent to {email}'), 200
+
+        return dict(
+            status='success',
+            message=f'verification link sent to {email}'
+            ), 200
 
 
 class ForgotPasswordView(Resource):
@@ -361,7 +425,10 @@ class ForgotPasswordView(Resource):
             return dict(status='fail', message=errors), 400
 
         email = validated_data.get('email', None)
-        client_base_url = os.getenv('CLIENT_BASE_URL', f'http://{request.host}/users')
+        client_base_url = os.getenv(
+            'CLIENT_BASE_URL',
+            f'http://{request.host}/users'
+            )
 
         verification_url = f"{client_base_url}/reset_password/"
         secret_key = current_app.config["SECRET_KEY"]
@@ -373,7 +440,10 @@ class ForgotPasswordView(Resource):
         user = User.find_first(**{'email': email})
 
         if not user:
-            return dict(status='fail', message=f'user with email {email} not found'), 404
+            return dict(
+                status='fail',
+                message=f'user with email {email} not found'
+                ), 404
 
         # send password reset link
         send_verification(
@@ -388,7 +458,10 @@ class ForgotPasswordView(Resource):
             subject
         )
 
-        return dict(status='success', message=f'password reset link sent to {email}'), 200
+        return dict(
+            status='success',
+            message=f'password reset link sent to {email}'
+            ), 200
 
 
 class ResetPasswordView(Resource):
@@ -418,10 +491,14 @@ class ResetPasswordView(Resource):
         user = User.find_first(**{'email': email})
 
         if not user:
-            return dict(status="fail", message=f'user with email {email} not found'), 404
+            return dict(
+                status="fail",
+                message=f'user with email {email} not found'
+                ), 404
 
         if not user.verified:
-            return dict(status='fail', message=f'email {email} is not verified'), 400
+            return dict(
+                status='fail', message=f'email {email} is not verified'), 400
 
         user.password = hashed_password
 
@@ -430,4 +507,5 @@ class ResetPasswordView(Resource):
         if not user_saved:
             return dict(status='fail', message='internal server error'), 500
 
-        return dict(status='success', message='password reset successfully'), 200
+        return dict(
+            status='success', message='password reset successfully'), 200

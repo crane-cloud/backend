@@ -24,7 +24,10 @@ class RolesView(Resource):
         role_existant = Role.find_first(name=role_name)
 
         if role_existant:
-            return dict(status="fail", message=f"Role {validated_role_data['name']} Already Exists."), 400
+            return dict(
+                status="fail",
+                message=f"Role {validated_role_data['name']} Already Exists."
+                ), 400
 
         role = Role(**validated_role_data)
         saved_role = role.save()
@@ -34,7 +37,10 @@ class RolesView(Resource):
 
         new_role_data, errors = roles_schema.dumps(role)
 
-        return dict(status='success', data=dict(role=json.loads(new_role_data))), 201
+        return dict(
+            status='success',
+            data=dict(role=json.loads(new_role_data))
+            ), 201
 
     def get(self):
         """
@@ -54,7 +60,6 @@ class RolesView(Resource):
         ), 200
 
 
-
 class RolesDetailView(Resource):
 
     def get(self, role_id):
@@ -65,15 +70,20 @@ class RolesDetailView(Resource):
         role = Role.get_by_id(role_id)
 
         if not role:
-            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+            return dict(
+                status="fail",
+                message=f"Role with id {role_id} not found"
+                ), 404
 
         role_data, errors = role_schema.dumps(role)
 
         if errors:
             return dict(status="fail", message=errors), 500
 
-        return dict(status='success', data=dict(role=json.loads(role_data))), 200
-
+        return dict(
+            status='success',
+            data=dict(role=json.loads(role_data))
+            ), 200
 
 
     def patch(self, role_id):
@@ -94,7 +104,10 @@ class RolesDetailView(Resource):
         role = Role.get_by_id(role_id)
 
         if not role:
-            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+            return dict(
+                status="fail",
+                message=f"Role with id {role_id} not found"
+                ), 404
 
         if 'name' in validated_update_data:
             role.name = validated_update_data['name']
@@ -104,8 +117,10 @@ class RolesDetailView(Resource):
         if not updated_role:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        return dict(status="success", message=f"Role {role.name} updated successfully"), 200
-
+        return dict(
+            status="success",
+            message=f"Role {role.name} updated successfully"
+            ), 200
 
     def delete(self, role_id):
         """
@@ -115,10 +130,13 @@ class RolesDetailView(Resource):
         role = Role.get_by_id(role_id)
 
         if not role:
-            return dict(status="fail", message=f"Role with id {role_id} not found"), 404
+            return dict(
+                status="fail",
+                message=f"Role with id {role_id} not found"
+                ), 404
 
         deleted_role = role.delete()
-        
+
         if not deleted_role:
             return dict(status='fail', message='Internal Server Error'), 500
 

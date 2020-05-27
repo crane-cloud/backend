@@ -19,7 +19,10 @@ class NamespacesView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(namespaces=json.loads(namespace_data))), 200
+        return dict(
+            status='success',
+            data=dict(namespaces=json.loads(namespace_data))
+            ), 200
 
 
 class NamespaceDetailView(Resource):
@@ -32,7 +35,10 @@ class NamespaceDetailView(Resource):
         namespace = Namespace.get_by_id(id)
 
         if not namespace:
-            return dict(status='fail', message=f'Namespace with id {id} not found'), 404
+            return dict(
+                status='fail',
+                message=f'Namespace with id {id} not found'
+                ), 404
 
         namespace_data, errors = schema.dumps(namespace)
 
@@ -48,7 +54,10 @@ class NamespaceDetailView(Resource):
         namespace = Namespace.query.get(id)
 
         if not namespace:
-            return dict(status='fail', message=f'Namespace with id {id} not found'), 404
+            return dict(
+                status='fail',
+                message=f'Namespace with id {id} not found'
+                ), 404
 
         deleted = namespace.delete()
 
@@ -56,7 +65,6 @@ class NamespaceDetailView(Resource):
             return dict(status='fail', message='Internal Server Error'), 500
 
         return dict(status='success', message='Successfully deleted'), 200
-
 
 
 class OrganisationNamespaceView(Resource):
@@ -77,7 +85,10 @@ class OrganisationNamespaceView(Resource):
         organisation = Organisation.get_by_id(organisation_id)
 
         if not organisation:
-            return dict(status='fail', message=f'Organisation with id {organisation_id} not found'), 404
+            return dict(
+                status='fail',
+                message=f'Organisation with id {organisation_id} not found'
+                ), 404
 
         name = validated_namespace_data.get('name')
 
@@ -101,7 +112,9 @@ class OrganisationNamespaceView(Resource):
 
         if not organisation:
             return dict(
-                status='fail', message=f'Organisation with id {organisation_id} not found'), 404
+                status='fail',
+                message=f'Organisation with id {organisation_id} not found'
+                ), 404
 
         namespaces = Namespace.query.filter_by(organisation_id=organisation.id)
 

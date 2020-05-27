@@ -43,24 +43,29 @@ class ProjectsView(Resource):
         if existing_project:
             return dict(
                 status='fail',
-                message=f'project with name {validated_project_data["name"]} already exists'), 409
+                message=f'project with name {validated_project_data["name"]} already exists'
+                ), 409
 
         try:
-            validated_project_data['alias'] = create_alias(validated_project_data['name'])
+            validated_project_data['alias'] =\
+                create_alias(validated_project_data['name'])
             namespace_name = validated_project_data['alias']
             cluster_id = validated_project_data['cluster_id']
             cluster = Cluster.get_by_id(cluster_id)
 
             if not cluster:
-                return dict(status='fail', message=f'cluster {cluster_id} not found'), 404
+                return dict(
+                    status='fail',
+                    message=f'cluster {cluster_id} not found'
+                    ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
 
-            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
+            kube_client = create_kube_clients(kube_host, kube_token)
 
             # create namespace in cluster
-            cluster_namespace = kube.create_namespace(
+            cluster_namespace = kube_client.kube.create_namespace(
                 client.V1Namespace(
                     metadata=client.V1ObjectMeta(name=namespace_name)
                     ))
@@ -72,8 +77,10 @@ class ProjectsView(Resource):
 
                 if not saved:
                     # delete the namespace
-                    kube.delete_namespace(namespace_name)
-                    return dict(status='fail', message='Internal Server Error'), 500
+                    kube_client.kube.delete_namespace(namespace_name)
+                    return dict(
+                        status='fail',
+                        message='Internal Server Error'), 500
 
             new_project_data, errors = project_schema.dump(project)
 
@@ -122,7 +129,10 @@ class ProjectDetailView(Resource):
         project = Project.get_by_id(project_id)
 
         if not project:
-            return dict(status='fail', message=f'project {project_id} not found'), 404
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+                ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -147,7 +157,10 @@ class ProjectDetailView(Resource):
             project = Project.get_by_id(project_id)
 
             if not project:
-                return dict(status='fail', message=f'project {project_id} not found'), 404
+                return dict(
+                    status='fail',
+                    message=f'project {project_id} not found'
+                    ), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='unauthorised'), 403
@@ -161,15 +174,15 @@ class ProjectDetailView(Resource):
             kube_host = cluster.host
             kube_token = cluster.token
 
-            kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api = create_kube_clients(kube_host, kube_token)
+            kube_client = create_kube_clients(kube_host, kube_token)
 
             # get corresponding namespace
 
-            namespace = kube.read_namespace(project.alias)
+            namespace = kube_client.kube.read_namespace(project.alias)
 
             # delete namespace if it exists
             if namespace:
-                kube.delete_namespace(project.alias)
+                kube_client.kube.delete_namespace(project.alias)
 
             # To do; change delete to a soft delete
             deleted = project.delete()
@@ -177,7 +190,11 @@ class ProjectDetailView(Resource):
             if not deleted:
                 return dict(status='fail', message='deletion failed'), 500
 
-            return dict(status='success', message=f'project {project_id} deleted successfully'), 200
+            return dict(
+                status='success',
+                message=f'project {project_id} deleted successfully'
+                ), 200
+
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
@@ -193,12 +210,13 @@ class ProjectDetailView(Resource):
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
 
-            project_schema = ProjectSchema(only=("name", "description"), partial=True)
+            project_schema = ProjectSchema(
+                only=("name", "description"), partial=True)
 
             project_data = request.get_json()
 
             validate_project_data, errors = project_schema.load(project_data)
-            
+
             existing_project = False
 
             if errors:
@@ -212,7 +230,8 @@ class ProjectDetailView(Resource):
             if existing_project:
                 return dict(
                     status='fail',
-                    message=f'project with name {validate_project_data["name"]} already exists'), 409
+                    message=f'project with name {validate_project_data["name"]} already exists'
+                    ), 409
 
             project = Project.get_by_id(project_id)
 
@@ -225,9 +244,13 @@ class ProjectDetailView(Resource):
             updated = Project.update(project, **validate_project_data)
 
             if not updated:
-                return dict(status='fail', message='internal sserver error'), 500
+                return dict(status='fail', message='internal server error'), 500
 
-            return dict(status='success', message=f'project {project_id} updated successfully'), 200
+            return dict(
+                status='success',
+                message=f'project {project_id} updated successfully'
+                ), 200
+
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
@@ -258,4 +281,7 @@ class UserProjectsView(Resource):
         if errors:
             return dict(status='fail', message='Internal server error'), 500
 
-        return dict(status='success', data=dict(projects=json.loads(projects_json))), 200
+        return dict(
+            status='success',
+            data=dict(projects=json.loads(projects_json))
+            ), 200
