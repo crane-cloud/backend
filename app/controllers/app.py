@@ -248,7 +248,6 @@ class AppsView(Resource):
                 image_pull_secret = client.V1LocalObjectReference(
                     name=app_alias)
 
-            raise Exception()
             # create deployment
             dep_name = f'{app_alias}-deployment'
 
