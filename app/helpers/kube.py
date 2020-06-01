@@ -1,5 +1,5 @@
 import os
-# import kubernetes client
+from types import SimpleNamespace
 from kubernetes import client
 
 
@@ -20,4 +20,12 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
     batchv1_api = client.BatchV1Api(client.ApiClient(config))
     storageV1Api = client.StorageV1Api(client.ApiClient(config))
 
-    return kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api
+    # return kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api
+    return SimpleNamespace(
+        kube=kube,
+        extension_api=extension_api,
+        appsv1_api=appsv1_api,
+        api_client=api_client,
+        batchv1_api=batchv1_api,
+        storageV1Api=storageV1Api
+    )

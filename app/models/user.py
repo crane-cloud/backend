@@ -25,7 +25,6 @@ class User(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
 
-
     def __init__(self, email, name, password):
         """ initialize with email, username and password """
         self.email = email

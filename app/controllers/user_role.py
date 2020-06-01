@@ -25,7 +25,7 @@ class UserRolesView(Resource):
 
         # Get User
         user = User.get_by_id(user_id)
-        
+
         if not user:
             return dict(status='fail', message='User not found'), 404
 
@@ -41,7 +41,7 @@ class UserRolesView(Resource):
         # adding role to user roles
         if role in user.roles:
             return dict(status='fail', message='Role already Exists'), 404
- 
+
         user.roles.append(role)
 
         saved_user_role = user.save()
@@ -53,9 +53,10 @@ class UserRolesView(Resource):
 
         new_user_role_data, errors = user_schema.dumps(user)
 
-        return dict(status='success', data=dict(user_role=json.loads(new_user_role_data))), 201
-
-
+        return dict(
+            status='success',
+            data=dict(user_role=json.loads(new_user_role_data))
+            ), 201
 
     def get(self, user_id):
         """
@@ -74,7 +75,10 @@ class UserRolesView(Resource):
         if errors:
             return dict(status="fail", message="Internal Server Error"), 500
 
-        return dict(status="success", data=dict(user_roles=json.loads(user_role_data))), 200
+        return dict(
+            status="success",
+            data=dict(user_roles=json.loads(user_role_data))
+            ), 200
 
     # delete user role
 
@@ -92,7 +96,7 @@ class UserRolesView(Resource):
 
         # Get User
         user = User.get_by_id(user_id)
-        
+
         if not user:
             return dict(status='fail', message='User not found'), 404
 
@@ -105,7 +109,7 @@ class UserRolesView(Resource):
         # removing user from role
         try:
             user.roles.remove(role)
-        except Exception as e:
+        except Exception:
             return dict(status='fail', message='User role not found'), 404
 
         saved_user_role = user.save()
@@ -117,4 +121,7 @@ class UserRolesView(Resource):
 
         new_user_role_data, errors = user_schema.dumps(user)
 
-        return dict(status='success', data=dict(user_role=json.loads(new_user_role_data))), 201
+        return dict(
+            status='success',
+            data=dict(user_role=json.loads(new_user_role_data))
+            ), 201

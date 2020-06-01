@@ -14,6 +14,6 @@ def validate_token(token, secret_key, password_salt, expiration=3600):
         email = serializer.loads(
             token, salt=password_salt, max_age=expiration
         )
-    except:
+    except Exception:
         return False
     return email

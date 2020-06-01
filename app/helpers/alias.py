@@ -1,5 +1,6 @@
 import uuid
 
+
 def create_alias(input_string):
     new_string = ''.join(
         letter for letter in input_string.lower()

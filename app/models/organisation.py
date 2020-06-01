@@ -22,7 +22,6 @@ class Organisation(ModelMixin):
     admins = relationship('User', secondary='organisation_admins', backref='organisation_admin')
     members = relationship('User', secondary='organisation_members', backref='organisations')
 
-
     def __init__(self, name):
         """ initialize with name, member and namespace """
         self.name = name
