@@ -1,5 +1,7 @@
 import os
+from os.path import join, dirname
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -12,6 +14,9 @@ from app.routes import api
 from app.models import db
 
 from app.helpers.email import mail
+
+dotenv_path = join(dirname(__file__), '.env')
+load_dotenv(dotenv_path)
 
 
 def create_app(config_name):
