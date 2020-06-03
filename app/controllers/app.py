@@ -620,10 +620,10 @@ class ProjectAppsView(Resource):
                     namespace=namespace,
                     body=secret_body,
                     _preload_content=False)
-                
+
                 # update registry
                 resource_registry['image_pull_secret'] = True
-                
+
                 image_pull_secret = client.V1LocalObjectReference(name=app_alias)
 
             # create deployment
@@ -788,10 +788,7 @@ class ProjectAppsView(Resource):
             if errors:
                 return dict(status='fail', message=errors), 500
 
-            apps_data_list, err = app_schema.loads(apps_data)
-
-            if err:
-                return dict(status='fail', message=err), 500
+            apps_data_list = json.loads(apps_data)
 
             for app in apps_data_list:
                 app_status_object = \
@@ -814,7 +811,7 @@ class ProjectAppsView(Resource):
                     for app_db_condition in app_db_state_conditions:
                         if app_db_condition.type == "Available":
                             app_db_status = app_db_condition.status
-  
+
                 except client.rest.ApiException:
                     app_db_status = None
 
@@ -870,10 +867,7 @@ class AppDetailView(Resource):
             if errors:
                 return dict(status='fail', message=errors), 500
 
-            app_list, err = app_schema.loads(app_data)
-
-            if err:
-                return dict(status='fail', message=err), 500
+            app_list = json.loads(app_data)
 
             cluster = Cluster.get_by_id(project.cluster_id)
 
