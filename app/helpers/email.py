@@ -12,7 +12,7 @@ def async_mail(app, message):
 
 def send_email(to, subject, template, sender, app):
     msg = Message(
-        subject,
+        f'[Crane Cloud] {subject}',
         recipients=[to],
         html=template,
         sender=sender,
