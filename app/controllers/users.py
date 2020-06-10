@@ -34,7 +34,7 @@ class UsersView(Resource):
         password_salt = current_app.config["VERIFICATION_SALT"]
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
         template = "user/verify.html"
-        subject = "please confirm your email"
+        subject = "Please confirm your email"
 
         if errors:
             return dict(status="fail", message=errors), 400
@@ -230,7 +230,7 @@ class UserDetailView(Resource):
             if not updated:
                 return dict(
                     status='fail',
-                    message='internal sserver error'
+                    message='Internal Server Error'
                     ), 500
 
             return dict(
@@ -271,7 +271,7 @@ class AdminLoginView(Resource):
         if not user.verified:
             return dict(
                 status='fail',
-                message='email not verified',
+                message='Email not verified',
                 data=dict(verified=user.verified)
                 ), 401
 
@@ -339,7 +339,7 @@ class UserEmailVerificationView(Resource):
 
             if not access_token:
                 return dict(
-                    status='fail', message='internal server error'), 500
+                    status='fail', message='Internal Server Error'), 500
 
             return dict(
                 status='success',
@@ -352,7 +352,7 @@ class UserEmailVerificationView(Resource):
                     id=str(user.id),
                     )), 200
 
-        return dict(status='fail', message='internal server error'), 500
+        return dict(status='fail', message='Internal Server Error'), 500
 
 
 class EmailVerificationRequest(Resource):
@@ -388,7 +388,7 @@ class EmailVerificationRequest(Resource):
         if not user:
             return dict(
                 status='fail',
-                message=f'user with email {email} not found'
+                message=f'User with email {email} not found'
                 ), 404
 
         # send verification
@@ -406,7 +406,7 @@ class EmailVerificationRequest(Resource):
 
         return dict(
             status='success',
-            message=f'verification link sent to {email}'
+            message=f'Verification link sent to {email}'
             ), 200
 
 
@@ -442,7 +442,7 @@ class ForgotPasswordView(Resource):
         if not user:
             return dict(
                 status='fail',
-                message=f'user with email {email} not found'
+                message=f'User with email {email} not found'
                 ), 404
 
         # send password reset link
@@ -460,7 +460,7 @@ class ForgotPasswordView(Resource):
 
         return dict(
             status='success',
-            message=f'password reset link sent to {email}'
+            message=f'Password reset link sent to {email}'
             ), 200
 
 
