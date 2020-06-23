@@ -337,8 +337,6 @@ class ProjectAppsView(Resource):
 
         app_data = request.get_json()
 
-        print(app_data)
-
         validated_app_data, errors = app_schema.load(app_data, partial=("project_id",))
 
         if errors:
