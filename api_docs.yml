@@ -1658,6 +1658,8 @@ paths:
                             type: string
                         db_name:
                             type: string
+                        db_flavor:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -1747,6 +1749,8 @@ paths:
                             db_password:
                                 type: string
                             db_name:
+                                type: string
+                            db_flavor:
                                 type: string
                 produces:
                     - application/json
