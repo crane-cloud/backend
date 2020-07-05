@@ -15,6 +15,7 @@ from app.helpers.secret_generator import generate_password, generate_db_uri
 from app.helpers.connectivity import is_database_ready
 from app.models.clusters import Cluster
 from app.helpers.clean_up import resource_clean_up
+from app.helpers.db_flavor import db_flavors
 
 
 class AppsView(Resource):
@@ -70,8 +71,9 @@ class AppsView(Resource):
         db_user = validated_app_data.get('db_user', None)
         db_password = validated_app_data.get('db_password', None)
         db_name = validated_app_data.get('db_name', None)
+        db_flavor = validated_app_data.get('db_flavor', 'postgres')
         replicas = 1
-        app_port = validated_app_data['port']
+        app_port = validated_app_data.get('port')
         DATABASE_URI = None
         image_pull_secret = None
 
@@ -113,8 +115,14 @@ class AppsView(Resource):
 
             if need_db:
 
+                if db_flavor not in db_flavors:
+                    return dict(
+                        status='fail',
+                        message='Unsupported database flavor'
+                        ), 400
+
                 # create postgres pvc meta and spec
-                pvc_name = f'{app_alias}-psql-pvc'
+                pvc_name = f'{app_alias}-db-pvc'
                 pvc_meta = client.V1ObjectMeta(name=pvc_name)
 
                 access_modes = ['ReadWriteOnce']
@@ -124,52 +132,71 @@ class AppsView(Resource):
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
                     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-                # create postgres deployment
-                pg_app_name = f'{app_alias}-postgres-db'
+                db_app_name = f'{app_alias}-{db_flavor}-db'
 
-                # pg vars
-                POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
-                POSTGRES_USER = db_user if db_user else app_name
-                POSTGRES_DB = db_name if db_name else app_name
+                db_image = db_flavors[db_flavor]['image']
+                db_port = db_flavors[db_flavor]['port']
 
-                DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+                if db_flavor in ['mysql', 'mariadb']:
+                    MYSQL_ROOT_PASSWORD = generate_password(10)
+                    MYSQL_DATABASE = db_name if db_name else app_name
+                    MYSQL_USER = db_user if db_user else app_name
+                    MYSQL_PASSWORD = db_password if db_password else generate_password(10)
 
-                pg_env = [
-                    client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
-                    client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
-                    client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
-                ]
-                pg_container = client.V1Container(
-                    name=pg_app_name,
-                    image='postgres:10.8-alpine',
-                    ports=[client.V1ContainerPort(container_port=5432)],
-                    env=pg_env
+                    # need to generate db connection
+
+                    db_env = [
+                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
+                        client.V1EnvVar(name='MYSQL_DATABASE', value=MYSQL_DATABASE),
+                        client.V1EnvVar(name='MYSQL_USER', value=MYSQL_USER),
+                        client.V1EnvVar(name='MYSQL_PASSWORD', value=MYSQL_PASSWORD)
+                    ]
+
+                if db_flavor == 'postgres':
+                    # pg vars
+                    POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
+                    POSTGRES_USER = db_user if db_user else app_name
+                    POSTGRES_DB = db_name if db_name else app_name
+
+                    # DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+
+                    db_env = [
+                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
+                        client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
+                        client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
+                    ]
+
+                db_container = client.V1Container(
+                    name=db_app_name,
+                    image=db_image,
+                    ports=[client.V1ContainerPort(container_port=db_port)],
+                    env=db_env
                 )
 
-                pg_template = client.V1PodTemplateSpec(
+                db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
-                        'app': pg_app_name
+                        'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[pg_container])
+                    spec=client.V1PodSpec(containers=[db_container])
 
                 )
 
-                pg_spec = client.V1DeploymentSpec(
+                db_spec = client.V1DeploymentSpec(
                     replicas=1,
-                    template=pg_template,
-                    selector={'matchLabels': {'app': pg_app_name}}
+                    template=db_template,
+                    selector={'matchLabels': {'app': db_app_name}}
                 )
 
-                pg_deployment = client.V1Deployment(
+                db_deployment = client.V1Deployment(
                     api_version="apps/v1",
                     kind="Deployment",
-                    metadata=client.V1ObjectMeta(name=pg_app_name),
-                    spec=pg_spec
+                    metadata=client.V1ObjectMeta(name=db_app_name),
+                    spec=db_spec
                 )
 
                 # postgres deployment
                 kube_client.appsv1_api.create_namespaced_deployment(
-                    body=pg_deployment,
+                    body=db_deployment,
                     namespace=namespace,
                     _preload_content=False
                 )
@@ -178,25 +205,25 @@ class AppsView(Resource):
                 resource_registry['db_deployment'] = True
 
                 # postgres service
-                pg_service_meta = client.V1ObjectMeta(
-                    name=pg_app_name,
-                    labels={'app': pg_app_name}
+                db_service_meta = client.V1ObjectMeta(
+                    name=db_app_name,
+                    labels={'app': db_app_name}
                 )
 
-                pg_service_spec = client.V1ServiceSpec(
+                db_service_spec = client.V1ServiceSpec(
                     type='NodePort',
-                    ports=[client.V1ServicePort(port=5432, target_port=5432)],
-                    selector={'app': pg_app_name}
+                    ports=[client.V1ServicePort(port=db_port, target_port=db_port)],
+                    selector={'app': db_app_name}
                 )
 
-                pg_service = client.V1Service(
-                    metadata=pg_service_meta,
-                    spec=pg_service_spec
+                db_service = client.V1Service(
+                    metadata=db_service_meta,
+                    spec=db_service_spec
                 )
 
                 kube_client.kube.create_namespaced_service(
                     namespace=namespace,
-                    body=pg_service,
+                    body=db_service,
                     _preload_content=False
                 )
 
@@ -204,11 +231,11 @@ class AppsView(Resource):
                 resource_registry['db_service'] = True
 
                 # get pg_service port
-                pg_service_created = kube_client.kube.read_namespaced_service(name=pg_app_name, namespace=namespace)
-                pg_service_port = pg_service_created.spec.ports[0].node_port
+                db_service_created = kube_client.kube.read_namespaced_service(name=db_app_name, namespace=namespace)
+                db_service_port = db_service_created.spec.ports[0].node_port
 
                 # hold here till pg is ready
-                if not is_database_ready(service_host, pg_service_port, 20):
+                if not is_database_ready(service_host, db_service_port, 20):
                     return dict(status='fail', message='Failed at Database creation'), 500
 
             if private_repo:
@@ -416,7 +443,8 @@ class ProjectAppsView(Resource):
         app_image = validated_app_data['image']
         command = validated_app_data.get('command', None)
         need_db = validated_app_data.get('need_db', True)
-        env_vars = validated_app_data['env_vars']
+        # env_vars = validated_app_data['env_vars']
+        env_vars = validated_app_data.get('env_vars', None)
         private_repo = validated_app_data.get('private_image', False)
         docker_server = validated_app_data.get('docker_server', None)
         docker_username = validated_app_data.get('docker_username', None)
@@ -425,8 +453,9 @@ class ProjectAppsView(Resource):
         db_user = validated_app_data.get('db_user', None)
         db_password = validated_app_data.get('db_password', None)
         db_name = validated_app_data.get('db_name', None)
+        db_flavor = validated_app_data.get('db_flavor', 'postgres')
         replicas = 1
-        app_port = validated_app_data['port']
+        app_port = validated_app_data.get('port', None)
         DATABASE_URI = None
         image_pull_secret = None
 
@@ -474,117 +503,128 @@ class ProjectAppsView(Resource):
 
             if need_db:
 
+                if db_flavor not in db_flavors:
+                    return dict(
+                        status='fail',
+                        message='Unsupported database flavor'
+                        ), 400
+
                 # create postgres pvc meta and spec
-                pvc_name = f'{app_alias}-psql-pvc'
+                pvc_name = f'{app_alias}-db-pvc'
                 pvc_meta = client.V1ObjectMeta(name=pvc_name)
 
                 access_modes = ['ReadWriteOnce']
                 storage_class = 'openebs-standard'
-                resources = client.V1ResourceRequirements(
-                    requests=dict(storage='1Gi')
-                    )
+                resources = client.V1ResourceRequirements(requests=dict(storage='1Gi'))
 
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
-                    access_modes=access_modes,
-                    resources=resources,
-                    storage_class_name=storage_class
-                    )
+                    access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-                # create postgres deployment
-                pg_app_name = f'{app_alias}-postgres-db'
+                db_app_name = f'{app_alias}-{db_flavor}-db'
 
-                # pg vars
-                POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
-                POSTGRES_USER = db_user if db_user else app_name
-                POSTGRES_DB = db_name if db_name else app_name
+                db_image = db_flavors[db_flavor]['image']
+                db_port = db_flavors[db_flavor]['port']
 
-                DATABASE_URI = generate_db_uri(
-                    pg_app_name,
-                    POSTGRES_USER,
-                    POSTGRES_PASSWORD,
-                    POSTGRES_DB
-                    )
+                if db_flavor in ['mysql', 'mariadb']:
+                    MYSQL_ROOT_PASSWORD = generate_password(10)
+                    MYSQL_DATABASE = db_name if db_name else app_name
+                    MYSQL_USER = db_user if db_user else app_name
+                    MYSQL_PASSWORD = db_password if db_password else generate_password(10)
 
-                pg_env = [
-                    client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
-                    client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
-                    client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
-                ]
-                pg_container = client.V1Container(
-                    name=pg_app_name,
-                    image='postgres:10.8-alpine',
-                    ports=[client.V1ContainerPort(container_port=5432)],
-                    env=pg_env
+                    # need to generate db connection
+
+                    db_env = [
+                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
+                        client.V1EnvVar(name='MYSQL_DATABASE', value=MYSQL_DATABASE),
+                        client.V1EnvVar(name='MYSQL_USER', value=MYSQL_USER),
+                        client.V1EnvVar(name='MYSQL_PASSWORD', value=MYSQL_PASSWORD)
+                    ]
+
+                if db_flavor == 'postgres':
+                    # pg vars
+                    POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
+                    POSTGRES_USER = db_user if db_user else app_name
+                    POSTGRES_DB = db_name if db_name else app_name
+
+                    # DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+
+                    db_env = [
+                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
+                        client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
+                        client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
+                    ]
+
+                db_container = client.V1Container(
+                    name=db_app_name,
+                    image=db_image,
+                    ports=[client.V1ContainerPort(container_port=db_port)],
+                    env=db_env
                 )
 
-                pg_template = client.V1PodTemplateSpec(
+                db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
-                        'app': pg_app_name
+                        'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[pg_container])
+                    spec=client.V1PodSpec(containers=[db_container])
 
                 )
 
-                pg_spec = client.V1DeploymentSpec(
+                db_spec = client.V1DeploymentSpec(
                     replicas=1,
-                    template=pg_template,
-                    selector={'matchLabels': {'app': pg_app_name}}
+                    template=db_template,
+                    selector={'matchLabels': {'app': db_app_name}}
                 )
 
-                pg_deployment = client.V1Deployment(
+                db_deployment = client.V1Deployment(
                     api_version="apps/v1",
                     kind="Deployment",
-                    metadata=client.V1ObjectMeta(name=pg_app_name),
-                    spec=pg_spec
+                    metadata=client.V1ObjectMeta(name=db_app_name),
+                    spec=db_spec
                 )
 
                 # postgres deployment
                 kube_client.appsv1_api.create_namespaced_deployment(
-                    body=pg_deployment,
+                    body=db_deployment,
                     namespace=namespace,
-                    _preload_content=False
-                )
-
-                # upodate resource registry
-                resource_registry['db_deployment'] = True
-
-                # postgres service
-                pg_service_meta = client.V1ObjectMeta(
-                    name=pg_app_name,
-                    labels={'app': pg_app_name}
-                )
-
-                pg_service_spec = client.V1ServiceSpec(
-                    type='NodePort',
-                    ports=[client.V1ServicePort(port=5432, target_port=5432)],
-                    selector={'app': pg_app_name}
-                )
-
-                pg_service = client.V1Service(
-                    metadata=pg_service_meta,
-                    spec=pg_service_spec
-                )
-
-                kube_client.kube.create_namespaced_service(
-                    namespace=namespace,
-                    body=pg_service,
                     _preload_content=False
                 )
 
                 # update resource registry
+                resource_registry['db_deployment'] = True
+
+                # postgres service
+                db_service_meta = client.V1ObjectMeta(
+                    name=db_app_name,
+                    labels={'app': db_app_name}
+                )
+
+                db_service_spec = client.V1ServiceSpec(
+                    type='NodePort',
+                    ports=[client.V1ServicePort(port=db_port, target_port=db_port)],
+                    selector={'app': db_app_name}
+                )
+
+                db_service = client.V1Service(
+                    metadata=db_service_meta,
+                    spec=db_service_spec
+                )
+
+                kube_client.kube.create_namespaced_service(
+                    namespace=namespace,
+                    body=db_service,
+                    _preload_content=False
+                )
+
+                # Update resource registry
                 resource_registry['db_service'] = True
 
                 # get pg_service port
-                pg_service_created = kube_client.kube.read_namespaced_service(
-                    name=pg_app_name, namespace=namespace)
-                pg_service_port = pg_service_created.spec.ports[0].node_port
+                db_service_created = kube_client.kube.read_namespaced_service(name=db_app_name, namespace=namespace)
+                db_service_port = db_service_created.spec.ports[0].node_port
 
                 # hold here till pg is ready
-                if not is_database_ready(service_host, pg_service_port, 20):
-                    return dict(
-                        status='fail',
-                        message='Failed at Database creation'
-                        ), 500
+                if not is_database_ready(service_host, db_service_port, 20):
+                    return dict(status='fail', message='Failed at Database creation'), 500
 
             if private_repo:
 

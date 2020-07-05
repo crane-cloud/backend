@@ -40,3 +40,4 @@ class AppSchema(Schema):
     db_user = fields.String()
     db_password = fields.String()
     db_name = fields.String()
+    db_flavor = fields.String()
