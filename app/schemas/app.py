@@ -41,3 +41,4 @@ class AppSchema(Schema):
     db_password = fields.String()
     db_name = fields.String()
     db_flavor = fields.String()
+    replicas = fields.Int(validate=validate.Range(min=1, max=4))

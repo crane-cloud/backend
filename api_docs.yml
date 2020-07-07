@@ -1660,6 +1660,8 @@ paths:
                             type: string
                         db_flavor:
                             type: string
+                        replicas:
+                            type: number
             produces:
                 - application/json
             responses:
@@ -1752,6 +1754,8 @@ paths:
                                 type: string
                             db_flavor:
                                 type: string
+                            replicas:
+                                type: number
                 produces:
                     - application/json
                 responses:
