@@ -72,7 +72,7 @@ class AppsView(Resource):
         db_password = validated_app_data.get('db_password', None)
         db_name = validated_app_data.get('db_name', None)
         db_flavor = validated_app_data.get('db_flavor', 'postgres')
-        replicas = 1
+        replicas = validated_app_data.get('replicas', 1)
         app_port = validated_app_data.get('port')
         DATABASE_URI = None
         image_pull_secret = None
@@ -454,7 +454,7 @@ class ProjectAppsView(Resource):
         db_password = validated_app_data.get('db_password', None)
         db_name = validated_app_data.get('db_name', None)
         db_flavor = validated_app_data.get('db_flavor', 'postgres')
-        replicas = 1
+        replicas = validated_app_data.get('replicas', 1)
         app_port = validated_app_data.get('port', None)
         DATABASE_URI = None
         image_pull_secret = None
