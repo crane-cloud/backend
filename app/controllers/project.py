@@ -310,8 +310,6 @@ class ProjectMemoryUsageView(Resource):
         current_time = datetime.datetime.now()
         yesterday_time = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
-        print(current_time)
-        print(yesterday_time)
 
         prom_memory_data = prometheus.query_rang(
             start=float(request.args.get('start', yesterday_time.timestamp())),
