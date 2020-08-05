@@ -1604,6 +1604,33 @@ paths:
                     description: "Bad request"
                 500:
                     descriptopm: "Internal Server Error"
+    "/projects/{project_id}/metrics/cpu":
+        get:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A single Project"
+                404:
+                    description: "Project not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
     "/projects/{project_id}/apps":
 
