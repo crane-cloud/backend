@@ -12,7 +12,7 @@ from app.controllers import (
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView, AppDetailView, RegistriesView
+    ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView
 )
 
 api = Api()
@@ -87,6 +87,8 @@ api.add_resource(ProjectAppsView, '/projects/<string:project_id>/apps', endpoint
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 
+# Project Metrics routes
+api.add_resource(ProjectMemoryUsageView,'/projects/<string:project_id>/metrics/memory', endpoint='project_metrics')
 # App routes 
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
