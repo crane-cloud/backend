@@ -1624,9 +1624,9 @@ paths:
 
             responses:
                 200:
-                    description: "A single Project"
+                    description: "Cpu metrics for a Project"
                 404:
-                    description: "Project not found"
+                    description: "metrics not found"
                 400:
                     description: "Bad request"
                 500:

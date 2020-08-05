@@ -305,6 +305,10 @@ class ProjectCPUView(Resource):
                 status='fail',
                 message=f'project {project_id} not found'
             ), 404
+        
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+        
         # Get current timestamps
         current_time = datetime.datetime.now()
         yesterday = current_time + datetime.timedelta(days=-1)
@@ -315,7 +319,7 @@ class ProjectCPUView(Resource):
         prom_data = prometheus.query_rang(
             start=float(request.args.get('start', yesterday.timestamp())),
             end=float(request.args.get('end', current_time.timestamp())),
-            step=int(request.args.get('step', 100)),
+            step=request.args.get('step', '1h'),
             metric='sum(rate(container_cpu_usage_seconds_total{namespace="' +
             namespace+'",container!="POD"}[5m]))'
         )
