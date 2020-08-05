@@ -4,7 +4,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import datetime
 
-from app.schemas import ProjectSchema
+from app.schemas import ProjectSchema, ProjectMemoryUsageSchema
 from app.models.project import Project
 from app.models.clusters import Cluster
 from app.models.user import User
@@ -292,7 +292,22 @@ class UserProjectsView(Resource):
 class ProjectMemoryUsageView(Resource):
 
     @jwt_required
-    def get(self, project_id):
+    def post(self, project_id):
+        
+        project_memory_schema = ProjectMemoryUsageSchema()
+        project_query_data = request.get_json()
+
+        validated_query_data, errors = project_memory_schema.load(project_query_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        current_time = datetime.datetime.now()
+        yesterday_time = current_time + datetime.timedelta(days=-1)
+        
+        start = validated_query_data.get('start', yesterday_time.timestamp())
+        end = validated_query_data.get('end', current_time.timestamp())
+        step = validated_query_data.get('step', '1h')
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
@@ -307,14 +322,12 @@ class ProjectMemoryUsageView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
 
-        current_time = datetime.datetime.now()
-        yesterday_time = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
 
         prom_memory_data = prometheus.query_rang(
-            start=float(request.args.get('start', yesterday_time.timestamp())),
-            end=float(request.args.get('end', current_time.timestamp())),
-            step=request.args.get('step', '1h'),
+            start = start,
+            end = end,
+            step= step,
             metric='sum(rate(container_cpu_usage_seconds_total{container_name!="POD",namespace="'+namespace+'"}[5m]))')       
 
         new_data = json.loads(prom_memory_data)

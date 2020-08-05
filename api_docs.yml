@@ -1703,7 +1703,7 @@ paths:
                 
 
     "/projects/{project_id}/metrics/memory":
-        get:
+        post:
             tags:
                 - project_metrics
             consumes:
@@ -1719,6 +1719,18 @@ paths:
                   name: project_id
                   required: true
                   type: string
+                - in: body
+                  name: project metrics
+                  schema:
+                    properties:
+                        start:
+                            type: number
+                            format: float
+                        end:
+                            type: number
+                            format: float
+                        step:
+                            type: string
 
             responses:
                 200:
