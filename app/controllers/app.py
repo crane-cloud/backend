@@ -137,33 +137,31 @@ class AppsView(Resource):
                 db_image = db_flavors[db_flavor]['image']
                 db_port = db_flavors[db_flavor]['port']
 
+                # Declare Database connection variables
+                DB_HOST = db_app_name
+                DB_USER = db_user if db_user else app_name
+                DB_PASSWORD = db_password if db_password else generate_password(10)
+                DB_DATABASE = db_name if db_name else app_name
+                DB_PORT = db_port
+
                 if db_flavor in ['mysql', 'mariadb']:
                     MYSQL_ROOT_PASSWORD = generate_password(10)
-                    MYSQL_DATABASE = db_name if db_name else app_name
-                    MYSQL_USER = db_user if db_user else app_name
-                    MYSQL_PASSWORD = db_password if db_password else generate_password(10)
-
-                    # need to generate db connection
 
                     db_env = [
                         client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
-                        client.V1EnvVar(name='MYSQL_DATABASE', value=MYSQL_DATABASE),
-                        client.V1EnvVar(name='MYSQL_USER', value=MYSQL_USER),
-                        client.V1EnvVar(name='MYSQL_PASSWORD', value=MYSQL_PASSWORD)
+                        client.V1EnvVar(name='MYSQL_DATABASE', value=DB_DATABASE),
+                        client.V1EnvVar(name='MYSQL_USER', value=DB_USER),
+                        client.V1EnvVar(name='MYSQL_PASSWORD', value=DB_PASSWORD)
                     ]
 
                 if db_flavor == 'postgres':
-                    # pg vars
-                    POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
-                    POSTGRES_USER = db_user if db_user else app_name
-                    POSTGRES_DB = db_name if db_name else app_name
 
-                    # DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+                    DATABASE_URI = generate_db_uri(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
 
                     db_env = [
-                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
-                        client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
-                        client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
+                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=DB_PASSWORD),
+                        client.V1EnvVar(name='POSTGRES_USER', value=DB_USER),
+                        client.V1EnvVar(name='POSTGRES_DB', value=DB_DATABASE)
                     ]
 
                 db_container = client.V1Container(
@@ -279,7 +277,13 @@ class AppsView(Resource):
             dep_name = f'{app_alias}-deployment'
 
             # EnvVar
-            env = []
+            env = [
+                client.V1EnvVar(name='DB_HOST', value=DB_HOST),
+                client.V1EnvVar(name='DB_USER', value=DB_USER),
+                client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
+                client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
+                client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
+            ]
 
             if DATABASE_URI:
                 env.append(client.V1EnvVar(
@@ -525,33 +529,35 @@ class ProjectAppsView(Resource):
                 db_image = db_flavors[db_flavor]['image']
                 db_port = db_flavors[db_flavor]['port']
 
+                # Declare Database connection variables
+                DB_HOST = db_app_name
+                DB_USER = db_user if db_user else app_name
+                DB_PASSWORD = db_password if db_password else generate_password(10)
+                DB_DATABASE = db_name if db_name else app_name
+                DB_PORT = db_port
+
                 if db_flavor in ['mysql', 'mariadb']:
                     MYSQL_ROOT_PASSWORD = generate_password(10)
-                    MYSQL_DATABASE = db_name if db_name else app_name
-                    MYSQL_USER = db_user if db_user else app_name
-                    MYSQL_PASSWORD = db_password if db_password else generate_password(10)
-
-                    # need to generate db connection
 
                     db_env = [
                         client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
-                        client.V1EnvVar(name='MYSQL_DATABASE', value=MYSQL_DATABASE),
-                        client.V1EnvVar(name='MYSQL_USER', value=MYSQL_USER),
-                        client.V1EnvVar(name='MYSQL_PASSWORD', value=MYSQL_PASSWORD)
+                        client.V1EnvVar(name='MYSQL_DATABASE', value=DB_DATABASE),
+                        client.V1EnvVar(name='MYSQL_USER', value=DB_USER),
+                        client.V1EnvVar(name='MYSQL_PASSWORD', value=DB_PASSWORD)
                     ]
 
                 if db_flavor == 'postgres':
                     # pg vars
-                    POSTGRES_PASSWORD = db_password if db_password else generate_password(10)
-                    POSTGRES_USER = db_user if db_user else app_name
-                    POSTGRES_DB = db_name if db_name else app_name
+                    DB_PASSWORD = db_password if db_password else generate_password(10)
+                    DB_USER = db_user if db_user else app_name
+                    DB_DATABASE = db_name if db_name else app_name
 
-                    # DATABASE_URI = generate_db_uri(pg_app_name, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+                    DATABASE_URI = generate_db_uri(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
 
                     db_env = [
-                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=POSTGRES_PASSWORD),
-                        client.V1EnvVar(name='POSTGRES_USER', value=POSTGRES_USER),
-                        client.V1EnvVar(name='POSTGRES_DB', value=POSTGRES_DB)
+                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=DB_PASSWORD),
+                        client.V1EnvVar(name='POSTGRES_USER', value=DB_USER),
+                        client.V1EnvVar(name='POSTGRES_DB', value=DB_DATABASE)
                     ]
 
                 db_container = client.V1Container(
@@ -670,7 +676,13 @@ class ProjectAppsView(Resource):
             dep_name = f'{app_alias}-deployment'
 
             # EnvVar
-            env = []
+            env = [
+                client.V1EnvVar(name='DB_HOST', value=DB_HOST),
+                client.V1EnvVar(name='DB_USER', value=DB_USER),
+                client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
+                client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
+                client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
+            ]
 
             if DATABASE_URI:
                 env.append(client.V1EnvVar(
