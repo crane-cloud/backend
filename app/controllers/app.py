@@ -76,6 +76,11 @@ class AppsView(Resource):
         app_port = validated_app_data.get('port')
         DATABASE_URI = None
         image_pull_secret = None
+        DB_HOST = ""
+        DB_USER = ""
+        DB_PASSWORD = ""
+        DB_DATABASE = ""
+        DB_PORT = ""
 
         command = command.split() if command else None
 
@@ -277,13 +282,16 @@ class AppsView(Resource):
             dep_name = f'{app_alias}-deployment'
 
             # EnvVar
-            env = [
-                client.V1EnvVar(name='DB_HOST', value=DB_HOST),
-                client.V1EnvVar(name='DB_USER', value=DB_USER),
-                client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
-                client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
-                client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
-            ]
+            if DB_HOST or DB_USER or DB_PASSWORD or DB_PORT or DB_DATABASE:
+                env = [
+                    client.V1EnvVar(name='DB_HOST', value=DB_HOST),
+                    client.V1EnvVar(name='DB_USER', value=DB_USER),
+                    client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
+                    client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
+                    client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
+                ]
+            else:
+                env = []
 
             if DATABASE_URI:
                 env.append(client.V1EnvVar(
@@ -462,6 +470,11 @@ class ProjectAppsView(Resource):
         app_port = validated_app_data.get('port', None)
         DATABASE_URI = None
         image_pull_secret = None
+        DB_HOST = ""
+        DB_USER = ""
+        DB_PASSWORD = ""
+        DB_DATABASE = ""
+        DB_PORT = ""
 
         command = command.split() if command else None
 
@@ -529,7 +542,7 @@ class ProjectAppsView(Resource):
                 db_image = db_flavors[db_flavor]['image']
                 db_port = db_flavors[db_flavor]['port']
 
-                # Declare Database connection variables
+                # Database connection variables
                 DB_HOST = db_app_name
                 DB_USER = db_user if db_user else app_name
                 DB_PASSWORD = db_password if db_password else generate_password(10)
@@ -676,13 +689,16 @@ class ProjectAppsView(Resource):
             dep_name = f'{app_alias}-deployment'
 
             # EnvVar
-            env = [
-                client.V1EnvVar(name='DB_HOST', value=DB_HOST),
-                client.V1EnvVar(name='DB_USER', value=DB_USER),
-                client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
-                client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
-                client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
-            ]
+            if DB_HOST or DB_USER or DB_PASSWORD or DB_PORT or DB_DATABASE:
+                env = [
+                    client.V1EnvVar(name='DB_HOST', value=DB_HOST),
+                    client.V1EnvVar(name='DB_USER', value=DB_USER),
+                    client.V1EnvVar(name='DB_PASSWORD', value=DB_PASSWORD),
+                    client.V1EnvVar(name='DB_PORT', value=str(DB_PORT)),
+                    client.V1EnvVar(name='DB_DATABASE', value=DB_DATABASE)
+                ]
+            else:
+                env = []
 
             if DATABASE_URI:
                 env.append(client.V1EnvVar(
