@@ -1,19 +1,18 @@
+from app.helpers.prometheus import prometheus
+from app.helpers.alias import create_alias
+from app.helpers.admin import is_owner_or_admin, is_current_or_admin
+from app.helpers.role_search import has_role
+from app.helpers.kube import create_kube_clients
+from app.models.user import User
+from app.models.clusters import Cluster
+from app.models.project import Project
+from app.schemas import ProjectSchema, MetricsSchema
+import datetime
+from prometheus_http_client import Prometheus
 import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-import datetime
-
-from app.schemas import ProjectSchema, MetricsSchema
-from app.models.project import Project
-from app.models.clusters import Cluster
-from app.models.user import User
-from app.helpers.kube import create_kube_clients
-from app.helpers.role_search import has_role
-from app.helpers.admin import is_owner_or_admin, is_current_or_admin
-from app.helpers.alias import create_alias
-from app.helpers.prometheus import prometheus
-
 
 
 class ProjectsView(Resource):
@@ -47,7 +46,7 @@ class ProjectsView(Resource):
             return dict(
                 status='fail',
                 message=f'project with name {validated_project_data["name"]} already exists'
-                ), 409
+            ), 409
 
         try:
             validated_project_data['alias'] =\
@@ -60,7 +59,7 @@ class ProjectsView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster {cluster_id} not found'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -71,7 +70,7 @@ class ProjectsView(Resource):
             cluster_namespace = kube_client.kube.create_namespace(
                 client.V1Namespace(
                     metadata=client.V1ObjectMeta(name=namespace_name)
-                    ))
+                ))
             # create project in database
             if cluster_namespace:
                 project = Project(**validated_project_data)
@@ -135,7 +134,7 @@ class ProjectDetailView(Resource):
             return dict(
                 status='fail',
                 message=f'project {project_id} not found'
-                ), 404
+            ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -163,7 +162,7 @@ class ProjectDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'project {project_id} not found'
-                    ), 404
+                ), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='unauthorised'), 403
@@ -196,7 +195,7 @@ class ProjectDetailView(Resource):
             return dict(
                 status='success',
                 message=f'project {project_id} deleted successfully'
-                ), 200
+            ), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -234,7 +233,7 @@ class ProjectDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'project with name {validate_project_data["name"]} already exists'
-                    ), 409
+                ), 409
 
             project = Project.get_by_id(project_id)
 
@@ -252,7 +251,7 @@ class ProjectDetailView(Resource):
             return dict(
                 status='success',
                 message=f'project {project_id} updated successfully'
-                ), 200
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -287,24 +286,26 @@ class UserProjectsView(Resource):
         return dict(
             status='success',
             data=dict(projects=json.loads(projects_json))
-            ), 200
+        ), 200
+
 
 class ProjectMemoryUsageView(Resource):
 
     @jwt_required
     def post(self, project_id):
-        
+
         project_memory_schema = MetricsSchema()
         project_query_data = request.get_json()
 
-        validated_query_data, errors = project_memory_schema.load(project_query_data)
+        validated_query_data, errors = project_memory_schema.load(
+            project_query_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
         current_time = datetime.datetime.now()
         yesterday_time = current_time + datetime.timedelta(days=-1)
-        
+
         start = validated_query_data.get('start', yesterday_time.timestamp())
         end = validated_query_data.get('end', current_time.timestamp())
         step = validated_query_data.get('step', '1h')
@@ -317,26 +318,78 @@ class ProjectMemoryUsageView(Resource):
             return dict(
                 status='fail',
                 message=f'project {project_id} not found'
-                ), 404
-        
+            ), 404
+
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
 
         namespace = project.alias
 
         prom_memory_data = prometheus.query_rang(
-            start = start,
-            end = end,
-            step= step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container_name!="POD",namespace="'+namespace+'"}[5m]))')       
+            start=start,
+            end=end,
+            step=step,
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD",namespace="'+namespace+'"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
 
         for value in new_data["data"]["result"][0]["values"]:
             mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
-            final_data_list.append(mem_case)          
+            final_data_list.append(mem_case)
 
         return dict(status='success', data=dict(values=final_data_list)), 200
 
 
+class ProjectCPUView(Resource):
+    @jwt_required
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project_memory_schema = MetricsSchema()
+        project_cpu_data = request.get_json()
+
+        validated_query_data, errors = project_memory_schema.load(
+            project_cpu_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Get current time
+        current_time = datetime.datetime.now()
+        yesterday = current_time + datetime.timedelta(days=-1)
+        namespace = project.alias
+
+        prometheus = Prometheus()
+
+        start = validated_query_data.get('start', yesterday.timestamp())
+        end = validated_query_data.get('end', current_time.timestamp())
+        step = validated_query_data.get('step', '1h')
+
+        prom_data = prometheus.query_rang(
+            start=start,
+            end=end,
+            step=step,
+            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD",namespace="' +
+            namespace+'"}[5m]))'
+        )
+        #  chenge array values to json"values"
+        new_data = json.loads(prom_data)
+        cpu_data_list = []
+        for value in new_data["data"]["result"][0]["values"]:
+            case = {'timestamp': value[0], 'value': value[1]}
+            cpu_data_list.append(case)
+
+        return dict(status='success', data=dict(values=cpu_data_list)), 200

@@ -1604,7 +1604,7 @@ paths:
                     description: "Bad request"
                 500:
                     descriptopm: "Internal Server Error"
-
+                    
     "/projects/{project_id}/apps":
 
         post:
@@ -1702,10 +1702,50 @@ paths:
                     description: "Internal Server Error"
                 
 
+    "/projects/{project_id}/metrics/cpu":
+        post:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: body
+                  name: project metrics
+                  schema:
+                      properties:
+                          start:
+                              type: integer
+                              format: float
+                          end:
+                              type: integer
+                              format: float
+                          step:
+                              type: string
+
+            responses:
+                200:
+                    description: "Cpu metrics for a Project"
+                404:
+                    description: "metrics not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
     "/projects/{project_id}/metrics/memory":
         post:
             tags:
-                - project_metrics
+                - projects
             consumes:
                 - application/json
             produces:
