@@ -10,4 +10,4 @@ from .organisation_admins import OrgAdminSchema
 from .project import ProjectSchema
 from .app import AppSchema
 from .registry import RegistrySchema
-from .project_memoryusage import ProjectMemoryUsageSchema
+from .monitoring_metrics import MetricsSchema

@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 
 
-class ProjectMemoryUsageSchema(Schema):
+class MetricsSchema(Schema):
 
     start = fields.Float()
     end = fields.Float()

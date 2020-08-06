@@ -4,7 +4,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import datetime
 
-from app.schemas import ProjectSchema, ProjectMemoryUsageSchema
+from app.schemas import ProjectSchema, MetricsSchema
 from app.models.project import Project
 from app.models.clusters import Cluster
 from app.models.user import User
@@ -294,7 +294,7 @@ class ProjectMemoryUsageView(Resource):
     @jwt_required
     def post(self, project_id):
         
-        project_memory_schema = ProjectMemoryUsageSchema()
+        project_memory_schema = MetricsSchema()
         project_query_data = request.get_json()
 
         validated_query_data, errors = project_memory_schema.load(project_query_data)
