@@ -329,14 +329,17 @@ class ProjectMemoryUsageView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD",namespace="'+namespace+'"}[5m]))')
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="", namespace="'+namespace+'"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
 
-        for value in new_data["data"]["result"][0]["values"]:
-            mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
-            final_data_list.append(mem_case)
+        try:
+            for value in new_data["data"]["result"][0]["values"]:
+                mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
+                final_data_list.append(mem_case)
+        except:
+            return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=final_data_list)), 200
 
@@ -382,14 +385,18 @@ class ProjectCPUView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD",namespace="' +
+            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
             namespace+'"}[5m]))'
         )
         #  chenge array values to json"values"
         new_data = json.loads(prom_data)
         cpu_data_list = []
-        for value in new_data["data"]["result"][0]["values"]:
-            case = {'timestamp': value[0], 'value': value[1]}
-            cpu_data_list.append(case)
+
+        try:
+            for value in new_data["data"]["result"][0]["values"]:
+                case = {'timestamp': value[0], 'value': value[1]}
+                cpu_data_list.append(case)
+        except:
+            return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=cpu_data_list)), 200

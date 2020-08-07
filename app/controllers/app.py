@@ -4,10 +4,12 @@ import base64
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+import datetime
+from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import create_kube_clients
-from app.schemas import AppSchema
+from app.schemas import AppSchema, MetricsSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
@@ -116,7 +118,7 @@ class AppsView(Resource):
                 project_id=project_id,
                 alias=app_alias,
                 port=app_port
-                )
+            )
 
             if need_db:
 
@@ -124,7 +126,7 @@ class AppsView(Resource):
                     return dict(
                         status='fail',
                         message='Unsupported database flavor'
-                        ), 400
+                    ), 400
 
                 # create postgres pvc meta and spec
                 pvc_name = f'{app_alias}-db-pvc'
@@ -132,7 +134,8 @@ class AppsView(Resource):
 
                 access_modes = ['ReadWriteOnce']
                 storage_class = 'openebs-standard'
-                resources = client.V1ResourceRequirements(requests=dict(storage='1Gi'))
+                resources = client.V1ResourceRequirements(
+                    requests=dict(storage='1Gi'))
 
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
                     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
@@ -145,7 +148,8 @@ class AppsView(Resource):
                 # Declare Database connection variables
                 DB_HOST = db_app_name
                 DB_USER = db_user if db_user else app_name
-                DB_PASSWORD = db_password if db_password else generate_password(10)
+                DB_PASSWORD = db_password if db_password else generate_password(
+                    10)
                 DB_DATABASE = db_name if db_name else app_name
                 DB_PORT = db_port
 
@@ -153,18 +157,23 @@ class AppsView(Resource):
                     MYSQL_ROOT_PASSWORD = generate_password(10)
 
                     db_env = [
-                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
-                        client.V1EnvVar(name='MYSQL_DATABASE', value=DB_DATABASE),
+                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD',
+                                        value=MYSQL_ROOT_PASSWORD),
+                        client.V1EnvVar(name='MYSQL_DATABASE',
+                                        value=DB_DATABASE),
                         client.V1EnvVar(name='MYSQL_USER', value=DB_USER),
-                        client.V1EnvVar(name='MYSQL_PASSWORD', value=DB_PASSWORD)
+                        client.V1EnvVar(name='MYSQL_PASSWORD',
+                                        value=DB_PASSWORD)
                     ]
 
                 if db_flavor == 'postgres':
 
-                    DATABASE_URI = generate_db_uri(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
+                    DATABASE_URI = generate_db_uri(
+                        DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
 
                     db_env = [
-                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=DB_PASSWORD),
+                        client.V1EnvVar(
+                            name='POSTGRES_PASSWORD', value=DB_PASSWORD),
                         client.V1EnvVar(name='POSTGRES_USER', value=DB_USER),
                         client.V1EnvVar(name='POSTGRES_DB', value=DB_DATABASE)
                     ]
@@ -215,7 +224,8 @@ class AppsView(Resource):
 
                 db_service_spec = client.V1ServiceSpec(
                     type='NodePort',
-                    ports=[client.V1ServicePort(port=db_port, target_port=db_port)],
+                    ports=[client.V1ServicePort(
+                        port=db_port, target_port=db_port)],
                     selector={'app': db_app_name}
                 )
 
@@ -234,7 +244,8 @@ class AppsView(Resource):
                 resource_registry['db_service'] = True
 
                 # get pg_service port
-                db_service_created = kube_client.kube.read_namespaced_service(name=db_app_name, namespace=namespace)
+                db_service_created = kube_client.kube.read_namespaced_service(
+                    name=db_app_name, namespace=namespace)
                 db_service_port = db_service_created.spec.ports[0].node_port
 
                 # hold here till pg is ready
@@ -245,7 +256,8 @@ class AppsView(Resource):
 
                 # handle gcr credentials
                 if 'gcr' in docker_server and docker_username == '_json_key':
-                    docker_password = json.dumps(json.loads(base64.b64decode(docker_password)))
+                    docker_password = json.dumps(
+                        json.loads(base64.b64decode(docker_password)))
 
                 # create image pull secrets
                 authstring = base64.b64encode(
@@ -260,7 +272,8 @@ class AppsView(Resource):
                     }
                 })
 
-                secret_b64 = base64.b64encode(json.dumps(secret_dict).encode("utf-8"))
+                secret_b64 = base64.b64encode(
+                    json.dumps(secret_dict).encode("utf-8"))
 
                 secret_body = client.V1Secret(
                     metadata=client.V1ObjectMeta(name=app_alias),
@@ -321,7 +334,7 @@ class AppsView(Resource):
                 spec=client.V1PodSpec(
                     containers=[container],
                     image_pull_secrets=[image_pull_secret]
-                    )
+                )
             )
 
             # spec of deployment
@@ -344,7 +357,7 @@ class AppsView(Resource):
                 body=deployment,
                 namespace=namespace,
                 _preload_content=False
-                )
+            )
 
             # update registry
             resource_registry['app_deployment'] = True
@@ -355,7 +368,7 @@ class AppsView(Resource):
             service_meta = client.V1ObjectMeta(
                 name=service_name,
                 labels={'app': app_alias}
-                )
+            )
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
@@ -376,7 +389,8 @@ class AppsView(Resource):
             # update resource registry
             resource_registry['app_service'] = True
 
-            service = kube_client.kube.read_namespaced_service(name=service_name, namespace=namespace)
+            service = kube_client.kube.read_namespaced_service(
+                name=service_name, namespace=namespace)
             service_port = service.spec.ports[0].node_port
 
             service_url = f'http://{service_host}:{service_port}'
@@ -398,7 +412,7 @@ class AppsView(Resource):
                 app_alias,
                 namespace,
                 kube_client
-                )
+            )
             return dict(status='fail', message=json.loads(e.body)), 500
 
         except Exception as e:
@@ -407,7 +421,7 @@ class AppsView(Resource):
                 app_alias,
                 namespace,
                 kube_client
-                )
+            )
             return dict(status='fail', message=str(e)), 500
 
 
@@ -433,7 +447,8 @@ class ProjectAppsView(Resource):
 
         app_data = request.get_json()
 
-        validated_app_data, errors = app_schema.load(app_data, partial=("project_id",))
+        validated_app_data, errors = app_schema.load(
+            app_data, partial=("project_id",))
 
         if errors:
             return dict(status='fail', message=errors), 400
@@ -499,7 +514,7 @@ class ProjectAppsView(Resource):
             return dict(
                 status='fail',
                 message=f'App {app_name} already exists'
-                ), 409
+            ), 409
 
         kube_host = cluster.host
         kube_token = cluster.token
@@ -516,7 +531,7 @@ class ProjectAppsView(Resource):
                 project_id=project_id,
                 alias=app_alias,
                 port=app_port
-                )
+            )
 
             if need_db:
 
@@ -524,7 +539,7 @@ class ProjectAppsView(Resource):
                     return dict(
                         status='fail',
                         message='Unsupported database flavor'
-                        ), 400
+                    ), 400
 
                 # create postgres pvc meta and spec
                 pvc_name = f'{app_alias}-db-pvc'
@@ -532,7 +547,8 @@ class ProjectAppsView(Resource):
 
                 access_modes = ['ReadWriteOnce']
                 storage_class = 'openebs-standard'
-                resources = client.V1ResourceRequirements(requests=dict(storage='1Gi'))
+                resources = client.V1ResourceRequirements(
+                    requests=dict(storage='1Gi'))
 
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
                     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
@@ -545,7 +561,8 @@ class ProjectAppsView(Resource):
                 # Database connection variables
                 DB_HOST = db_app_name
                 DB_USER = db_user if db_user else app_name
-                DB_PASSWORD = db_password if db_password else generate_password(10)
+                DB_PASSWORD = db_password if db_password else generate_password(
+                    10)
                 DB_DATABASE = db_name if db_name else app_name
                 DB_PORT = db_port
 
@@ -553,22 +570,28 @@ class ProjectAppsView(Resource):
                     MYSQL_ROOT_PASSWORD = generate_password(10)
 
                     db_env = [
-                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD', value=MYSQL_ROOT_PASSWORD),
-                        client.V1EnvVar(name='MYSQL_DATABASE', value=DB_DATABASE),
+                        client.V1EnvVar(name='MYSQL_ROOT_PASSWORD',
+                                        value=MYSQL_ROOT_PASSWORD),
+                        client.V1EnvVar(name='MYSQL_DATABASE',
+                                        value=DB_DATABASE),
                         client.V1EnvVar(name='MYSQL_USER', value=DB_USER),
-                        client.V1EnvVar(name='MYSQL_PASSWORD', value=DB_PASSWORD)
+                        client.V1EnvVar(name='MYSQL_PASSWORD',
+                                        value=DB_PASSWORD)
                     ]
 
                 if db_flavor == 'postgres':
                     # pg vars
-                    DB_PASSWORD = db_password if db_password else generate_password(10)
+                    DB_PASSWORD = db_password if db_password else generate_password(
+                        10)
                     DB_USER = db_user if db_user else app_name
                     DB_DATABASE = db_name if db_name else app_name
 
-                    DATABASE_URI = generate_db_uri(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
+                    DATABASE_URI = generate_db_uri(
+                        DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE)
 
                     db_env = [
-                        client.V1EnvVar(name='POSTGRES_PASSWORD', value=DB_PASSWORD),
+                        client.V1EnvVar(
+                            name='POSTGRES_PASSWORD', value=DB_PASSWORD),
                         client.V1EnvVar(name='POSTGRES_USER', value=DB_USER),
                         client.V1EnvVar(name='POSTGRES_DB', value=DB_DATABASE)
                     ]
@@ -619,7 +642,8 @@ class ProjectAppsView(Resource):
 
                 db_service_spec = client.V1ServiceSpec(
                     type='NodePort',
-                    ports=[client.V1ServicePort(port=db_port, target_port=db_port)],
+                    ports=[client.V1ServicePort(
+                        port=db_port, target_port=db_port)],
                     selector={'app': db_app_name}
                 )
 
@@ -638,7 +662,8 @@ class ProjectAppsView(Resource):
                 resource_registry['db_service'] = True
 
                 # get pg_service port
-                db_service_created = kube_client.kube.read_namespaced_service(name=db_app_name, namespace=namespace)
+                db_service_created = kube_client.kube.read_namespaced_service(
+                    name=db_app_name, namespace=namespace)
                 db_service_port = db_service_created.spec.ports[0].node_port
 
                 # hold here till pg is ready
@@ -651,7 +676,7 @@ class ProjectAppsView(Resource):
                 if 'gcr' in docker_server and docker_username == '_json_key':
                     docker_password = json.dumps(
                         json.loads(base64.b64decode(docker_password))
-                        )
+                    )
 
                 # create image pull secrets
                 authstring = base64.b64encode(
@@ -668,7 +693,7 @@ class ProjectAppsView(Resource):
 
                 secret_b64 = base64.b64encode(
                     json.dumps(secret_dict).encode("utf-8")
-                    )
+                )
 
                 secret_body = client.V1Secret(
                     metadata=client.V1ObjectMeta(name=app_alias),
@@ -683,7 +708,8 @@ class ProjectAppsView(Resource):
                 # update registry
                 resource_registry['image_pull_secret'] = True
 
-                image_pull_secret = client.V1LocalObjectReference(name=app_alias)
+                image_pull_secret = client.V1LocalObjectReference(
+                    name=app_alias)
 
             # create deployment
             dep_name = f'{app_alias}-deployment'
@@ -718,7 +744,7 @@ class ProjectAppsView(Resource):
                 ports=[client.V1ContainerPort(container_port=app_port)],
                 env=env,
                 command=command
-                )
+            )
 
             # spec
             template = client.V1PodTemplateSpec(
@@ -728,7 +754,7 @@ class ProjectAppsView(Resource):
                 spec=client.V1PodSpec(
                     containers=[container],
                     image_pull_secrets=[image_pull_secret]
-                    )
+                )
             )
 
             # spec of deployment
@@ -752,7 +778,7 @@ class ProjectAppsView(Resource):
                 body=deployment,
                 namespace=namespace,
                 _preload_content=False
-                )
+            )
 
             # update registry
             resource_registry['app_deployment'] = True
@@ -763,7 +789,7 @@ class ProjectAppsView(Resource):
             service_meta = client.V1ObjectMeta(
                 name=service_name,
                 labels={'app': app_alias}
-                )
+            )
 
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
@@ -798,7 +824,7 @@ class ProjectAppsView(Resource):
                 return dict(
                     status='fail',
                     message='Internal Server Error'
-                    ), 500
+                ), 500
 
             new_app_data, _ = app_schema.dump(new_app)
 
@@ -810,7 +836,7 @@ class ProjectAppsView(Resource):
                 app_alias,
                 namespace,
                 kube_client
-                )
+            )
             return dict(status='fail', message=json.loads(e.body)), 500
 
         except Exception as e:
@@ -819,7 +845,7 @@ class ProjectAppsView(Resource):
                 app_alias,
                 namespace,
                 kube_client
-                )
+            )
             return dict(status='fail', message=str(e)), 500
 
     @jwt_required
@@ -1033,24 +1059,24 @@ class AppDetailView(Resource):
             deployment = kube_client.appsv1_api.read_namespaced_deployment(
                 name=deployment_name,
                 namespace=namespace
-                )
+            )
 
             if deployment:
                 kube_client.appsv1_api.delete_namespaced_deployment(
                     name=deployment_name,
                     namespace=namespace
-                    )
+                )
 
             service = kube_client.kube.read_namespaced_service(
                 name=service_name,
                 namespace=namespace
-                )
+            )
 
             if service:
                 kube_client.kube.delete_namespaced_service(
                     name=service_name,
                     namespace=namespace
-                    )
+                )
 
             # delete the app from the database
             deleted = app.delete()
@@ -1065,3 +1091,71 @@ class AppDetailView(Resource):
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
+
+
+class AppCpuUsageView(Resource):
+    @jwt_required
+    def post(self, project_id, app_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app_memory_schema = MetricsSchema()
+        app_cpu_data = request.get_json()
+
+        validated_query_data, errors = app_memory_schema.load(app_cpu_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Check app from db
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(
+                status='fail',
+                message=f'app {app_id} not found'
+            ), 404
+
+        # Get current time
+        current_time = datetime.datetime.now()
+        yesterday = current_time + datetime.timedelta(days=-1)
+        namespace = project.alias
+        app_alias = app.alias
+        print(namespace)
+
+        prometheus = Prometheus()
+
+        start = validated_query_data.get('start', yesterday.timestamp())
+        end = validated_query_data.get('end', current_time.timestamp())
+        step = validated_query_data.get('step', '1h')
+
+        prom_data = prometheus.query_rang(
+            start=start,
+            end=end,
+            step=step,
+            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="", namespace="' +
+            namespace+'", pod=~"'+app_alias+'.*"}[5m]))'
+        )
+        #  change array values to json"values"
+        new_data = json.loads(prom_data)
+        cpu_data_list = []
+        try:
+            for value in new_data["data"]["result"][0]["values"]:
+                case = {'timestamp': value[0], 'value': value[1]}
+                cpu_data_list.append(case)
+        except:
+            return dict(status='fail', message='No values found'), 404
+
+        return dict(status='success', data=dict(values=cpu_data_list)), 200
