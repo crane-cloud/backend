@@ -1072,7 +1072,7 @@ class AppDetailView(Resource):
 class AppMemoryUsageView(Resource):
 
     @jwt_required
-    def post(self, app_id):
+    def post(self, project_id, app_id):
         """
         """
 
@@ -1095,26 +1095,30 @@ class AppMemoryUsageView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
         app = App.get_by_id(app_id)
 
         if not app:
             return dict(status='fail', message=f'App {app_id} not found'), 404
 
-        project = app.project
-
-        if not project:
-            return dict(status='fail', message='Internal server error'), 500
-
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='Unauthorised'), 403
 
         app_alias = app.alias
+        namespace = project.alias
 
         prom_memory_data = prometheus.query_rang(
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD",image!="",pod=~"'+app_alias+'.*"}[5m]))')
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"'+app_alias+'.*", namespace="'+namespace+'"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
