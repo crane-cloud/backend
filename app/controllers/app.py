@@ -1133,7 +1133,6 @@ class AppCpuUsageView(Resource):
         yesterday = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
         app_alias = app.alias
-        print(namespace)
 
         prometheus = Prometheus()
 
