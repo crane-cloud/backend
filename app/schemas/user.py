@@ -24,3 +24,4 @@ class UserSchema(Schema):
         ])
     roles = fields.Nested(RoleSchema, many=True, dump_only=True)
     verified = fields.Boolean(dump_only=True)
+    date_created = fields.Date(dump_only=True)
