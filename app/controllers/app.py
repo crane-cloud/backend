@@ -1152,7 +1152,7 @@ class AppCpuUsageView(Resource):
         cpu_data_list = []
         try:
             for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': value[0], 'value': value[1]}
+                case = {'timestamp': float(value[0]), 'value': value[1]}
                 cpu_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
