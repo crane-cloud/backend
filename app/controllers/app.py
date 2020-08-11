@@ -1122,10 +1122,12 @@ class AppMemoryUsageView(Resource):
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
-
-        for value in new_data["data"]["result"][0]["values"]:
-            mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
-            final_data_list.append(mem_case)
+        try:
+            for value in new_data["data"]["result"][0]["values"]:
+                mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
+                final_data_list.append(mem_case)
+        except:
+            return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=final_data_list)), 200
 

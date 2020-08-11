@@ -329,7 +329,7 @@ class ProjectMemoryUsageView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD",image!="",namespace="'+namespace+'"}[5m]))')
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD",namespace="'+namespace+'"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
@@ -382,7 +382,7 @@ class ProjectCPUView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD",image!="",namespace="' +
+            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD",namespace="' +
             namespace+'"}[5m]))'
         )
         #  chenge array values to json"values"
