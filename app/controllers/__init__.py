@@ -23,5 +23,5 @@ from .organisation_members import OrgMemberView
 from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView)
-from .app import AppsView, ProjectAppsView, AppDetailView, AppCpuUsageView
+from .app import AppsView, ProjectAppsView, AppDetailView, AppCpuUsageView, AppMemoryUsageView
 from .registry import RegistriesView

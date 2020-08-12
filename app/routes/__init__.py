@@ -12,7 +12,8 @@ from app.controllers import (
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppCpuUsageView
+    ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
+    AppCpuUsageView
 )
 
 api = Api()
@@ -93,6 +94,7 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
 api.add_resource(AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
+api.add_resource(AppMemoryUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
