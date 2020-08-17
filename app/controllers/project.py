@@ -442,7 +442,7 @@ class ProjectNetworkRequestView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
+            metric='sum(rate(container_network_receive_bytes_total{namespace="' +
             namespace+'"}[5m]))'
         )
         #  chenge array values to json"values"
