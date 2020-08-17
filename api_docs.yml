@@ -1826,6 +1826,46 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/projects/{project_id}/metrics/network":
+        post:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: body
+                  name: project metrics
+                  schema:
+                    properties:
+                        start:
+                            type: number
+                            format: float
+                        end:
+                            type: number
+                            format: float
+                        step:
+                            type: string
+
+            responses:
+                200:
+                    description: "Network metrics for a single Project"
+                404:
+                    description: "Project metrics not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+                
 
     "/apps":
 
