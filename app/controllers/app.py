@@ -1233,10 +1233,10 @@ class AppNetworkUsageView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
-        app_memory_schema = MetricsSchema()
+        app_network_schema = MetricsSchema()
         app_network_data = request.get_json()
 
-        validated_query_data, errors = app_memory_schema.load(app_network_data)
+        validated_query_data, errors = app_network_schema.load(app_network_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
