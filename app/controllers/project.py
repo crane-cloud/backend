@@ -400,3 +400,60 @@ class ProjectCPUView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=cpu_data_list)), 200
+
+class ProjectNetworkRequestView(Resource):
+    @jwt_required
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project_network_schema = MetricsSchema()
+        project_network_data = request.get_json()
+
+        validated_query_data, errors = project_network_schema.load(
+            project_network_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Get current time
+        current_time = datetime.datetime.now()
+        yesterday = current_time + datetime.timedelta(days=-1)
+        namespace = project.alias
+
+        prometheus = Prometheus()
+
+        start = validated_query_data.get('start', yesterday.timestamp())
+        end = validated_query_data.get('end', current_time.timestamp())
+        step = validated_query_data.get('step', '1h')
+
+        prom_data = prometheus.query_rang(
+            start=start,
+            end=end,
+            step=step,
+            metric='sum(rate(container_network_receive_bytes_total{namespace="' +
+            namespace+'"}[5m]))'
+        )
+        #  chenge array values to json"values"
+        new_data = json.loads(prom_data)
+        network_data_list = []
+
+        try:
+            for value in new_data["data"]["result"][0]["values"]:
+                case = {'timestamp': float(value[0]), 'value': float(value[1])}
+                network_data_list.append(case)
+        except:
+            return dict(status='fail', message='No values found'), 404
+
+        return dict(status='success', data=dict(values=network_data_list)), 200
