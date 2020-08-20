@@ -15,3 +15,4 @@ class Project(ModelMixin):
     cluster_id = db.Column(UUID(as_uuid=True), db.ForeignKey('clusters.id'), nullable=False)
     apps = db.relationship('App', backref='project', lazy=True)
     description = db.Column(db.String, nullable=True)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

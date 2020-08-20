@@ -1155,8 +1155,12 @@ class AppMemoryUsageView(Resource):
                 final_data_list.append(mem_case)
         except:
             return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=final_data_list)), 200
+        # Date created timestamp
+        if app.date_created:
+            date_created = app.date_created.timestamp()
+        else:
+            date_created = None
+        return dict(status='success', date_created=date_created, data=dict(values=final_data_list)), 200
 
 
 class AppCpuUsageView(Resource):
@@ -1222,8 +1226,12 @@ class AppCpuUsageView(Resource):
                 cpu_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=cpu_data_list)), 200
+        # Date created timestamp
+        if app.date_created:
+            date_created = app.date_created.timestamp()
+        else:
+            date_created = None
+        return dict(status='success', date_created=date_created, data=dict(values=cpu_data_list)), 200
 
 
 class AppNetworkUsageView(Resource):
@@ -1236,7 +1244,8 @@ class AppNetworkUsageView(Resource):
         app_network_schema = MetricsSchema()
         app_network_data = request.get_json()
 
-        validated_query_data, errors = app_network_schema.load(app_network_data)
+        validated_query_data, errors = app_network_schema.load(
+            app_network_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
@@ -1289,5 +1298,10 @@ class AppNetworkUsageView(Resource):
                 network_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
+        # Date created timestamp
+        if app.date_created:
+            date_created = app.date_created.timestamp()
+        else:
+            date_created = None
 
-        return dict(status='success', data=dict(values=network_data_list)), 200
+        return dict(status='success', date_created=date_created, data=dict(values=network_data_list)), 200

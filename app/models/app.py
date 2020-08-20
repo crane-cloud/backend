@@ -13,3 +13,4 @@ class App(ModelMixin):
     url = db.Column(db.String(256), nullable=True)
     alias = db.Column(db.String(256), nullable=True, unique=True)
     port = db.Column(db.Integer, nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

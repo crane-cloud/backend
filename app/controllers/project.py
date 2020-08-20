@@ -336,12 +336,17 @@ class ProjectMemoryUsageView(Resource):
 
         try:
             for value in new_data["data"]["result"][0]["values"]:
-                mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
+                mem_case = {'timestamp': float(
+                    value[0]), 'value': float(value[1])}
                 final_data_list.append(mem_case)
         except:
             return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=final_data_list)), 200
+        # Date created timestamp
+        if project.date_created:
+            date_created = project.date_created.timestamp()
+        else:
+            date_created = None
+        return dict(status='success', date_created=date_created, data=dict(values=final_data_list)), 200
 
 
 class ProjectCPUView(Resource):
@@ -398,8 +403,13 @@ class ProjectCPUView(Resource):
                 cpu_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
+        # Date created timestamp
+        if project.date_created:
+            date_created = project.date_created.timestamp()
+        else:
+            date_created = None
+        return dict(status='success', date_created=date_created, data=dict(values=cpu_data_list)), 200
 
-        return dict(status='success', data=dict(values=cpu_data_list)), 200
 
 class ProjectNetworkRequestView(Resource):
     @jwt_required
@@ -455,5 +465,9 @@ class ProjectNetworkRequestView(Resource):
                 network_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=network_data_list)), 200
+        # Date created timestamp
+        if project.date_created:
+            date_created = project.date_created.timestamp()
+        else:
+            date_created = None
+        return dict(status='success', date_created=date_created, data=dict(values=network_data_list)), 200
