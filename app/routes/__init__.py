@@ -13,7 +13,7 @@ from app.controllers import (
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
     ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
-    AppCpuUsageView, AppNetworkUsageView
+    AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView
 )
 
 api = Api()
@@ -86,6 +86,7 @@ api.add_resource(ProjectDetailView, '/projects/<string:project_id>')
 api.add_resource(ProjectAppsView, '/projects/<string:project_id>/apps', endpoint='project_apps')
 api.add_resource(ProjectCPUView, '/projects/<string:project_id>/metrics/cpu')
 api.add_resource(ProjectMemoryUsageView,'/projects/<string:project_id>/metrics/memory')
+api.add_resource(ProjectNetworkRequestView,'/projects/<string:project_id>/metrics/network')
 
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
