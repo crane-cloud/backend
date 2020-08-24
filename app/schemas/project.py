@@ -18,3 +18,5 @@ class ProjectSchema(Schema):
         "required": "cluster_id is required"
     })
     description = fields.String()
+    date_created = fields.Date(dump_only=True)
+

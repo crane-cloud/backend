@@ -42,3 +42,4 @@ class AppSchema(Schema):
     db_name = fields.String()
     db_flavor = fields.String()
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
+    date_created = fields.Date(dump_only=True)
