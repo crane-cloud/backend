@@ -341,12 +341,8 @@ class ProjectMemoryUsageView(Resource):
                 final_data_list.append(mem_case)
         except:
             return dict(status='fail', message='No values found'), 404
-        # Date created timestamp
-        if project.date_created:
-            date_created = project.date_created.timestamp()
-        else:
-            date_created = None
-        return dict(status='success', date_created=date_created, data=dict(values=final_data_list)), 200
+
+        return dict(status='success', data=dict(values=final_data_list)), 200
 
 
 class ProjectCPUView(Resource):
@@ -403,12 +399,8 @@ class ProjectCPUView(Resource):
                 cpu_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
-        # Date created timestamp
-        if project.date_created:
-            date_created = project.date_created.timestamp()
-        else:
-            date_created = None
-        return dict(status='success', date_created=date_created, data=dict(values=cpu_data_list)), 200
+
+        return dict(status='success', data=dict(values=cpu_data_list)), 200
 
 
 class ProjectNetworkRequestView(Resource):
@@ -455,7 +447,7 @@ class ProjectNetworkRequestView(Resource):
             metric='sum(rate(container_network_receive_bytes_total{namespace="' +
             namespace+'"}[5m]))'
         )
-        #  chenge array values to json"values"
+        #  change array values to json"values"
         new_data = json.loads(prom_data)
         network_data_list = []
 
@@ -465,9 +457,5 @@ class ProjectNetworkRequestView(Resource):
                 network_data_list.append(case)
         except:
             return dict(status='fail', message='No values found'), 404
-        # Date created timestamp
-        if project.date_created:
-            date_created = project.date_created.timestamp()
-        else:
-            date_created = None
-        return dict(status='success', date_created=date_created, data=dict(values=network_data_list)), 200
+
+        return dict(status='success', data=dict(values=network_data_list)), 200

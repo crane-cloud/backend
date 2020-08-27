@@ -11,3 +11,4 @@ class RegistrySchema(Schema):
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
         ])
+    date_created = fields.Date(dump_only=True)
