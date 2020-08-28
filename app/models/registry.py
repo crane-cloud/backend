@@ -11,3 +11,5 @@ class Registry(ModelMixin):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String, nullable=False, unique=True)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+

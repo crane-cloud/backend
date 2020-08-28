@@ -19,3 +19,4 @@ class Cluster(ModelMixin):
     token = db.Column(EncryptedType(db.String, secret), nullable=False)
     description = db.Column(db.String, nullable=False)
     projects = db.relationship('Project', backref='cluster', lazy=True)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

@@ -336,7 +336,8 @@ class ProjectMemoryUsageView(Resource):
 
         try:
             for value in new_data["data"]["result"][0]["values"]:
-                mem_case = {'timestamp': float(value[0]), 'value': float(value[1])}
+                mem_case = {'timestamp': float(
+                    value[0]), 'value': float(value[1])}
                 final_data_list.append(mem_case)
         except:
             return dict(status='fail', message='No values found'), 404
@@ -401,6 +402,7 @@ class ProjectCPUView(Resource):
 
         return dict(status='success', data=dict(values=cpu_data_list)), 200
 
+
 class ProjectNetworkRequestView(Resource):
     @jwt_required
     def post(self, project_id):
@@ -445,7 +447,7 @@ class ProjectNetworkRequestView(Resource):
             metric='sum(rate(container_network_receive_bytes_total{namespace="' +
             namespace+'"}[5m]))'
         )
-        #  chenge array values to json"values"
+        #  change array values to json"values"
         new_data = json.loads(prom_data)
         network_data_list = []
 

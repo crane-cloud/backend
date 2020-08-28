@@ -1236,7 +1236,8 @@ class AppNetworkUsageView(Resource):
         app_network_schema = MetricsSchema()
         app_network_data = request.get_json()
 
-        validated_query_data, errors = app_network_schema.load(app_network_data)
+        validated_query_data, errors = app_network_schema.load(
+            app_network_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
