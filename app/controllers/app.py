@@ -34,7 +34,8 @@ class AppsView(Resource):
             'db_service': False,
             'image_pull_secret': False,
             'app_deployment': False,
-            'app_service': False
+            'app_service': False,
+            'ingress_entry': False
         }
 
         app_schema = AppSchema()
@@ -372,9 +373,11 @@ class AppsView(Resource):
                 labels={'app': app_alias}
             )
 
+            service_port = client.V1ServicePort(port=3000, target_port=app_port)
+
             service_spec = client.V1ServiceSpec(
                 type='NodePort',
-                ports=[client.V1ServicePort(port=3000, target_port=app_port)],
+                ports=[service_port],
                 selector={'app': app_alias}
             )
 
@@ -391,11 +394,72 @@ class AppsView(Resource):
             # update resource registry
             resource_registry['app_service'] = True
 
+            # subdomain for the app
+            sub_domain = f'{app_alias}.cranecloud.io'
+
+            # create new ingress rule for the application
+            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
+                service_name=service_name,
+                service_port=3000
+                )
+
+            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                host=sub_domain,
+                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                        path="/*",
+                        backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+            ingress_name = f'{project.alias}-ingress'
+
+            # Check if there is an ingress resource in the namespace, create if not
+
+            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            if not ingress_list:
+
+                ingress_meta = client.V1ObjectMeta(
+                    name=ingress_name
+                )
+
+                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                    # backend=ingress_backend,
+                    rules=[new_ingress_rule]
+                )
+
+                ingress_body = client.ExtensionsV1beta1Ingress(
+                    metadata=ingress_meta,
+                    spec=ingress_spec
+                )
+
+                kube_client.extension_api.create_namespaced_ingress(
+                    namespace=namespace,
+                    body=ingress_body
+                )
+
+                # update registry
+                resource_registry['ingress_entry'] = True
+            else:
+                # Update ingress with new entry
+                ingress = ingress_list[0]
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.extension_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
+
             service = kube_client.kube.read_namespaced_service(
                 name=service_name, namespace=namespace)
             service_port = service.spec.ports[0].node_port
 
-            service_url = f'http://{service_host}:{service_port}'
+            service_url = f'http://{sub_domain}:{service_port}'
 
             new_app.url = service_url
 
@@ -439,7 +503,8 @@ class ProjectAppsView(Resource):
             'db_service': False,
             'image_pull_secret': False,
             'app_deployment': False,
-            'app_service': False
+            'app_service': False,
+            'ingress_entry': False
         }
 
         current_user_id = get_jwt_identity()
@@ -812,11 +877,72 @@ class ProjectAppsView(Resource):
             # update resource registry
             resource_registry['app_service'] = True
 
+            # subdomain for the app
+            sub_domain = f'{app_alias}.cranecloud.io'
+
+            # create new ingres rule for the application
+            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
+                service_name=service_name,
+                service_port=3000
+                )
+
+            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                host=sub_domain,
+                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                        path="/*",
+                        backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+            ingress_name = f'{project.alias}-ingress'
+
+            # Check if there is an ingress resource in the namespace, create if not
+
+            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            if not ingress_list:
+
+                ingress_meta = client.V1ObjectMeta(
+                    name=ingress_name
+                )
+
+                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                    # backend=ingress_backend,
+                    rules=[new_ingress_rule]
+                )
+
+                ingress_body = client.ExtensionsV1beta1Ingress(
+                    metadata=ingress_meta,
+                    spec=ingress_spec
+                )
+
+                kube_client.extension_api.create_namespaced_ingress(
+                    namespace=namespace,
+                    body=ingress_body
+                )
+
+                # update registry
+                resource_registry['ingress_entry'] = True
+            else:
+                # Update ingress with new entry
+                ingress = ingress_list[0]
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.extension_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
+
             service = kube_client.kube.read_namespaced_service(
                 name=service_name, namespace=namespace)
             service_port = service.spec.ports[0].node_port
 
-            service_url = f'http://{service_host}:{service_port}'
+            service_url = f'http://{sub_domain}:{service_port}'
 
             new_app.url = service_url
 

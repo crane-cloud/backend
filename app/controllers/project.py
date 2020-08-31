@@ -73,6 +73,40 @@ class ProjectsView(Resource):
                 ))
             # create project in database
             if cluster_namespace:
+
+                ingress_name = f"{validated_project_data['alias']}-ingress"
+
+                ingress_meta = client.V1ObjectMeta(
+                    name=ingress_name
+                )
+
+                ingress_default_rule = client.ExtensionsV1beta1IngressRule(
+                    host="traefik-ui.cranecloud.io",
+                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                            path="/*",
+                            backend=client.ExtensionsV1beta1IngressBackend(
+                                service_name="traefik-web-ui-ext",
+                                service_port=80
+                            )
+                        )]
+                    )
+                )
+
+                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                    rules=[ingress_default_rule]
+                )
+
+                ingress_body = client.ExtensionsV1beta1Ingress(
+                    metadata=ingress_meta,
+                    spec=ingress_spec
+                )
+
+                kube_client.extension_api.create_namespaced_ingress(
+                    namespace=namespace_name,
+                    body=ingress_body
+                )
+
                 project = Project(**validated_project_data)
 
                 saved = project.save()
@@ -89,7 +123,7 @@ class ProjectsView(Resource):
             return dict(status='success', data=dict(project=new_project_data)), 201
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.body), e.status
 
         except Exception as err:
             return dict(status='fail', message=str(err)), 500

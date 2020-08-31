@@ -50,3 +50,5 @@ def resource_clean_up(registry, app_alias, namespace, kube_client):
             )
         except Exception:
             pass
+
+    # To do: Add clean up for ingress_entry
