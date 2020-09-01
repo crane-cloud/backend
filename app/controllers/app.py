@@ -1292,3 +1292,67 @@ class AppNetworkUsageView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=network_data_list)), 200
+
+
+class AppLogsView(Resource):
+    @jwt_required
+    def get(self, project_id, app_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app_network_data = request.get_json()
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Check app from db
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(
+                status='fail',
+                message=f'app {app_id} not found'
+            ), 404
+
+        namespace = project.alias
+        deployment = app.alias
+        kube_client = create_kube_clients()
+        limit = 5000
+
+        ''' Get Replicas sets'''
+        replicas = kube_client.appsv1_api.list_namespaced_replica_set(
+            namespace).to_dict()
+        replicasList = []
+        for replica in replicas['items']:
+            name = replica['metadata']['name']
+            if name.startswith(deployment):
+                replicasList.append(name)
+
+        ''' get pods list'''
+        pods = kube_client.kube.list_namespaced_pod(namespace)
+        podsList = []
+        for item in pods.items:
+            item = kube_client.api_client.sanitize_for_serialization(item)
+            pod_name = item['metadata']['name']
+            for replica in replicasList:
+                if pod_name.startswith(replica):
+                    podsList.append(pod_name)
+
+        ''' Get pods logs '''
+        pods_logs = []
+
+        for pod in podsList:
+            podLogs = kube_client.kube.read_namespaced_pod_log(
+                pod, namespace, pretty=False, limit_bytes=limit or 5000, timestamps=False)
+            pods_logs.append(podLogs)
+
+        return dict(status='success', data=dict(pods_logs=pods_logs)), 200
