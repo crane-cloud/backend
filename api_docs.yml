@@ -2074,7 +2074,7 @@ paths:
                     description: "Internal Server Error"
                     
     "/projects/{project_id}/apps/{app_id}/logs":
-        get:
+        post:
             tags:
                 - apps
             consumes:
@@ -2094,6 +2094,16 @@ paths:
                   name: app_id
                   required: true
                   type: string
+                - in: body
+                  name: logs_specs
+                  schema:
+                    properties:
+                        tail_lines:
+                            type: integer
+                        timestamps:
+                            type: boolean
+                        since_seconds:
+                            type: integer
 
             responses:
                 200:
