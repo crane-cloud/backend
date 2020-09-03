@@ -1338,7 +1338,7 @@ class AppLogsView(Resource):
         kube_client = create_kube_clients(kube_host, kube_token)
 
         namespace = project.alias
-        deployment = f'{app.alias}-deployment'
+        deployment = app.alias
 
         tail_lines = validated_query_data.get('tail_lines', 100)
         since_seconds = validated_query_data.get('since_seconds', 86400)
@@ -1414,5 +1414,5 @@ class AppLogsView(Resource):
 
         if pods_logs == []:
             return dict(status='fail', data=dict(message='No logs found')), 404
-        
+
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
