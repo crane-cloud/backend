@@ -10,7 +10,7 @@ from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import create_kube_clients
-from app.schemas import AppSchema, MetricsSchema
+from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
@@ -1390,3 +1390,127 @@ class AppNetworkUsageView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=network_data_list)), 200
+
+
+class AppLogsView(Resource):
+    @jwt_required
+    def post(self, project_id, app_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        logs_schema = PodsLogsSchema()
+        logs_data = request.get_json()
+
+        validated_query_data, errors = logs_schema.load(logs_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Check app from db
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(
+                status='fail',
+                message=f'app {app_id} not found'
+            ), 404
+
+        cluster = project.cluster
+        if not cluster:
+            return dict(status='fail', message="Invalid Cluster"), 500
+
+        kube_host = cluster.host
+        kube_token = cluster.token
+        kube_client = create_kube_clients(kube_host, kube_token)
+
+        namespace = project.alias
+        deployment = app.alias
+
+        tail_lines = validated_query_data.get('tail_lines', 100)
+        since_seconds = validated_query_data.get('since_seconds', 86400)
+        timestamps = validated_query_data.get('timestamps', False)
+
+        ''' Get Replicas sets'''
+        replicas = kube_client.appsv1_api.list_namespaced_replica_set(
+            namespace).to_dict()
+        replicasList = []
+        for replica in replicas['items']:
+            name = replica['metadata']['name']
+            if name.startswith(deployment):
+                replicasList.append(name)
+
+        ''' get pods list'''
+        pods = kube_client.kube.list_namespaced_pod(namespace)
+        podsList = []
+        failed_pods = []
+        for item in pods.items:
+            item = kube_client.api_client.sanitize_for_serialization(item)
+            pod_name = item['metadata']['name']
+
+            try:
+                status = item['status']['conditions'][1]['status']
+            except:
+                continue
+
+            for replica in replicasList:
+                if pod_name.startswith(replica):
+                    if status == 'True':
+                        podsList.append(pod_name)
+                    else:
+                        failed_pods.append(pod_name)
+                    continue
+
+            if pod_name.startswith(deployment):
+                if status == 'True':
+                    podsList.append(pod_name)
+                else:
+                    state = item['status']['containerStatuses'][0]['state']
+                    failed_pods.append(state)
+
+        ''' Get pods logs '''
+        pods_logs = []
+
+        for pod in podsList:
+            podLogs = kube_client.kube.read_namespaced_pod_log(
+                pod, namespace, pretty=True, tail_lines=tail_lines or 100,
+                timestamps=timestamps or False,
+                since_seconds=since_seconds or 86400
+            )
+
+            if podLogs == '':
+                podLogs = kube_client.kube.read_namespaced_pod_log(
+                    pod, namespace, pretty=True, tail_lines=tail_lines or 100,
+                    timestamps=timestamps or False
+                )
+            pods_logs.append(podLogs)
+
+        # Get failed pods infor
+        for state in failed_pods:
+            waiting = state.get('waiting')
+            if waiting:
+                try:
+                    stop = state['waiting']['message'].index('container')
+                    message = state['waiting']['message'][:stop]
+                except:
+                    message = state['waiting']['message']
+
+                reason = state['waiting']['reason']
+                pod_infor = f'type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{reason}\t{message}'
+                pods_logs.append(pod_infor)
+
+        if pods_logs == []:
+            return dict(status='fail', data=dict(message='No logs found')), 404
+
+        return dict(status='success', data=dict(pods_logs=pods_logs)), 200

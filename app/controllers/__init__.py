@@ -23,6 +23,6 @@ from .organisation_members import OrgMemberView
 from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView)
-from .app import (AppsView, ProjectAppsView, AppDetailView,
+from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView)
 from .registry import RegistriesView

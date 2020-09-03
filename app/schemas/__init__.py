@@ -11,3 +11,4 @@ from .project import ProjectSchema
 from .app import AppSchema
 from .registry import RegistrySchema
 from .monitoring_metrics import MetricsSchema
+from .pod_logs import PodsLogsSchema
