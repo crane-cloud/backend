@@ -1640,3 +1640,44 @@ class AppLogsView(Resource):
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
+
+
+class AppStorageUsageView(Resource):
+    @jwt_required
+    def post(self, project_id, app_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        # Check app from db
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(
+                status='fail',
+                message=f'app {app_id} not found'
+            ), 404
+
+        namespace = project.alias
+        app_alias = app.alias
+
+        prometheus = Prometheus()
+
+        prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+            namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+        )
+        #  change array values to json 
+        new_data = json.loads(prom_data)
+
+        return dict(status='success', data=dict(storage_capacity=new_data)), 200

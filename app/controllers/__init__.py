@@ -24,5 +24,5 @@ from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
-                  AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView)
+                  AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView)
 from .registry import RegistriesView
