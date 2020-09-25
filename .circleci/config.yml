@@ -46,7 +46,7 @@ configure_gcloud: &configure_gcloud
     command: |
       echo $GCLOUD_SERVICE_KEY > ~/crane-cloud/auth_key.json
       gcloud auth activate-service-account --key-file ~/crane-cloud/auth_key.json
-      gcloud container clusters get-credentials staging-cluster --zone us-central1-a --project $GCP_PROJECT_ID
+      gcloud container clusters get-credentials $cluster --zone us-central1-a --project $GCP_PROJECT_ID
 
 deploy_to_kubernetes: &deploy_to_kubernetes
   run:
@@ -90,6 +90,26 @@ jobs:
       - image: google/cloud-sdk
         environment:
           GOOGLE_APPLICATION_CREDENTIALS: /root/crane-cloud/auth_key.json
+          cluster: staging-cluster
+    working_directory: ~/crane-cloud
+    steps:
+      - *attach_workspace
+      - setup_remote_docker
+      - run:
+          name: install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+            chmod u+x ./kubectl
+      - *configure_gcloud
+      - *build_and_push_image
+      - *deploy_to_kubernetes
+
+  build_and_deploy_production:
+    docker:
+      - image: google/cloud-sdk
+        environment:
+          GOOGLE_APPLICATION_CREDENTIALS: /root/crane-cloud/auth_key.json
+          cluster: production-cluster
     working_directory: ~/crane-cloud
     steps:
       - *attach_workspace
@@ -114,4 +134,10 @@ workflows:
           filters:
             branches:
               only: develop-new
+      - build_and_deploy_production:
+          requires:
+            - test_and_report
+          filters:
+            branches:
+              only: master
 
