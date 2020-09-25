@@ -522,5 +522,6 @@ class ProjectStorageUsageView(Resource):
         )
         #  change array values to json 
         new_data = json.loads(prom_data)
+        values = new_data["data"]
 
-        return dict(status='success', data=dict(storage_capacity=new_data)), 200
+        return dict(status='success', data=dict(storage_capacity=values)), 200
