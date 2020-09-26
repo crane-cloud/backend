@@ -24,8 +24,12 @@ spec:
           env:
             - name: DATABASE_URI
               value: $DATABASE_URI
+            - name: FLASK_APP
+              value: $FLASK_APP
             - name: FLASK_APP_SECRET
               value: $FLASK_APP_SECRET
+            - name: FLASK_ENV
+              value: $FLASK_ENV
             - name: FLASK_APP_SALT
               value: $FLASK_APP_SALT
             - name: KUBE_HOST
@@ -50,6 +54,8 @@ spec:
               value: $HARBOR_USERNAME
             - name: HARBOR_PASSWORD
               value: $HARBOR_PASSWORD
+            - name: CLIENT_BASE_URL
+              value: $CLIENT_BASE_URL
 
 ---
 
