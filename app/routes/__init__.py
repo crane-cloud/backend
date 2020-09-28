@@ -13,7 +13,7 @@ from app.controllers import (
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
     ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
-    AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView
+    AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView
 )
 
 api = Api()
@@ -98,6 +98,7 @@ api.add_resource(AppCpuUsageView, '/projects/<string:project_id>/apps/<string:ap
 api.add_resource(AppMemoryUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
 api.add_resource(AppNetworkUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/network')
 api.add_resource(AppLogsView, '/projects/<string:project_id>/apps/<string:app_id>/logs')
+api.add_resource(AppStorageUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/storage')
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
