@@ -424,7 +424,7 @@ class AppsView(Resource):
             service_port = client.V1ServicePort(port=3000, target_port=app_port)
 
             service_spec = client.V1ServiceSpec(
-                type='NodePort',
+                type='ClusterIP',
                 ports=[service_port],
                 selector={'app': app_alias}
             )
@@ -455,7 +455,7 @@ class AppsView(Resource):
                 host=sub_domain,
                 http=client.ExtensionsV1beta1HTTPIngressRuleValue(
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
-                        path="/*",
+                        path="",
                         backend=new_ingress_backend
                         )]
                     )
@@ -503,11 +503,7 @@ class AppsView(Resource):
                     body=ingress
                 )
 
-            service = kube_client.kube.read_namespaced_service(
-                name=service_name, namespace=namespace)
-            service_port = service.spec.ports[0].node_port
-
-            service_url = f'http://{sub_domain}:{service_port}'
+            service_url = f'http://{sub_domain}'
 
             new_app.url = service_url
 
@@ -957,7 +953,7 @@ class ProjectAppsView(Resource):
             )
 
             service_spec = client.V1ServiceSpec(
-                type='NodePort',
+                type='ClusterIP',
                 ports=[client.V1ServicePort(port=3000, target_port=app_port)],
                 selector={'app': app_alias}
             )
@@ -988,7 +984,7 @@ class ProjectAppsView(Resource):
                 host=sub_domain,
                 http=client.ExtensionsV1beta1HTTPIngressRuleValue(
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
-                        path="/*",
+                        path="",
                         backend=new_ingress_backend
                         )]
                     )
@@ -1036,11 +1032,7 @@ class ProjectAppsView(Resource):
                     body=ingress
                 )
 
-            service = kube_client.kube.read_namespaced_service(
-                name=service_name, namespace=namespace)
-            service_port = service.spec.ports[0].node_port
-
-            service_url = f'http://{sub_domain}:{service_port}'
+            service_url = f'http://{sub_domain}'
 
             new_app.url = service_url
 
