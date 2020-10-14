@@ -1666,11 +1666,22 @@ class AppStorageUsageView(Resource):
 
         prometheus = Prometheus()
 
-        prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-            namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-        )
-        #  change array values to json 
-        new_data = json.loads(prom_data)
-        values = new_data["data"]
+        try:
+            prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+            )
+            #  change array values to json 
+            new_data = json.loads(prom_data)
+            values = new_data["data"]
 
-        return dict(status='success', data=dict(storage_capacity=values)), 200
+            percentage_data = prometheus.query( metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+            )
+
+            data = json.loads(percentage_data)
+            volume_perc_value = data["data"]
+        except:
+            return dict(status='fail', message='No values found'), 404
+
+        return dict(status='success', data=dict(storage_capacity=values,storage_percentage_usage=volume_perc_value)), 200
