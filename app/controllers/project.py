@@ -493,3 +493,46 @@ class ProjectNetworkRequestView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(values=network_data_list)), 200
+
+
+class ProjectStorageUsageView(Resource):
+    @jwt_required
+    def post(self, project_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        namespace = project.alias
+
+        prometheus = Prometheus()
+
+        try:
+            prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                namespace+'"})'
+            )
+            #  change array values to json 
+            new_data = json.loads(prom_data)
+            values = new_data["data"]
+
+            percentage_data = prometheus.query( metric='sum(100*(kubelet_volume_stats_used_bytes{namespace="' +
+                namespace+'"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                namespace+'"}))'
+            )
+
+            data = json.loads(percentage_data)
+            volume_perc_value = data["data"]
+        except:
+            return dict(status='fail', message='No values found'), 404
+
+        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200

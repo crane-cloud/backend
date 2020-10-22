@@ -1865,6 +1865,35 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+
+    "/projects/{project_id}/metrics/storage":
+        post:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                
+
+            responses:
+                200:
+                    description: "Storage metrics for a single Project"
+                404:
+                    description: "Project metrics not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
                 
 
     "/apps":
@@ -2115,6 +2144,40 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+                    
+    "/projects/{project_id}/apps/{app_id}/metrics/storage":
+        post:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: app_id
+                  required: true
+                  type: string
+                
+
+            responses:
+                200:
+                    description: "Storage metrics for an App"
+                404:
+                    description: "metrics not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+                
 
 components:
   securitySchemes:
