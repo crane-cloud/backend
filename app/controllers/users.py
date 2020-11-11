@@ -25,7 +25,7 @@ class UsersView(Resource):
         email = validated_user_data.get('email', None)
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
-            f'http://{request.host}/users'
+            f'https://{request.host}/users'
             )
 
         # To do change to a frontend url
@@ -372,7 +372,7 @@ class EmailVerificationRequest(Resource):
         email = validated_data.get('email', None)
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
-            f'http://{request.host}/users'
+            f'https://{request.host}/users'
             )
 
         # To do, change to a frontend url
@@ -427,7 +427,7 @@ class ForgotPasswordView(Resource):
         email = validated_data.get('email', None)
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
-            f'http://{request.host}/users'
+            f'https://{request.host}/users'
             )
 
         verification_url = f"{client_base_url}/reset_password/"
