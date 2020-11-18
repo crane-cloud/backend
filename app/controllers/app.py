@@ -151,10 +151,10 @@ class AppsView(Resource):
                     spec=pvc_spec
                 )
 
-                # kube_client.kube.create_namespaced_persistent_volume_claim(
-                #     namespace=namespace,
-                #     body=db_pvc
-                # )
+                kube_client.kube.create_namespaced_persistent_volume_claim(
+                    namespace=namespace,
+                    body=db_pvc
+                )
 
                 db_app_name = f'{app_alias}-{db_flavor}-db'
 
@@ -201,16 +201,16 @@ class AppsView(Resource):
                     env=db_env
                 )
                 
-                # db_volumes = client.V1Volume(
-                #     name=db_app_name,
-                #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-                # )
+                db_volumes = client.V1Volume(
+                    name=db_app_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+                )
 
                 db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[db_container], volumes=[])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
 
                 )
 
@@ -332,10 +332,10 @@ class AppsView(Resource):
                 spec=pvc_spec
             )
 
-            # kube_client.kube.create_namespaced_persistent_volume_claim(
-            #     namespace=namespace,
-            #     body=pvc
-            # )
+            kube_client.kube.create_namespaced_persistent_volume_claim(
+                namespace=namespace,
+                body=pvc
+            )
 
             # create deployment
             dep_name = f'{app_alias}-deployment'
@@ -372,10 +372,10 @@ class AppsView(Resource):
                 command=command
             )
 
-            # volumes = client.V1Volume(
-            #     name=dep_name,
-            #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-            # )
+            volumes = client.V1Volume(
+                name=dep_name,
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+            )
             # spec
             template = client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={
@@ -384,7 +384,7 @@ class AppsView(Resource):
                 spec=client.V1PodSpec(
                     containers=[container],
                     image_pull_secrets=[image_pull_secret],
-                    volumes=[]
+                    volumes=[volumes]
                 )
             )
 
@@ -672,10 +672,10 @@ class ProjectAppsView(Resource):
                     spec=pvc_spec
                 )
 
-                # kube_client.kube.create_namespaced_persistent_volume_claim(
-                #     namespace=namespace,
-                #     body=db_pvc
-                # )
+                kube_client.kube.create_namespaced_persistent_volume_claim(
+                    namespace=namespace,
+                    body=db_pvc
+                )
 
                 db_app_name = f'{app_alias}-{db_flavor}-db'
 
@@ -727,16 +727,16 @@ class ProjectAppsView(Resource):
                     env=db_env
                 )
 
-                # db_volumes = client.V1Volume(
-                #     name=db_app_name,
-                #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-                # )
+                db_volumes = client.V1Volume(
+                    name=db_app_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+                )
 
                 db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[db_container], volumes=[])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
                 )
 
                 db_spec = client.V1DeploymentSpec(
@@ -859,10 +859,10 @@ class ProjectAppsView(Resource):
                 spec=pvc_spec
             )
 
-            # kube_client.kube.create_namespaced_persistent_volume_claim(
-            #     namespace=namespace,
-            #     body=pvc
-            # )
+            kube_client.kube.create_namespaced_persistent_volume_claim(
+                namespace=namespace,
+                body=pvc
+            )
 
 
             # create deployment
@@ -901,10 +901,10 @@ class ProjectAppsView(Resource):
             )
 
             #pod volumes 
-            # volumes = client.V1Volume(
-            #     name=dep_name,
-            #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-            # )
+            volumes = client.V1Volume(
+                name=dep_name,
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+            )
 
             # spec
             template = client.V1PodTemplateSpec(
@@ -914,7 +914,7 @@ class ProjectAppsView(Resource):
                 spec=client.V1PodSpec(
                     containers=[container],
                     image_pull_secrets=[image_pull_secret],
-                    volumes=[]
+                    volumes=[volumes]
                 )
             )
 
