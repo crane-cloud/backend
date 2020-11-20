@@ -20,6 +20,7 @@ from app.models.clusters import Cluster
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.db_flavor import db_flavors
 from app.helpers.prometheus import prometheus
+from app.helpers.url import get_app_subdomain
 
 
 class AppsView(Resource):
@@ -443,7 +444,8 @@ class AppsView(Resource):
             resource_registry['app_service'] = True
 
             # subdomain for the app
-            sub_domain = f'{app_alias}.cranecloud.io'
+            # sub_domain = f'{app_alias}.cranecloud.io'
+            sub_domain = get_app_subdomain(app_alias)
 
             # create new ingress rule for the application
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
@@ -972,7 +974,8 @@ class ProjectAppsView(Resource):
             resource_registry['app_service'] = True
 
             # subdomain for the app
-            sub_domain = f'{app_alias}.cranecloud.io'
+            # sub_domain = f'{app_alias}.cranecloud.io'
+            sub_domain = get_app_subdomain(app_alias)
 
             # create new ingres rule for the application
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
