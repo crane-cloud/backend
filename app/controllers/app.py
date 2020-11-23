@@ -144,10 +144,10 @@ class AppsView(Resource):
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
                     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-                # Create a PVC
+                # Create a PVC 
                 db_pvc = client.V1PersistentVolumeClaim(
                     api_version="v1",
-                    kind="PersistentVolumeClaim",
+                    kind="PersistentVolumeClaim", 
                     metadata=pvc_meta,
                     spec=pvc_spec
                 )
@@ -201,19 +201,17 @@ class AppsView(Resource):
                     ports=[client.V1ContainerPort(container_port=db_port)],
                     env=db_env
                 )
-
+                
                 db_volumes = client.V1Volume(
                     name=db_app_name,
-                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                        claim_name=pvc_name)
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
                 )
 
                 db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(
-                        containers=[db_container], volumes=[db_volumes])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
 
                 )
 
@@ -327,10 +325,10 @@ class AppsView(Resource):
             pvc_spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-            # Create a PVC
+            # Create a PVC 
             pvc = client.V1PersistentVolumeClaim(
                 api_version="v1",
-                kind="PersistentVolumeClaim",
+                kind="PersistentVolumeClaim", 
                 metadata=pvc_meta,
                 spec=pvc_spec
             )
@@ -377,8 +375,7 @@ class AppsView(Resource):
 
             volumes = client.V1Volume(
                 name=dep_name,
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                    claim_name=pvc_name)
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
             )
             # spec
             template = client.V1PodTemplateSpec(
@@ -425,8 +422,7 @@ class AppsView(Resource):
                 labels={'app': app_alias}
             )
 
-            service_port = client.V1ServicePort(
-                port=3000, target_port=app_port)
+            service_port = client.V1ServicePort(port=3000, target_port=app_port)
 
             service_spec = client.V1ServiceSpec(
                 type='ClusterIP',
@@ -455,7 +451,7 @@ class AppsView(Resource):
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
                 service_name=service_name,
                 service_port=3000
-            )
+                )
 
             new_ingress_rule = client.ExtensionsV1beta1IngressRule(
                 host=sub_domain,
@@ -463,9 +459,9 @@ class AppsView(Resource):
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
                         path="",
                         backend=new_ingress_backend
-                    )]
+                        )]
+                    )
                 )
-            )
 
             ingress_name = f'{project.alias}-ingress'
 
@@ -670,10 +666,10 @@ class ProjectAppsView(Resource):
                 pvc_spec = client.V1PersistentVolumeClaimSpec(
                     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-                # Create a PVC
+                # Create a PVC 
                 db_pvc = client.V1PersistentVolumeClaim(
                     api_version="v1",
-                    kind="PersistentVolumeClaim",
+                    kind="PersistentVolumeClaim", 
                     metadata=pvc_meta,
                     spec=pvc_spec
                 )
@@ -735,16 +731,14 @@ class ProjectAppsView(Resource):
 
                 db_volumes = client.V1Volume(
                     name=db_app_name,
-                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                        claim_name=pvc_name)
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
                 )
 
                 db_template = client.V1PodTemplateSpec(
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(
-                        containers=[db_container], volumes=[db_volumes])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
                 )
 
                 db_spec = client.V1DeploymentSpec(
@@ -859,10 +853,10 @@ class ProjectAppsView(Resource):
             pvc_spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-            # Create a PVC
+            # Create a PVC 
             pvc = client.V1PersistentVolumeClaim(
                 api_version="v1",
-                kind="PersistentVolumeClaim",
+                kind="PersistentVolumeClaim", 
                 metadata=pvc_meta,
                 spec=pvc_spec
             )
@@ -871,6 +865,7 @@ class ProjectAppsView(Resource):
                 namespace=namespace,
                 body=pvc
             )
+
 
             # create deployment
             dep_name = f'{app_alias}-deployment'
@@ -907,11 +902,10 @@ class ProjectAppsView(Resource):
                 command=command
             )
 
-            # pod volumes
+            #pod volumes 
             volumes = client.V1Volume(
                 name=dep_name,
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                    claim_name=pvc_name)
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
             )
 
             # spec
@@ -987,7 +981,7 @@ class ProjectAppsView(Resource):
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
                 service_name=service_name,
                 service_port=3000
-            )
+                )
 
             new_ingress_rule = client.ExtensionsV1beta1IngressRule(
                 host=sub_domain,
@@ -995,9 +989,9 @@ class ProjectAppsView(Resource):
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
                         path="",
                         backend=new_ingress_backend
-                    )]
+                        )]
+                    )
                 )
-            )
 
             ingress_name = f'{project.alias}-ingress'
 
@@ -1676,21 +1670,21 @@ class AppStorageUsageView(Resource):
         prometheus = Prometheus()
 
         try:
-            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                                         namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-                                         )
-            #  change array values to json
+            prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+            )
+            #  change array values to json 
             new_data = json.loads(prom_data)
             values = new_data["data"]
 
-            percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-                                               )
+            percentage_data = prometheus.query( metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+            )
 
             data = json.loads(percentage_data)
             volume_perc_value = data["data"]
         except:
             return dict(status='fail', message='No values found'), 404
 
-        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+        return dict(status='success', data=dict(storage_capacity=values,storage_percentage_usage=volume_perc_value)), 200
