@@ -1631,7 +1631,7 @@ class AppLogsView(Resource):
                 pod_infor = f'type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{reason}\t{message}'
                 pods_logs.append(pod_infor)
 
-        if pods_logs == []:
+        if not pods_logs or not pods_logs[0]:
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
