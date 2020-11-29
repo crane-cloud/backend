@@ -30,5 +30,20 @@ services:
       - .:/app
     links:
       - database
+  celery-worker:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ckwagaba/osprey-backend:latest
+    container_name: celery-worker
+    command: celery -A server.celery worker
+    ports:
+      - "4500:5000"
+    volumes:
+      - .:/app
+    links:
+      - database
+
 volumes:
   db-data:
