@@ -211,7 +211,7 @@ class AppsView(Resource):
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[])
 
                 )
 
@@ -738,7 +738,7 @@ class ProjectAppsView(Resource):
                     metadata=client.V1ObjectMeta(labels={
                         'app': db_app_name
                     }),
-                    spec=client.V1PodSpec(containers=[db_container], volumes=[db_volumes])
+                    spec=client.V1PodSpec(containers=[db_container], volumes=[])
                 )
 
                 db_spec = client.V1DeploymentSpec(
