@@ -370,7 +370,8 @@ class AppsView(Resource):
                 image=app_image,
                 ports=[client.V1ContainerPort(container_port=app_port)],
                 env=env,
-                command=command
+                command=command,
+                volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
             )
 
             volumes = client.V1Volume(
