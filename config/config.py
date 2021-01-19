@@ -22,6 +22,11 @@ class Base:
     # mail accounts
     MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
 
+    # EXCEPTIONS 
+    PROPAGATE_EXCEPTIONS = True
+
+    
+
 
 class Development(Base):
     """ development config """
