@@ -1299,6 +1299,20 @@ class AppDetailView(Resource):
                     namespace=namespace
                 )
 
+            #delete pvc 
+            pvc_name = f'{app.alias}-pvc'
+
+            pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
+                name=pvc_name,
+                namespace=namespace
+            )
+
+            if pvc:
+                kube_client.kube.delete_namespaced_persistent_volume_claim(
+                    name=pvc_name,
+                    namespace=namespace
+                )
+
             # delete the app from the database
             deleted = app.delete()
 
