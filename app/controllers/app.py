@@ -505,7 +505,7 @@ class AppsView(Resource):
                     body=ingress
                 )
 
-            service_url = f'http://{sub_domain}'
+            service_url = f'https://{sub_domain}'
 
             new_app.url = service_url
 
@@ -1035,7 +1035,7 @@ class ProjectAppsView(Resource):
                     body=ingress
                 )
 
-            service_url = f'http://{sub_domain}'
+            service_url = f'https://{sub_domain}'
 
             new_app.url = service_url
 
