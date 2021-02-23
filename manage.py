@@ -16,6 +16,7 @@ from app.models.organisation_admins import OrganisationAdmins
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.models.app import App
+from app.models.project_database import ProjectDatabase
 # from app.models.namespaces import Namespace
 
 dotenv_path = join(dirname(__file__), '.env')
