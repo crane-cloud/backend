@@ -33,7 +33,7 @@ class DatabaseService:
             return False
 
     # Create or check user exists database
-    def create_db(self, db_name=None, user=None, password=None):
+    def create_database(self, db_name=None, user=None, password=None):
         try:
             connection = self.create_connection()
             if not connection:
@@ -95,7 +95,7 @@ class DatabaseService:
 
     # delete database
 
-    def delete_db(self, db_name):
+    def delete_database(self, db_name):
         try:
             connection = self.create_connection()
             if not connection:

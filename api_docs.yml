@@ -1895,7 +1895,89 @@ paths:
                 500:
                     description: "Internal Server Error"
                 
+    "/projects/{project_id}/databases":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: body
+                  name: project
+                  schema:
+                    required:
+                        - name
+                        - host
+                        - user
+                        - password
+                    properties:
+                        name:
+                            type: string
+                        host:
+                            type: string
+                        user:
+                            type: string
+                        password:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
+    "/databases":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: body
+                  name: project
+                  schema:
+                    required:
+                        - name
+                        - host
+                        - user
+                        - password
+                    properties:
+                        name:
+                            type: string
+                        host:
+                            type: string
+                        user:
+                            type: string
+                        password:
+                            type: string
+                        project_id:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    
     "/apps":
 
             post:

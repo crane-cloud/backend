@@ -26,3 +26,4 @@ from .project import (
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView)
 from .registry import RegistriesView
+from .project_database import (ProjectDatabaseView, ProjectDatabaseAdminView)
