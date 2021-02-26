@@ -112,7 +112,7 @@ class ProjectDatabaseDetailView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(project=json.loads(database_data))), 200
+        return dict(status='success', data=dict(database=json.loads(database_data))), 200
 
 class ProjectDatabaseAdminView(Resource):
     @admin_required
