@@ -87,6 +87,54 @@ class ProjectDatabaseView(Resource):
         ), 201
 
 
+class ProjectDatabaseDetailView(Resource):
+    
+    @jwt_required
+    def delete(self, project_id, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        # Delete the database
+        database_service = DatabaseService()
+        database_connection = database_service.create_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+
+        delete_database = database_service.delete_database(
+            database_existant.name)
+
+        if not delete_database:
+            return dict(
+                status="fail",
+                message=f"Unable to delete database"
+            ), 500
+
+        # Delete database record from database
+        deleted_database = database_existant.delete()
+
+        if not deleted_database:
+            return dict(status='fail', message=f'Internal Server Error'), 500
+
+        return dict(status='success', message="Database Successfully deleted"), 200
+
+
 class ProjectDatabaseAdminView(Resource):
     @admin_required
     def post(self):
@@ -163,3 +211,47 @@ class ProjectDatabaseAdminView(Resource):
             status='success',
             data=dict(database=json.loads(new_database_data))
         ), 201
+
+
+class ProjectDatabaseAdminDetailView(Resource):
+
+    @admin_required
+    def delete(self, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        # Delete the database
+        database_service = DatabaseService()
+        database_connection = database_service.create_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+
+        delete_database = database_service.delete_database(
+            database_existant.name)
+
+        if not delete_database:
+            return dict(
+                status="fail",
+                message=f"Unable to delete database"
+            ), 500
+
+        # Delete database record from database
+        deleted_database = database_existant.delete()
+
+        if not deleted_database:
+            return dict(status='fail', message=f'Internal Server Error'), 500
+
+        return dict(status='success', message="Database Successfully deleted"), 200
