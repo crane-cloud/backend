@@ -87,6 +87,33 @@ class ProjectDatabaseView(Resource):
         ), 201
 
 
+class ProjectDatabaseDetailView(Resource):
+
+    @jwt_required
+    def get(self, project_id, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database = ProjectDatabase.get_by_id(database_id)
+
+        if not database:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+        
+        database_data, errors = database_schema.dumps(database)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(project=json.loads(database_data))), 200
+
 class ProjectDatabaseAdminView(Resource):
     @admin_required
     def post(self):
