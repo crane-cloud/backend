@@ -1912,21 +1912,10 @@ paths:
                   type: string
                 - in: body
                   name: project
+                  type: json
                   schema:
-                    required:
-                        - name
-                        - host
-                        - user
-                        - password
-                    properties:
-                        name:
-                            type: string
-                        host:
-                            type: string
-                        user:
-                            type: string
-                        password:
-                            type: string
+                    properties: {}
+                    
             produces:
                 - application/json
             responses:
@@ -1980,22 +1969,7 @@ paths:
                 - in: body
                   name: project
                   schema:
-                    required:
-                        - name
-                        - host
-                        - user
-                        - password
-                    properties:
-                        name:
-                            type: string
-                        host:
-                            type: string
-                        user:
-                            type: string
-                        password:
-                            type: string
-                        project_id:
-                            type: string
+                    properties: {}
             produces:
                 - application/json
             responses:
