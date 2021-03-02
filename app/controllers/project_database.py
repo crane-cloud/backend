@@ -1,9 +1,10 @@
 import json
+import os
 from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
-from app.helpers.database_service import DatabaseService
+from app.helpers.database_service import DatabaseService, generate_db_credentials
 from app.models.project import Project
 from flask_jwt_extended import jwt_required
 from app.helpers.decorators import admin_required
@@ -11,7 +12,7 @@ from app.helpers.decorators import admin_required
 
 class ProjectDatabaseView(Resource):
 
-    @jwt_required
+    # @jwt_required
     def post(self, project_id):
         """
         """
@@ -19,10 +20,24 @@ class ProjectDatabaseView(Resource):
 
         databases_data = request.get_json()
 
+        credentials = generate_db_credentials()
+
         validated_database_data, errors = database_schema.load(databases_data)
 
-        database_name = validated_database_data.get('name', None)
-        database_user = validated_database_data.get('user', None)
+        database_name = validated_database_data.get('name', credentials.name)
+        database_user = validated_database_data.get('user', credentials.user)
+        database_password = validated_database_data.get(
+            'password', credentials.password)
+
+        new_database_info = dict(
+            user=database_user,
+            password=database_password,
+            project_id=project_id,
+            name=database_name,
+            host=os.getenv('ADMIN_MYSQL_HOST')
+        )
+        validated_database_data, errors = database_schema.load(
+            new_database_info)
 
         if errors:
             return dict(status="fail", message=errors), 400
@@ -62,8 +77,8 @@ class ProjectDatabaseView(Resource):
 
         create_database = database_service.create_database(
             db_name=database_name,
-            user=validated_database_data.get('user', None),
-            password=validated_database_data.get('password', None)
+            user=database_user,
+            password=database_password
         )
 
         if not create_database:
@@ -88,7 +103,7 @@ class ProjectDatabaseView(Resource):
 
 
 class ProjectDatabaseDetailView(Resource):
-    
+
     @jwt_required
     def delete(self, project_id, database_id):
         """
@@ -162,7 +177,7 @@ class ProjectDatabaseDetailView(Resource):
 
 
 class ProjectDatabaseAdminView(Resource):
-    @admin_required
+    # @admin_required
     def post(self):
         """
         """
@@ -170,19 +185,37 @@ class ProjectDatabaseAdminView(Resource):
 
         databases_data = request.get_json()
 
+        credentials = generate_db_credentials()
+
         validated_database_data, errors = database_schema.load(databases_data)
 
-        database_name = validated_database_data.get('name', None)
-        database_user = validated_database_data.get('user', None)
+        database_name = validated_database_data.get('name', credentials.name)
+        database_user = validated_database_data.get('user', credentials.user)
+        database_password = validated_database_data.get(
+            'password', credentials.password)
         project_id = validated_database_data.get('project_id', None)
 
-        if errors:
-            return dict(status="fail", message=errors), 400
+        new_database_info = dict(
+            user=database_user,
+            password=database_password,
+            project_id=project_id,
+            name=database_name,
+            host=os.getenv('ADMIN_MYSQL_HOST')
+        )
 
         if project_id:
             project = Project.get_by_id(project_id)
             if not project:
                 return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        else:
+            del new_database_info["project_id"]
+
+        validated_database_data, errors = database_schema.load(
+            new_database_info)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
 
         database_existant = ProjectDatabase.find_first(
             name=database_name)
@@ -202,7 +235,7 @@ class ProjectDatabaseAdminView(Resource):
                 message=f"Database user {database_user} Already Exists."
             ), 400
 
-        # Create the databse
+        # # Create the databse
         database_service = DatabaseService()
         database_connection = database_service.create_connection()
 
@@ -214,8 +247,8 @@ class ProjectDatabaseAdminView(Resource):
 
         create_database = database_service.create_database(
             db_name=database_name,
-            user=validated_database_data.get('user', None),
-            password=validated_database_data.get('password', None)
+            user=database_user,
+            password=database_password
         )
 
         if not create_database:

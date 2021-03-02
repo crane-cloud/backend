@@ -1,6 +1,11 @@
 
 from mysql.connector import connect, Error
 import os
+import secrets
+import string
+from types import SimpleNamespace
+
+
 
 
 class DatabaseService:
@@ -154,3 +159,17 @@ class DatabaseService:
             if (connection.is_connected()):
                 cursor.close()
                 connection.close()
+
+
+
+def generate_db_credentials():
+    name = ''.join((secrets.choice(string.ascii_letters)
+                          for i in range(24)))
+    user = ''.join((secrets.choice(string.ascii_letters)
+                          for i in range(16)))
+    password = ''.join((secrets.choice(string.ascii_letters + string.digits + string.punctuation) for i in range(32)))
+    return SimpleNamespace(
+        user = user,
+        name = name,
+        password = password
+    )

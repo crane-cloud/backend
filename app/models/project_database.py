@@ -17,12 +17,6 @@ class ProjectDatabase(ModelMixin):
         'project.id'))
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def __init__(self, **kwargs):
-        self.user = kwargs['user']
-        self.host = kwargs['host']
-        self.name = kwargs['name']
-        self.password = Bcrypt().generate_password_hash(
-            kwargs['password']).decode()
 
     def password_is_valid(self, password):
         """ checks the password against it's hash to validate the user's password """
