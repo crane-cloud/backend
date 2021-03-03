@@ -112,11 +112,9 @@ class ProjectDatabaseView(Resource):
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
-        databases = ProjectDatabase.find_all(project_id=project_id)
-        print(databases)
+        databases = ProjectDatabase.find_all(project_id=project_id)   
         
         database_data, errors = database_schema.dumps(databases)
-        print(database_data)
 
         if errors:
             return dict(status='fail', message=errors), 500
