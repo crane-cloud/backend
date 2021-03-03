@@ -102,6 +102,26 @@ class ProjectDatabaseView(Resource):
         ), 201
 
 
+    @jwt_required
+    def get(self, project_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema(many=True)
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        databases = ProjectDatabase.find_all(project_id=project_id)   
+        
+        database_data, errors = database_schema.dumps(databases)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(databases=json.loads(database_data))), 200
+
+
 class ProjectDatabaseDetailView(Resource):
 
     @jwt_required
@@ -177,7 +197,7 @@ class ProjectDatabaseDetailView(Resource):
 
 
 class ProjectDatabaseAdminView(Resource):
-    # @admin_required
+    @admin_required
     def post(self):
         """
         """
@@ -270,6 +290,22 @@ class ProjectDatabaseAdminView(Resource):
             status='success',
             data=dict(database=json.loads(new_database_data))
         ), 201
+
+
+    @admin_required
+    def get(self):
+        """
+        """
+        database_schema = ProjectDatabaseSchema(many=True)
+
+        databases = ProjectDatabase.find_all()
+        
+        database_data, errors = database_schema.dumps(databases)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(databases=json.loads(database_data))), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
