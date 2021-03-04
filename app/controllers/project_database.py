@@ -12,7 +12,7 @@ from app.helpers.decorators import admin_required
 
 class ProjectDatabaseView(Resource):
 
-    # @jwt_required
+    @jwt_required
     def post(self, project_id):
         """
         """
@@ -149,7 +149,6 @@ class ProjectDatabaseDetailView(Resource):
 
         return dict(status='success', message="Database Successfully deleted"), 200
 
-
     @jwt_required
     def get(self, project_id, database_id):
         """
@@ -167,7 +166,7 @@ class ProjectDatabaseDetailView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-        
+
         database_data, errors = database_schema.dumps(database)
 
         if errors:
@@ -177,7 +176,7 @@ class ProjectDatabaseDetailView(Resource):
 
 
 class ProjectDatabaseAdminView(Resource):
-    # @admin_required
+    @admin_required
     def post(self):
         """
         """
@@ -315,7 +314,6 @@ class ProjectDatabaseAdminDetailView(Resource):
 
         return dict(status='success', message="Database Successfully deleted"), 200
 
-
     @admin_required
     def get(self, database_id):
         """
@@ -329,10 +327,98 @@ class ProjectDatabaseAdminDetailView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-        
+
         database_data, errors = database_schema.dumps(database)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(database=json.loads(database_data))), 200
+
+
+class ProjectDatabaseResetView(Resource):
+
+    @jwt_required
+    def post(self, project_id, database_id):
+        """
+        Reset Database
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        # Reset the database
+        database_service = DatabaseService()
+        database_connection = database_service.create_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+
+        reset_database = database_service.reset_database(
+            db_name=database_existant.name,
+            user=database_existant.user,
+            password=database_existant.password
+        )
+
+        if not reset_database:
+            return dict(
+                status="fail",
+                message=f"Unable to reset database"
+            ), 500
+
+        return dict(status='success', message="Database Reset Successfully"), 200
+
+
+class ProjectDatabaseAdminResetView(Resource):
+
+    @admin_required
+    def post(self, database_id):
+        """
+        Reset Database
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        # Reset the database
+        database_service = DatabaseService()
+        database_connection = database_service.create_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+        
+        reset_database = database_service.reset_database(
+            db_name=database_existant.name,
+            user=database_existant.user,
+            password=database_existant.password
+        )
+
+        if not reset_database:
+            return dict(
+                status="fail",
+                message=f"Unable to reset database"
+            ), 500
+
+        return dict(status='success', message="Database Reset Successfully"), 200
