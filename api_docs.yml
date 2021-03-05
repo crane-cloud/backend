@@ -2013,7 +2013,36 @@ paths:
                     description: "Database not found"
                 500:
                     description: "Internal Server Error"    
-                
+    
+    "/projects/{project_id}/databases/{database_id}/reset":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
     "/databases":
         post:
             tags:
@@ -2112,7 +2141,32 @@ paths:
                     description: "Database Not Found"
                 500:
                     description: "Internal Server Error"
-    
+
+
+    "/databases/{database_id}/reset":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
     "/apps":
 
             post:
