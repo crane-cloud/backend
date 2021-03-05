@@ -135,7 +135,7 @@ class DatabaseService:
             connection = self.create_connection()
             user_rights = self.check_user_db_rights(
                 db_name=db_name, user=user, password=password)
-            print(user_rights)
+                
             if not connection or not user_rights:
                 return False
             cursor = connection.cursor()
