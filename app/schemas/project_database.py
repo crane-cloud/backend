@@ -35,3 +35,4 @@ class ProjectDatabaseSchema(Schema):
     ])
     project_id = fields.String()
     date_created = fields.Date(dump_only=True)
+    port = fields.Int()
