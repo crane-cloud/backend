@@ -34,7 +34,8 @@ class ProjectDatabaseView(Resource):
             password=database_password,
             project_id=project_id,
             name=database_name,
-            host=os.getenv('ADMIN_MYSQL_HOST')
+            host=os.getenv('ADMIN_MYSQL_HOST'),
+            port=os.getenv('ADMIN_MYSQL_PORT')
         )
         validated_database_data, errors = database_schema.load(
             new_database_info)

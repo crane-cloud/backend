@@ -16,6 +16,7 @@ class ProjectDatabase(ModelMixin):
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey(
         'project.id'))
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    port = db.Column(db.Integer, nullable=True)
 
 
     def password_is_valid(self, password):
