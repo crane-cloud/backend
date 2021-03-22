@@ -196,6 +196,42 @@ class ProjectDatabaseDetailView(Resource):
         return dict(status='success', data=dict(database=json.loads(database_data))), 200
 
 
+class ProjectDatabaseStatusView(Resource):
+
+    @jwt_required
+    def get(self, project_id, database_id):
+        """
+        """
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        # Check the database status on host
+        database_service = DatabaseService()
+        database_connection = database_service.create_db_connection(user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service",
+                data=dict(db_status='Failed')
+            ), 500
+
+        return dict(
+            status='success',
+            data=dict(db_status='Running' )
+        ), 201
+
+
 class ProjectDatabaseAdminView(Resource):
     @admin_required
     def post(self):
