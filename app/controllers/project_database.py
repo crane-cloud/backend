@@ -193,43 +193,19 @@ class ProjectDatabaseDetailView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(database=json.loads(database_data))), 200
-
-
-class ProjectDatabaseStatusView(Resource):
-
-    @jwt_required
-    def get(self, project_id, database_id):
-        """
-        """
-
-        project = Project.get_by_id(project_id)
-        if not project:
-            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
-        database_existant = ProjectDatabase.get_by_id(database_id)
-
-        if not database_existant:
-            return dict(
-                status="fail",
-                message=f"Database with id {database_id} not found."
-            ), 404
-
         # Check the database status on host
         database_service = DatabaseService()
-        database_connection = database_service.create_db_connection(user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
+        database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)
 
         if not database_connection:
-            return dict(
-                status="fail",
-                message=f"Failed to connect to the database service",
-                data=dict(db_status='Failed')
-            ), 500
-
-        return dict(
-            status='success',
-            data=dict(db_status='Running' )
-        ), 201
+            db_status='Failed'
+        else:    
+            db_status='Running'
+        
+        database_data_list = json.loads(database_data)
+        database_data_list['db_status']=db_status
+        
+        return dict(status='success', data=dict(database=database_data_list)), 200
 
 
 class ProjectDatabaseAdminView(Resource):
@@ -405,8 +381,20 @@ class ProjectDatabaseAdminDetailView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 500
+        
+        # Check the database status on host
+        database_service = DatabaseService()
+        database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)
 
-        return dict(status='success', data=dict(database=json.loads(database_data))), 200
+        if not database_connection:
+            db_status='Failed'
+        else:    
+            db_status='Running'
+        
+        database_data_list = json.loads(database_data)
+        database_data_list['db_status']=db_status
+
+        return dict(status='success', data=dict(database=database_data_list)), 200
 
 
 class ProjectDatabaseResetView(Resource):
