@@ -195,12 +195,19 @@ class ProjectDatabaseDetailView(Resource):
 
         # Check the database status on host
         database_service = DatabaseService()
-        database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)
+        try:
+            database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
+            if not database_connection:
+                db_status=False
+            else:    
+                db_status=True
+        except:
+            db_status=False
+        finally:
+            if database_connection:
+                if (database_connection.is_connected()):
+                    database_connection.close()
 
-        if not database_connection:
-            db_status='Failed'
-        else:    
-            db_status='Running'
         
         database_data_list = json.loads(database_data)
         database_data_list['db_status']=db_status
@@ -384,13 +391,19 @@ class ProjectDatabaseAdminDetailView(Resource):
         
         # Check the database status on host
         database_service = DatabaseService()
-        database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)
-
-        if not database_connection:
-            db_status='Failed'
-        else:    
-            db_status='Running'
-        
+        try:
+            database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
+            if not database_connection:
+                db_status=False
+            else:    
+                db_status=True
+        except:
+            db_status=False
+        finally:
+            if database_connection:
+                if (database_connection.is_connected()):
+                    database_connection.close()
+                    
         database_data_list = json.loads(database_data)
         database_data_list['db_status']=db_status
 
