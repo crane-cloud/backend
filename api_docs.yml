@@ -1640,8 +1640,6 @@ paths:
                                 type: number
                         command:
                             type: string
-                        need_db:
-                            type: boolean
                         private_image:
                             type: boolean
                         docker_server:
@@ -1651,14 +1649,6 @@ paths:
                         docker_password:
                             type: string
                         docker_email:
-                            type: string
-                        db_user:
-                            type: string
-                        db_password:
-                            type: string
-                        db_name:
-                            type: string
-                        db_flavor:
                             type: string
                         replicas:
                             type: number
@@ -2201,8 +2191,6 @@ paths:
                                 type: number
                             command:
                                 type: string
-                            need_db:
-                                type: boolean
                             private_image:
                                 type: boolean
                             docker_server:
@@ -2212,14 +2200,6 @@ paths:
                             docker_password:
                                 type: string
                             docker_email:
-                                type: string
-                            db_user:
-                                type: string
-                            db_password:
-                                type: string
-                            db_name:
-                                type: string
-                            db_flavor:
                                 type: string
                             replicas:
                                 type: number
