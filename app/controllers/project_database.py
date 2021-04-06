@@ -4,7 +4,7 @@ from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
-from app.helpers.database_service import DatabaseService, generate_db_credentials
+from app.helpers.database_service import MysqlDbService, generate_db_credentials
 from app.models.project import Project
 from flask_jwt_extended import jwt_required
 from app.helpers.decorators import admin_required
@@ -67,7 +67,7 @@ class ProjectDatabaseView(Resource):
             ), 400
 
         # Create the databse
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
@@ -144,7 +144,7 @@ class ProjectDatabaseDetailView(Resource):
             ), 404
 
         # Delete the database
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
@@ -194,7 +194,7 @@ class ProjectDatabaseDetailView(Resource):
             return dict(status='fail', message=errors), 500
 
         # Check the database status on host
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         try:
             database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
             if not database_connection:
@@ -275,7 +275,7 @@ class ProjectDatabaseAdminView(Resource):
             ), 400
 
         # # Create the databse
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
@@ -344,7 +344,7 @@ class ProjectDatabaseAdminDetailView(Resource):
             ), 404
 
         # Delete the database
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
@@ -390,7 +390,7 @@ class ProjectDatabaseAdminDetailView(Resource):
             return dict(status='fail', message=errors), 500
         
         # Check the database status on host
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         try:
             database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
             if not database_connection:
@@ -432,7 +432,7 @@ class ProjectDatabaseResetView(Resource):
             ), 404
 
         # Reset the database
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
@@ -474,7 +474,7 @@ class ProjectDatabaseAdminResetView(Resource):
             ), 404
 
         # Reset the database
-        database_service = DatabaseService()
+        database_service = MysqlDbService()
         database_connection = database_service.create_connection()
 
         if not database_connection:
