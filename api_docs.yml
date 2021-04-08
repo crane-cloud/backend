@@ -2041,8 +2041,11 @@ paths:
                   name: project
                   type: json
                   schema:
-                    properties: {}
-                    
+                    required:
+                        - database_flavour_id
+                    properties: 
+                        database_flavour_id:
+                            type: string        
             produces:
                 - application/json
             responses:
@@ -2182,9 +2185,13 @@ paths:
                   required: true
                   type: string
                 - in: body
-                  name: project
+                  name: database
                   schema:
-                    properties: {}
+                    required:
+                        - database_flavour_id
+                    properties: 
+                        database_flavour_id:
+                            type: string  
             produces:
                 - application/json
             responses:

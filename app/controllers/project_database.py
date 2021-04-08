@@ -4,10 +4,20 @@ from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
-from app.helpers.database_service import MysqlDbService, generate_db_credentials
+from app.models.database_flavour import DatabaseFlavour
+from app.helpers.database_service import MysqlDbService, PostgresqlDbService, generate_db_credentials
 from app.models.project import Project
 from flask_jwt_extended import jwt_required
 from app.helpers.decorators import admin_required
+
+# Used to return a database service
+def get_db_service(flavour_name=None):
+    if flavour_name == 'mysql':
+        return MysqlDbService()
+    elif flavour_name == 'postgres':
+        return PostgresqlDbService()
+    else:
+        return False
 
 
 class ProjectDatabaseView(Resource):
@@ -24,6 +34,34 @@ class ProjectDatabaseView(Resource):
 
         validated_database_data, errors = database_schema.load(databases_data)
 
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        database_flavour_id = validated_database_data.get(
+            'database_flavour_id', None)
+
+        existing_flavour = DatabaseFlavour.get_by_id(database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_flavour_id} not found."
+            ), 404
+
+        if existing_flavour.name == 'mysql':
+            database_service = MysqlDbService()
+            database_host = os.getenv('ADMIN_MYSQL_HOST')
+            database_port = os.getenv('ADMIN_MYSQL_PORT')
+        elif existing_flavour.name == 'postgres':
+            database_service = PostgresqlDbService()
+            database_host = os.getenv('ADMIN_PSQL_PORT')
+            database_port = os.getenv('ADMIN_PSQL_PORT')
+        else:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_flavour_id} is not mysql or postgres."
+            ), 409
+
         database_name = validated_database_data.get('name', credentials.name)
         database_user = validated_database_data.get('user', credentials.user)
         database_password = validated_database_data.get(
@@ -34,9 +72,10 @@ class ProjectDatabaseView(Resource):
             password=database_password,
             project_id=project_id,
             name=database_name,
-            host=os.getenv('ADMIN_MYSQL_HOST'),
-            port=os.getenv('ADMIN_MYSQL_PORT')
+            host=database_host,
+            port=database_port
         )
+
         validated_database_data, errors = database_schema.load(
             new_database_info)
 
@@ -46,6 +85,7 @@ class ProjectDatabaseView(Resource):
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
         validated_database_data['project_id'] = project_id
 
         database_existant = ProjectDatabase.find_first(
@@ -66,9 +106,8 @@ class ProjectDatabaseView(Resource):
                 message=f"Database user {database_user} Already Exists."
             ), 400
 
-        # Create the databse
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        # Create the database
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
@@ -113,8 +152,8 @@ class ProjectDatabaseView(Resource):
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
-        databases = ProjectDatabase.find_all(project_id=project_id)   
-        
+        databases = ProjectDatabase.find_all(project_id=project_id)
+
         database_data, errors = database_schema.dumps(databases)
 
         if errors:
@@ -143,9 +182,24 @@ class ProjectDatabaseDetailView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
+        database_service = get_db_service(existing_flavour.name)
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
         # Delete the database
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
@@ -177,41 +231,62 @@ class ProjectDatabaseDetailView(Resource):
         database_schema = ProjectDatabaseSchema()
 
         project = Project.get_by_id(project_id)
+
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
-        database = ProjectDatabase.get_by_id(database_id)
+        database_existant = ProjectDatabase.get_by_id(database_id)
 
-        if not database:
+        if not database_existant:
             return dict(
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
 
-        database_data, errors = database_schema.dumps(database)
+        database_data, errors = database_schema.dumps(database_existant)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
         # Check the database status on host
-        database_service = MysqlDbService()
+        database_service = get_db_service(existing_flavour.name)
+
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
+        # Get db status
         try:
-            database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
+            database_connection = database_service.create_db_connection(
+                user=database_existant.user, password=database_existant.password, db_name=database.name)
             if not database_connection:
-                db_status=False
-            else:    
-                db_status=True
+                db_status = False
+            else:
+                db_status = True
         except:
-            db_status=False
+            db_status = False
         finally:
             if database_connection:
-                if (database_connection.is_connected()):
-                    database_connection.close()
+                if database_service == MysqlDbService():
+                    if database_connection.is_connected():
+                        database_connection.close()
+                    else:
+                        database_connection.close()
 
-        
         database_data_list = json.loads(database_data)
-        database_data_list['db_status']=db_status
-        
+        database_data_list['db_status'] = db_status
+
         return dict(status='success', data=dict(database=database_data_list)), 200
 
 
@@ -228,6 +303,34 @@ class ProjectDatabaseAdminView(Resource):
 
         validated_database_data, errors = database_schema.load(databases_data)
 
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        database_flavour_id = validated_database_data.get(
+            'database_flavour_id', None)
+
+        existing_flavour = DatabaseFlavour.get_by_id(database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_flavour_id} not found."
+            ), 404
+
+        if existing_flavour.name == 'mysql':
+            database_service = MysqlDbService()
+            database_host = os.getenv('ADMIN_MYSQL_HOST')
+            database_port = os.getenv('ADMIN_MYSQL_PORT')
+        elif existing_flavour.name == 'postgres':
+            database_service = PostgresqlDbService()
+            database_host = os.getenv('ADMIN_PSQL_PORT')
+            database_port = os.getenv('ADMIN_PSQL_PORT')
+        else:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_flavour_id} is not mysql or postgres."
+            ), 409
+
         database_name = validated_database_data.get('name', credentials.name)
         database_user = validated_database_data.get('user', credentials.user)
         database_password = validated_database_data.get(
@@ -239,7 +342,9 @@ class ProjectDatabaseAdminView(Resource):
             password=database_password,
             project_id=project_id,
             name=database_name,
-            host=os.getenv('ADMIN_MYSQL_HOST')
+            database_flavour_id=database_flavour_id,
+            host=database_host,
+            port=database_port
         )
 
         if project_id:
@@ -274,9 +379,8 @@ class ProjectDatabaseAdminView(Resource):
                 message=f"Database user {database_user} Already Exists."
             ), 400
 
-        # # Create the databse
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        # Create the database
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
@@ -318,7 +422,7 @@ class ProjectDatabaseAdminView(Resource):
         database_schema = ProjectDatabaseSchema(many=True)
 
         databases = ProjectDatabase.find_all()
-        
+
         database_data, errors = database_schema.dumps(databases)
 
         if errors:
@@ -343,9 +447,24 @@ class ProjectDatabaseAdminDetailView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
+        database_service = get_db_service(existing_flavour.name)
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
         # Delete the database
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
@@ -376,36 +495,57 @@ class ProjectDatabaseAdminDetailView(Resource):
         """
         database_schema = ProjectDatabaseSchema()
 
-        database = ProjectDatabase.get_by_id(database_id)
+        database_existant = ProjectDatabase.get_by_id(database_id)
 
-        if not database:
+        if not database_existant:
             return dict(
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
 
-        database_data, errors = database_schema.dumps(database)
+        database_data, errors = database_schema.dumps(database_existant)
 
         if errors:
             return dict(status='fail', message=errors), 500
-        
+
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
         # Check the database status on host
-        database_service = MysqlDbService()
+        database_service = get_db_service(existing_flavour.name)
+
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
+        # Get db status
         try:
-            database_connection = database_service.create_db_connection(user=database.user, password=database.password, db_name=database.name)           
+            database_connection = database_service.create_db_connection(
+                user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
             if not database_connection:
-                db_status=False
-            else:    
-                db_status=True
+                db_status = False
+            else:
+                db_status = True
         except:
-            db_status=False
+            db_status = False
         finally:
             if database_connection:
-                if (database_connection.is_connected()):
+                if database_service == MysqlDbService():
+                    if database_connection.is_connected():
+                        database_connection.close()
+                else:
                     database_connection.close()
-                    
+
         database_data_list = json.loads(database_data)
-        database_data_list['db_status']=db_status
+        database_data_list['db_status'] = db_status
 
         return dict(status='success', data=dict(database=database_data_list)), 200
 
@@ -431,9 +571,25 @@ class ProjectDatabaseResetView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
         # Reset the database
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        database_service = get_db_service(existing_flavour.name)
+
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
@@ -473,16 +629,32 @@ class ProjectDatabaseAdminResetView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
+        existing_flavour = DatabaseFlavour.get_by_id(
+            database_existant.database_flavour_id)
+
+        if not existing_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} not found."
+            ), 404
+
         # Reset the database
-        database_service = MysqlDbService()
-        database_connection = database_service.create_connection()
+        database_service = get_db_service(existing_flavour.name)
+
+        if not database_service:
+            return dict(
+                status="fail",
+                message=f"Database flavour with id {database_existant.database_flavour_id} is not mysql or postgres."
+            ), 409
+
+        database_connection = database_service.check_db_connection()
 
         if not database_connection:
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
             ), 500
-        
+
         reset_database = database_service.reset_database(
             db_name=database_existant.name,
             user=database_existant.user,

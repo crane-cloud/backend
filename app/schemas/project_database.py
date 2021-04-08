@@ -26,7 +26,7 @@ class ProjectDatabaseSchema(Schema):
                 regex=r'^(?!\s*$)', error='host should be a valid string'
             ),
     ])
-    password = fields.String( error_message={
+    password = fields.String(error_message={
         "required": "password is required"},
         validate=[
             validate.Regexp(
@@ -34,6 +34,6 @@ class ProjectDatabaseSchema(Schema):
             ),
     ])
     project_id = fields.String()
-    database_flavour_id = fields.String()
+    database_flavour_id = fields.String(required=True)
     date_created = fields.Date(dump_only=True)
     port = fields.Int()
