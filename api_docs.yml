@@ -1640,8 +1640,6 @@ paths:
                                 type: number
                         command:
                             type: string
-                        need_db:
-                            type: boolean
                         private_image:
                             type: boolean
                         docker_server:
@@ -1651,14 +1649,6 @@ paths:
                         docker_password:
                             type: string
                         docker_email:
-                            type: string
-                        db_user:
-                            type: string
-                        db_password:
-                            type: string
-                        db_name:
-                            type: string
-                        db_flavor:
                             type: string
                         replicas:
                             type: number
@@ -1895,7 +1885,279 @@ paths:
                 500:
                     description: "Internal Server Error"
                 
+    "/projects/{project_id}/databases":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: body
+                  name: project
+                  type: json
+                  schema:
+                    properties: {}
+                    
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
+
+        get:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "Databases not found"
+                500:
+                    description: "Internal Server Error"    
+            
+                    
+
+    "/projects/{project_id}/databases/{database_id}":
+        delete:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "Database not found"
+                500:
+                    description: "Internal Server Error"    
+    
+    "/projects/{project_id}/databases/{database_id}/reset":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
+    "/databases":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: body
+                  name: project
+                  schema:
+                    properties: {}
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "Databases not found"
+                500:
+                    description: "Internal Server Error"                    
+
+
+    "/databases/{database_id}":
+        delete:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "Database Not Found"
+                500:
+                    description: "Internal Server Error"
+
+
+    "/databases/{database_id}/reset":
+        post:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: database_id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
     "/apps":
 
             post:
@@ -1929,8 +2191,6 @@ paths:
                                 type: number
                             command:
                                 type: string
-                            need_db:
-                                type: boolean
                             private_image:
                                 type: boolean
                             docker_server:
@@ -1940,14 +2200,6 @@ paths:
                             docker_password:
                                 type: string
                             docker_email:
-                                type: string
-                            db_user:
-                                type: string
-                            db_password:
-                                type: string
-                            db_name:
-                                type: string
-                            db_flavor:
                                 type: string
                             replicas:
                                 type: number

@@ -13,6 +13,7 @@ class ModelMixin(db.Model):
             db.session.commit()
             return True
         except SQLAlchemyError as e:
+            print(e)
             db.session.rollback()
             return False
 
@@ -67,8 +68,11 @@ class ModelMixin(db.Model):
 
     @classmethod
     def get_by_id(cls, id):
-        return cls.query.get(id)
+        try:
+            return cls.query.get(id)
+        except SQLAlchemyError:
+            return False
 
     def toDict(self):
         return {
-            c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs }
+            c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}

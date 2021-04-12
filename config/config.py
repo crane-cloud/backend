@@ -22,6 +22,11 @@ class Base:
     # mail accounts
     MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
 
+    # EXCEPTIONS 
+    PROPAGATE_EXCEPTIONS = True
+
+    
+
 
 class Development(Base):
     """ development config """
@@ -40,6 +45,13 @@ class Testing(Base):
 
     SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
 
+class Staging(Base):
+    """ Staging config """
+
+    DEBUG = False
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
+
+
 
 class Production(Base):
     """ production config """
@@ -48,4 +60,4 @@ class Production(Base):
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
 
 
-app_config = {"development": Development, "testing": Testing, "production": Production}
+app_config = {"development": Development, "testing": Testing, "staging": Staging, "production": Production}
