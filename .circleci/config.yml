@@ -53,7 +53,7 @@ deploy_to_kubernetes: &deploy_to_kubernetes
     name: update deployment image
     command: |
       export IMG_TAG=$(echo $CIRCLE_SHA1 | cut -c -7)
-      ./kubectl set image deployment/cranecloud-backend cranecloud-backend=gcr.io/$GCP_PROJECT_ID/cranecloud-backend:$IMG_TAG --record -n cranecloud
+      ./kubectl set image deployment/cranecloud-backend cranecloud-backend=gcr.io/$GCP_PROJECT_ID/cranecloud-backend:$IMG_TAG --record -n $namespace
 
 jobs:
   test_and_report:
@@ -91,6 +91,7 @@ jobs:
         environment:
           GOOGLE_APPLICATION_CREDENTIALS: /root/crane-cloud/auth_key.json
           cluster: staging-cluster
+          namespace: cranecloud
     working_directory: ~/crane-cloud
     steps:
       - *attach_workspace
@@ -109,7 +110,8 @@ jobs:
       - image: google/cloud-sdk
         environment:
           GOOGLE_APPLICATION_CREDENTIALS: /root/crane-cloud/auth_key.json
-          cluster: production-cluster
+          cluster: staging-cluster
+          namespace: cranecloud-prod
     working_directory: ~/crane-cloud
     steps:
       - *attach_workspace
