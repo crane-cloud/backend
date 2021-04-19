@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView, 
-    ProjectDatabaseResetView, ProjectDatabaseAdminResetView, DatabaseFlavourView, DatabaseFlavourDetailView
+    ProjectDatabaseResetView, ProjectDatabaseAdminResetView
 )
 
 api = Api()
@@ -105,10 +105,6 @@ api.add_resource(AppStorageUsageView, '/projects/<string:project_id>/apps/<strin
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
-
-# Database Flavours
-api.add_resource(DatabaseFlavourView, '/database_flavours')
-api.add_resource(DatabaseFlavourDetailView, '/database_flavours/<string:database_flavour_id>')
 
 # Databases
 api.add_resource(ProjectDatabaseView, '/projects/<string:project_id>/databases')

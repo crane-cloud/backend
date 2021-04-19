@@ -13,4 +13,3 @@ from .registry import RegistrySchema
 from .monitoring_metrics import MetricsSchema
 from .pod_logs import PodsLogsSchema
 from .project_database import ProjectDatabaseSchema
-from .database_flavour import DatabaseFlavourSchema

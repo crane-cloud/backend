@@ -34,6 +34,6 @@ class ProjectDatabaseSchema(Schema):
             ),
     ])
     project_id = fields.String()
-    database_flavour_id = fields.String(required=True)
+    database_flavour_name = fields.String(required=True)
     date_created = fields.Date(dump_only=True)
     port = fields.Int()

@@ -28,4 +28,3 @@ from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView)
-from .database_flavour import DatabaseFlavourView, DatabaseFlavourDetailView

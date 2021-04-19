@@ -1885,142 +1885,6 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-    
-    "/database_flavours":
-        post:
-            tags:
-                - databases
-            consumes:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-                - in: body
-                  name: database_flavour
-                  schema:
-                    required:
-                        - name
-                    properties:
-                        name:
-                            type: string
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-        get:
-            tags:
-                - databases
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-
-    "/database_flavours/{database_flavour_id}":
-        get:
-            tags:
-                - databases
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-                - in: path
-                  name: database_flavour_id
-                  required: true
-                  type: string
-
-            responses:
-                200:
-                    description: "A single Project"
-                404:
-                    description: "Project not found"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-        patch:
-            tags:
-                - databases
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-                - in: path
-                  name: database_flavour_id
-                  required: true
-                  type: string
-                - in: body
-                  name: project_update
-                  schema:
-                    type: object
-                    properties:
-                        name:
-                            type: string
-            responses:
-                200:
-                    description: "Success"
-                404:
-                    description: "Project not found"
-                400:
-                    description: "Internal Server Error"
-
-        delete:
-            tags:
-                - databases
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-                - in: path
-                  name: database_flavour_id
-                  required: true
-                  type: string
-            responses:
-                200:
-                    description: "Success"
-                404:
-                    description: "Project not found"
-                400:
-                    description: "Bad request"
-                500:
-                    descriptopm: "Internal Server Error"
-        
 
     "/projects/{project_id}/databases":
         post:
@@ -2042,9 +1906,9 @@ paths:
                   type: json
                   schema:
                     required:
-                        - database_flavour_id
+                        - database_flavour_name
                     properties: 
-                        database_flavour_id:
+                        database_flavour_name:
                             type: string        
             produces:
                 - application/json
@@ -2188,9 +2052,9 @@ paths:
                   name: database
                   schema:
                     required:
-                        - database_flavour_id
+                        - database_flavour_name
                     properties: 
-                        database_flavour_id:
+                        database_flavour_name:
                             type: string  
             produces:
                 - application/json
