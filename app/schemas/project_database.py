@@ -34,6 +34,13 @@ class ProjectDatabaseSchema(Schema):
             ),
     ])
     project_id = fields.String()
-    database_flavour_name = fields.String(required=True)
+    database_flavour_name = fields.String(
+        required=True,
+        validate=[
+            validate.OneOf(["postgres", "mysql"],
+                           error='database flavour should be mysql or postgres'
+                           ),
+        ])
+
     date_created = fields.Date(dump_only=True)
     port = fields.Int()
