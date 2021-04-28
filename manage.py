@@ -45,5 +45,6 @@ def create_roles():
 def create_registries():
     add_registries()
 
+
 if __name__ == '__main__':
     manager.run()

@@ -16,3 +16,5 @@ class Project(ModelMixin):
     apps = db.relationship('App', backref='project', lazy=True)
     description = db.Column(db.String, nullable=True)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    project_databases = db.relationship(
+        'ProjectDatabase', backref='project', lazy=True)

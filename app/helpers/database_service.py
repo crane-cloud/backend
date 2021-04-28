@@ -16,8 +16,8 @@ def generate_db_credentials():
     password = ''.join((secrets.choice(
         string.ascii_letters + string.digits + string.punctuation) for i in range(32)))
     return SimpleNamespace(
-        user=user,
-        name=name,
+        user=user.lower(),
+        name=name.lower(),
         password=password
     )
 
@@ -41,6 +41,10 @@ class DatabaseService:
     # Create or check user exists database
     def create_database(self, db_name=None, user=None, password=None):
         """Create a database with user details"""
+        pass
+
+    def check_db_connection(self):
+        """Validates if one is able to connect to Database server returns True or False"""
         pass
 
     # create database user
@@ -104,6 +108,20 @@ class MysqlDbService(DatabaseService):
         except self.Error as e:
             print(e)
             return False
+
+    def check_db_connection(self):
+        try:
+            super_connection = self.create_connection()
+            if not super_connection:
+                return False
+            return True
+        except self.Error as e:
+            return False
+        finally:
+            if not super_connection:
+                return False
+            if (super_connection.is_connected()):
+                super_connection.close()
 
     def check_user_db_rights(self, user=None, password=None, db_name=None):
         try:
@@ -288,6 +306,19 @@ class PostgresqlDbService(DatabaseService):
             print(e)
             return False
 
+    def check_db_connection(self):
+        try:
+            super_connection = self.create_connection()
+            if not super_connection:
+                return False
+            return True
+        except self.Error as e:
+            return False
+        finally:
+            if not super_connection:
+                return False
+            super_connection.close()
+
     def create_db_connection(self, user=None, password=None, db_name=None):
         try:
             user_connection = psycopg2.connect(
@@ -352,6 +383,7 @@ class PostgresqlDbService(DatabaseService):
             print(e)
             if e.pgcode == '42710':
                 return True
+            print('gssd')
             return False
         finally:
             if not connection:
