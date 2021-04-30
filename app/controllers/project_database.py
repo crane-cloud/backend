@@ -78,6 +78,7 @@ class ProjectDatabaseView(Resource):
             password=database_password,
             project_id=project_id,
             name=database_name,
+            database_flavour_name=database_flavour_name,
             host=db_flavour['host'],
             port=db_flavour['port']
         )
