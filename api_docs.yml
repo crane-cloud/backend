@@ -1884,7 +1884,8 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
-                
+
+
     "/projects/{project_id}/databases":
         post:
             tags:
@@ -1904,8 +1905,11 @@ paths:
                   name: project
                   type: json
                   schema:
-                    properties: {}
-                    
+                    required:
+                        - database_flavour_name
+                    properties: 
+                        database_flavour_name:
+                            type: string        
             produces:
                 - application/json
             responses:
@@ -1915,7 +1919,6 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
-
 
         get:
             tags:
@@ -2046,9 +2049,13 @@ paths:
                   required: true
                   type: string
                 - in: body
-                  name: project
+                  name: database
                   schema:
-                    properties: {}
+                    required:
+                        - database_flavour_name
+                    properties: 
+                        database_flavour_name:
+                            type: string  
             produces:
                 - application/json
             responses:

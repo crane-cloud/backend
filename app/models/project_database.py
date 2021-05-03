@@ -17,7 +17,8 @@ class ProjectDatabase(ModelMixin):
         'project.id'))
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     port = db.Column(db.Integer, nullable=True)
-
+    database_flavour_name = db.Column(db.String(256))
+    # todo: make database_flavour_name nullable=false
 
     def password_is_valid(self, password):
         """ checks the password against it's hash to validate the user's password """
