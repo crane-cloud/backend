@@ -518,10 +518,10 @@ class ProjectAppsView(Resource):
                 spec=pvc_spec
             )
 
-            kube_client.kube.create_namespaced_persistent_volume_claim(
-                namespace=namespace,
-                body=pvc
-            )
+            # kube_client.kube.create_namespaced_persistent_volume_claim(
+            #     namespace=namespace,
+            #     body=pvc
+            # )
 
 
             # create deployment
@@ -541,14 +541,14 @@ class ProjectAppsView(Resource):
                 image=app_image,
                 ports=[client.V1ContainerPort(container_port=app_port)],
                 env=env,
-                command=command,
-                volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
+                command=command
+                # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
             )
 
             #pod volumes 
             volumes = client.V1Volume(
-                name=dep_name,
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+                name=dep_name
+                # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
             )
 
             # spec
@@ -558,8 +558,8 @@ class ProjectAppsView(Resource):
                 }),
                 spec=client.V1PodSpec(
                     containers=[container],
-                    image_pull_secrets=[image_pull_secret],
-                    volumes=[volumes]
+                    image_pull_secrets=[image_pull_secret]
+                    # volumes=[volumes]
                 )
             )
 
