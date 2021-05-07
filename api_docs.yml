@@ -39,6 +39,10 @@ paths:
                 - users
             consumes:
                 - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
             produces:
                 - application/json
             responses:

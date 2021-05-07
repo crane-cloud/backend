@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
+from app.helpers.decorators import admin_required
 
 
 class UsersView(Resource):
@@ -79,7 +80,8 @@ class UsersView(Resource):
             status='success',
             data=dict(user=json.loads(new_user_data))
             ), 201
-
+            
+    @admin_required
     def get(self):
         """
         """
