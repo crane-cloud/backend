@@ -166,7 +166,38 @@ class ProjectDatabaseView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(databases=json.loads(database_data))), 200
+        database_data_list = json.loads(database_data)
+
+        # Check the database status on host
+        for database in database_data_list:
+            flavour_name = database['database_flavour_name']
+            if not flavour_name:
+                flavour_name = "mysql"
+
+            db_flavour = get_db_flavour(flavour_name)
+            database_service = db_flavour['class']
+
+            try:
+                database_connection = database_service.create_db_connection(
+                    user=database['user'], password=database['password'], db_name=database['name'])
+
+                if not database_connection:
+                    db_status = False
+                else:
+                    db_status = True
+            except:
+                db_status = False
+            finally:
+                if database_connection:
+                    if database_service == MysqlDbService():
+                        if database_connection.is_connected():
+                            database_connection.close()
+                        else:
+                            database_connection.close()
+
+            database['db_status'] = db_status
+
+        return dict(status='success', data=dict(databases=database_data_list)), 200
 
 
 class ProjectDatabaseDetailView(Resource):
@@ -200,7 +231,7 @@ class ProjectDatabaseDetailView(Resource):
             ), 409
 
         # Delete the database
-        database_service = db_flavour['name']
+        database_service = db_flavour['class']
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
@@ -251,7 +282,11 @@ class ProjectDatabaseDetailView(Resource):
             return dict(status='fail', message=errors), 500
 
         # Check the database status on host
-        db_flavour = get_db_flavour(database_existant.database_flavour_name)
+        flavour_name = database_existant.database_flavour_name
+        if not flavour_name:
+            flavour_name= "mysql"           
+
+        db_flavour = get_db_flavour(flavour_name)
 
         if not db_flavour:
             return dict(
@@ -259,8 +294,9 @@ class ProjectDatabaseDetailView(Resource):
                 message=f"Database with flavour {database_existant.database_flavour_name} is not mysql or postgres."
             ), 409
 
-        # Get db status
-        database_service = db_flavour['name']
+        database_service = db_flavour['class']
+
+        # Get db status  
         try:
             database_connection = database_service.create_db_connection(
                 user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
@@ -407,7 +443,39 @@ class ProjectDatabaseAdminView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(databases=json.loads(database_data))), 200
+        database_data_list = json.loads(database_data)
+
+        # Check the database status on host
+        for database in database_data_list:
+            flavour_name = database['database_flavour_name']
+            if not flavour_name:
+                flavour_name = "mysql"
+
+            db_flavour = get_db_flavour(flavour_name)
+            database_service = db_flavour['class']
+
+            try:
+                database_connection = database_service.create_db_connection(
+                    user=database['user'], password=database['password'], db_name=database['name'])
+
+                if not database_connection:
+                    db_status = False
+                else:
+                    db_status = True
+            except:
+                db_status = False
+            finally:
+                if database_connection:
+                    if database_service == MysqlDbService():
+                        if database_connection.is_connected():
+                            database_connection.close()
+                        else:
+                            database_connection.close()
+
+            database['db_status'] = db_status
+
+
+        return dict(status='success', data=dict(databases=database_data_list)), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
@@ -480,7 +548,12 @@ class ProjectDatabaseAdminDetailView(Resource):
             return dict(status='fail', message=errors), 500
 
         # Check the database status on host
-        db_flavour = get_db_flavour(database_existant.database_flavour_name)
+        flavour_name = database_existant.database_flavour_name
+
+        if not flavour_name:
+            flavour_name = "mysql"
+
+        db_flavour = get_db_flavour(flavour_name)
 
         if not db_flavour:
             return dict(
