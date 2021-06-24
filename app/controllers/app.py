@@ -1276,17 +1276,18 @@ class AppLogsView(Resource):
 
         # Get failed pods infor
         for state in failed_pods:
-            waiting = state.get('waiting')
-            if waiting:
-                try:
-                    stop = state['waiting']['message'].index('container')
-                    message = state['waiting']['message'][:stop]
-                except:
-                    message = state['waiting']['message']
+            if type(state) == dict:
+                waiting = state.get('waiting')
+                if waiting:
+                    try:
+                        stop = state['waiting']['message'].index('container')
+                        message = state['waiting']['message'][:stop]
+                    except:
+                        message = state['waiting'].get('message')
 
-                reason = state['waiting']['reason']
-                pod_infor = f'type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{reason}\t{message}'
-                pods_logs.append(pod_infor)
+                    reason = state['waiting']['reason']
+                    pod_infor = f'type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{reason}\t{message}'
+                    pods_logs.append(pod_infor)
 
         if not pods_logs or not pods_logs[0]:
             return dict(status='fail', data=dict(message='No logs found')), 404
