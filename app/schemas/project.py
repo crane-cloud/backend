@@ -19,4 +19,8 @@ class ProjectSchema(Schema):
     })
     description = fields.String()
     date_created = fields.Date(dump_only=True)
+    age = fields.Method("get_age", dump_only=True)
+
+    def get_age(self, obj):
+        return get_item_age(obj.date_created)
 
