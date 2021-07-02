@@ -319,6 +319,70 @@ class ProjectDatabaseDetailView(Resource):
 
         return dict(status='success', data=dict(database=database_data_list)), 200
 
+class ProjectDatabasePasswordResetView(Resource):
+
+    @jwt_required
+    def post(self, project_id, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+        database_data = request.get_json()
+
+        validated_database_data, errors = database_schema.load(database_data)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        new_database_password = validated_database_data.get(
+            'password', None)
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        database_flavour_name = database_existant.database_flavour_name
+
+        db_flavour = get_db_flavour(database_flavour_name)
+
+        if not db_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with name {database_existant.database_flavour_name} is not mysql or postgres."
+            ), 409
+
+        # Reset db password
+        database_service = db_flavour['class']
+        database_connection = database_service.check_db_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+
+        reset_database_password = database_service.reset_password(user=database_existant.user,
+            password=new_database_password)
+
+        if reset_database_password:
+            updated = ProjectDatabase.update(database_existant, **validated_database_data)
+            
+            if not updated:
+                return dict(status='fail', message='internal server error'), 500
+
+        if not reset_database_password:
+            return dict(
+                status="fail",
+                message=f"Unable to reset database password"
+            ), 500
+
+        return dict(status='success', message="Database password reset Successfully"), 200
 
 class ProjectDatabaseAdminView(Resource):
     @admin_required
@@ -689,3 +753,62 @@ class ProjectDatabaseAdminResetView(Resource):
             ), 500
 
         return dict(status='success', message="Database Reset Successfully"), 200
+
+class ProjectDatabaseAdminPasswordResetView(Resource):
+
+    @admin_required
+    def post(self, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+        database_data = request.get_json()
+
+        validated_database_data, errors = database_schema.load(database_data)
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        new_database_password = validated_database_data.get(
+            'password', None)
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+
+        database_flavour_name = database_existant.database_flavour_name
+        db_flavour = get_db_flavour(database_flavour_name)
+
+        if not db_flavour:
+            return dict(
+                status="fail",
+                message=f"Database flavour with name {database_existant.database_flavour_name} is not mysql or postgres."
+            ), 409
+
+        # Reset db password
+        database_service = db_flavour['class']
+        database_connection = database_service.check_db_connection()
+
+        if not database_connection:
+            return dict(
+                status="fail",
+                message=f"Failed to connect to the database service"
+            ), 500
+
+        reset_database_password = database_service.reset_password(user=database_existant.user,
+            password=new_database_password)
+
+        if reset_database_password:
+            updated = ProjectDatabase.update(database_existant, **validated_database_data)
+
+            if not updated:
+                return dict(status='fail', message='internal server error'), 500
+
+        if not reset_database_password:
+            return dict(
+                status="fail",
+                message=f"Unable to reset database password"
+            ), 500
+
+        return dict(status='success', message="Database password reset Successfully"), 200
