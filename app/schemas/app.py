@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate
-
+from app.helpers.age_utility import get_item_age
 
 class AppSchema(Schema):
 
@@ -38,3 +38,7 @@ class AppSchema(Schema):
     docker_email = fields.String()
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
     date_created = fields.Date(dump_only=True)
+    age = fields.Method("get_age", dump_only=True)
+
+    def get_age(self, obj):
+        return get_item_age(obj.date_created)

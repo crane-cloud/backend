@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate, pre_load
-
+from app.helpers.age_utility import get_item_age
 
 class ProjectDatabaseSchema(Schema):
 
@@ -44,3 +44,7 @@ class ProjectDatabaseSchema(Schema):
 
     date_created = fields.Date(dump_only=True)
     port = fields.Int()
+    age = fields.Method("get_age", dump_only=True)
+
+    def get_age(self, obj):
+        return get_item_age(obj.date_created)
