@@ -193,9 +193,7 @@ class MysqlDbService(DatabaseService):
                f"ALTER USER '{user}'@'%' IDENTIFIED BY '{password}'")
                
             return True
-        except self.Error as e:
-            if e.errno == '1396':
-                return True
+        except self.Error:
             return False
         finally:
             if not connection:
@@ -527,11 +525,7 @@ class PostgresqlDbService(DatabaseService):
                 f"ALTER USER {user} WITH ENCRYPTED PASSWORD '{password}'")
             connection.commit()
             return True
-        except self.Error as e:
-            print(e)
-            if e.pgcode == '42710':
-                return True
-            print('gssd')
+        except self.Error:
             return False
         finally:
             if not connection:

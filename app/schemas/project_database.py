@@ -35,7 +35,7 @@ class ProjectDatabaseSchema(Schema):
     ])
     project_id = fields.String()
     database_flavour_name = fields.String(
-        required=False,
+        required=True,
         validate=[
             validate.OneOf(["postgres", "mysql"],
                            error='database flavour should be mysql or postgres'
