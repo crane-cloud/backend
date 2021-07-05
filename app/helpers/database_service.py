@@ -9,12 +9,13 @@ from types import SimpleNamespace
 
 
 def generate_db_credentials():
+    punctuation = r"""!#%&()+,-:;<=>?@[]^_{|}~"""
     name = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(24)))
     user = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(16)))
     password = ''.join((secrets.choice(
-        string.ascii_letters + string.digits + string.punctuation) for i in range(32)))
+        string.ascii_letters + string.digits + punctuation) for i in range(32)))
     return SimpleNamespace(
         user=user.lower(),
         name=name.lower(),
@@ -149,7 +150,7 @@ class MysqlDbService(DatabaseService):
             cursor.execute(f"CREATE DATABASE {db_name}")
             if self.create_user(user=user, password=password):
                 cursor.execute(
-                    f"GRANT ALL PRIVILEGES ON {db_name}.* To '{user}'")
+                    f"GRANT ALL PRIVILEGES ON {db_name}.* To '{user}'@'%'")
             return True
         except self.Error as e:
             print(e)
@@ -169,7 +170,7 @@ class MysqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(
-                f"CREATE USER '{user}' IDENTIFIED BY '{password}' ")
+                f"CREATE USER '{user}'@'%' IDENTIFIED BY '{password}' ")
             return True
         except self.Error as e:
             if e.errno == '1396':
