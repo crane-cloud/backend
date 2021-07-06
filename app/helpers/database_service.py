@@ -183,6 +183,26 @@ class MysqlDbService(DatabaseService):
                 cursor.close()
                 connection.close()
 
+    # reset password for database user
+    def reset_password(self, user=None, password=None):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(
+               f"ALTER USER '{user}'@'%' IDENTIFIED BY '{password}'")
+               
+            return True
+        except self.Error:
+            return False
+        finally:
+            if not connection:
+                return False
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
     # delete database user
     def delete_user(self, user=None):
         try:
@@ -487,6 +507,25 @@ class PostgresqlDbService(DatabaseService):
             for db in cursor:
                 users_list.append(db[0])
             return users_list
+        except self.Error:
+            return False
+        finally:
+            if not connection:
+                return False
+            cursor.close()
+            connection.close()
+
+    # reset database user password
+    def reset_password(self, user=None, password=None):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(
+                f"ALTER USER {user} WITH ENCRYPTED PASSWORD '{password}'")
+            connection.commit()
+            return True
         except self.Error:
             return False
         finally:
