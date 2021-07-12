@@ -9,12 +9,13 @@ from types import SimpleNamespace
 
 
 def generate_db_credentials():
+    punctuation = r"""!#%&()+,-:;<=>?@[]^_{|}~"""
     name = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(24)))
     user = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(16)))
     password = ''.join((secrets.choice(
-        string.ascii_letters + string.digits + string.punctuation) for i in range(32)))
+        string.ascii_letters + string.digits + punctuation) for i in range(32)))
     return SimpleNamespace(
         user=user.lower(),
         name=name.lower(),
@@ -149,7 +150,7 @@ class MysqlDbService(DatabaseService):
             cursor.execute(f"CREATE DATABASE {db_name}")
             if self.create_user(user=user, password=password):
                 cursor.execute(
-                    f"GRANT ALL PRIVILEGES ON {db_name}.* To '{user}'")
+                    f"GRANT ALL PRIVILEGES ON {db_name}.* To '{user}'@'%'")
             return True
         except self.Error as e:
             print(e)
@@ -169,11 +170,31 @@ class MysqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(
-                f"CREATE USER '{user}' IDENTIFIED BY '{password}' ")
+                f"CREATE USER '{user}'@'%' IDENTIFIED BY '{password}' ")
             return True
         except self.Error as e:
             if e.errno == '1396':
                 return True
+            return False
+        finally:
+            if not connection:
+                return False
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
+    # reset password for database user
+    def reset_password(self, user=None, password=None):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(
+               f"ALTER USER '{user}'@'%' IDENTIFIED BY '{password}'")
+               
+            return True
+        except self.Error:
             return False
         finally:
             if not connection:
@@ -486,6 +507,25 @@ class PostgresqlDbService(DatabaseService):
             for db in cursor:
                 users_list.append(db[0])
             return users_list
+        except self.Error:
+            return False
+        finally:
+            if not connection:
+                return False
+            cursor.close()
+            connection.close()
+
+    # reset database user password
+    def reset_password(self, user=None, password=None):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(
+                f"ALTER USER {user} WITH ENCRYPTED PASSWORD '{password}'")
+            connection.commit()
+            return True
         except self.Error:
             return False
         finally:
