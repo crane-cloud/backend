@@ -13,6 +13,7 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from app.controllers.project_database import ProjectDatabaseDetailView, ProjectDatabaseView
 
 
 class ProjectsView(Resource):
@@ -200,6 +201,16 @@ class ProjectDetailView(Resource):
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='unauthorised'), 403
+                            
+            # check for dbs in project and delete them from host and CC db
+            project_databases = ProjectDatabaseView()
+            project_database_detail_view = ProjectDatabaseDetailView()
+
+            databases = project_databases.get(project_id)
+
+            if databases:
+                for database in databases[0]['data']['databases']:
+                    project_database_detail_view.delete(project_id=project_id, database_id=database['id'])
 
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)

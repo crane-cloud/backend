@@ -221,6 +221,8 @@ class ProjectDatabaseDetailView(Resource):
             ), 404
 
         database_flavour_name = database_existant.database_flavour_name
+        if not database_flavour_name:
+            database_flavour_name= "mysql" 
 
         db_flavour = get_db_flavour(database_flavour_name)
 
