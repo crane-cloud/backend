@@ -13,7 +13,7 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-
+from app.controllers.app import delete_cluster_app
 
 class ProjectsView(Resource):
 
@@ -212,8 +212,15 @@ class ProjectDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
+            # check and delete apps within a project
+            apps_list = project.apps
+            if apps_list:
+                for app in apps_list:
+                    delete_cluster_app( kube_client, project.alias, app)
+                    # delete the app from the database
+                    deleted = app.delete()
+        
             # get corresponding namespace
-
             namespace = kube_client.kube.read_namespace(project.alias)
 
             # delete namespace if it exists

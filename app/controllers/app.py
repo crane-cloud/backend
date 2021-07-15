@@ -19,6 +19,45 @@ from app.helpers.clean_up import resource_clean_up
 from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
 
+def delete_cluster_app(kube_client, namespace, app):
+    # delete deployment and service for the app
+    deployment_name = f'{app.alias}-deployment'
+    service_name = f'{app.alias}-service'
+    deployment = kube_client.appsv1_api.read_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace
+    )
+
+    if deployment:
+        kube_client.appsv1_api.delete_namespaced_deployment(
+            name=deployment_name,
+            namespace=namespace
+        )
+
+    service = kube_client.kube.read_namespaced_service(
+        name=service_name,
+        namespace=namespace
+    )
+
+    if service:
+        kube_client.kube.delete_namespaced_service(
+            name=service_name,
+            namespace=namespace
+        )
+
+    # delete pvc
+    # pvc_name = f'{app.alias}-pvc'
+
+    # pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
+    #     name=pvc_name,
+    #     namespace=namespace
+    # )
+
+    # if pvc:
+    #     kube_client.kube.delete_namespaced_persistent_volume_claim(
+    #         name=pvc_name,
+    #         namespace=namespace
+    #     )
 
 class AppsView(Resource):
 
@@ -918,43 +957,7 @@ class AppDetailView(Resource):
             kube_client = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
-            deployment_name = f'{app.alias}-deployment'
-            service_name = f'{app.alias}-service'
-            deployment = kube_client.appsv1_api.read_namespaced_deployment(
-                name=deployment_name,
-                namespace=namespace
-            )
-
-            if deployment:
-                kube_client.appsv1_api.delete_namespaced_deployment(
-                    name=deployment_name,
-                    namespace=namespace
-                )
-
-            service = kube_client.kube.read_namespaced_service(
-                name=service_name,
-                namespace=namespace
-            )
-
-            if service:
-                kube_client.kube.delete_namespaced_service(
-                    name=service_name,
-                    namespace=namespace
-                )
-
-            #delete pvc 
-            # pvc_name = f'{app.alias}-pvc'
-
-            # pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
-            #     name=pvc_name,
-            #     namespace=namespace
-            # )
-
-            # if pvc:
-            #     kube_client.kube.delete_namespaced_persistent_volume_claim(
-            #         name=pvc_name,
-            #         namespace=namespace
-            #     )
+            delete_cluster_app(kube_client, namespace, app)
 
             # delete the app from the database
             deleted = app.delete()
