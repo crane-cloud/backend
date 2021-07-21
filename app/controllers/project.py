@@ -13,7 +13,32 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.controllers.project_database import ProjectDatabaseDetailView, ProjectDatabaseView
+from app.helpers.database_service import MysqlDbService, PostgresqlDbService
+import os
+
+# database flavours
+database_flavours = [
+    {
+        'name': 'mysql',
+        'host': os.getenv('ADMIN_MYSQL_HOST'),
+        'port': os.getenv('ADMIN_MYSQL_PORT'),
+        'class': MysqlDbService()
+    },
+    {
+        'name': 'postgres',
+        'host': os.getenv('ADMIN_PSQL_HOST'),
+        'port': os.getenv('ADMIN_PSQL_PORT'),
+        'class': PostgresqlDbService()
+    }
+]
+
+def get_db_flavour(flavour_name=None):
+    if flavour_name == 'mysql':
+        return database_flavours[0]
+    elif flavour_name == 'postgres':
+        return database_flavours[1]
+    else:
+        return False
 
 
 class ProjectsView(Resource):
@@ -203,14 +228,48 @@ class ProjectDetailView(Resource):
                 return dict(status='fail', message='unauthorised'), 403
                             
             # check for dbs in project and delete them from host and CC db
-            project_databases = ProjectDatabaseView()
-            project_database_detail_view = ProjectDatabaseDetailView()
+            databases_list = project.project_databases
 
-            databases = project_databases.get(project_id)
+            if databases_list:
+                for database in databases_list:
 
-            if databases:
-                for database in databases[0]['data']['databases']:
-                    project_database_detail_view.delete(project_id=project_id, database_id=database['id'])
+                    database_flavour_name = database.database_flavour_name
+                    if not database_flavour_name:
+                        database_flavour_name= "mysql" 
+
+                    db_flavour = get_db_flavour(database_flavour_name)
+
+                    if not db_flavour:
+                        return dict(
+                            status="fail",
+                            message=f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
+                        ), 409
+
+                    # Delete the database
+                    database_service = db_flavour['class']
+                    database_connection = database_service.check_db_connection()
+
+                    if not database_connection:
+                        return dict(
+                            status="fail",
+                            message=f"Failed to connect to the database service"
+                        ), 500
+
+                    delete_database = database_service.delete_database(
+                        database.name)
+
+                    if not delete_database:
+                        return dict(
+                            status="fail",
+                            message=f"Unable to delete database"
+                        ), 500
+
+                    # Delete database record from database
+                    deleted_database = database.delete()
+
+                    if not deleted_database:
+                        return dict(status='fail', message=f'Internal Server Error'), 500
+
 
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)
