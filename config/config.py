@@ -1,6 +1,5 @@
 import os
 
-
 class Base:
     """ base config """
 

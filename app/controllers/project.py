@@ -13,9 +13,7 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.database_service import MysqlDbService, PostgresqlDbService
-import os
-from app.controllers.project_database import database_flavours, get_db_flavour
+from app.helpers.db_flavor import get_db_flavour
 
 class ProjectsView(Resource):
 
