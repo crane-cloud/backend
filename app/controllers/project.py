@@ -15,31 +15,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService
 import os
-
-# database flavours
-database_flavours = [
-    {
-        'name': 'mysql',
-        'host': os.getenv('ADMIN_MYSQL_HOST'),
-        'port': os.getenv('ADMIN_MYSQL_PORT'),
-        'class': MysqlDbService()
-    },
-    {
-        'name': 'postgres',
-        'host': os.getenv('ADMIN_PSQL_HOST'),
-        'port': os.getenv('ADMIN_PSQL_PORT'),
-        'class': PostgresqlDbService()
-    }
-]
-
-def get_db_flavour(flavour_name=None):
-    if flavour_name == 'mysql':
-        return database_flavours[0]
-    elif flavour_name == 'postgres':
-        return database_flavours[1]
-    else:
-        return False
-
+from app.controllers.project_database import database_flavours, get_db_flavour
 
 class ProjectsView(Resource):
 
