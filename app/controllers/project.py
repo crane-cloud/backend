@@ -2,7 +2,7 @@ from app.helpers.prometheus import prometheus
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
-from app.helpers.kube import create_kube_clients
+from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -14,6 +14,7 @@ from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
+
 
 class ProjectsView(Resource):
 
@@ -256,8 +257,15 @@ class ProjectDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
+            # check and delete apps within a project
+            apps_list = project.apps
+            if apps_list:
+                for app in apps_list:
+                    delete_cluster_app( kube_client, project.alias, app)
+                    # delete the app from the database
+                    deleted = app.delete()
+        
             # get corresponding namespace
-
             namespace = kube_client.kube.read_namespace(project.alias)
 
             # delete namespace if it exists
