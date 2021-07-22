@@ -29,3 +29,44 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
         batchv1_api=batchv1_api,
         storageV1Api=storageV1Api
     )
+
+
+def delete_cluster_app(kube_client, namespace, app):
+    # delete deployment and service for the app
+    deployment_name = f'{app.alias}-deployment'
+    service_name = f'{app.alias}-service'
+    deployment = kube_client.appsv1_api.read_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace
+    )
+
+    if deployment:
+        kube_client.appsv1_api.delete_namespaced_deployment(
+            name=deployment_name,
+            namespace=namespace
+        )
+
+    service = kube_client.kube.read_namespaced_service(
+        name=service_name,
+        namespace=namespace
+    )
+
+    if service:
+        kube_client.kube.delete_namespaced_service(
+            name=service_name,
+            namespace=namespace
+        )
+
+    # delete pvc
+    # pvc_name = f'{app.alias}-pvc'
+
+    # pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
+    #     name=pvc_name,
+    #     namespace=namespace
+    # )
+
+    # if pvc:
+    #     kube_client.kube.delete_namespaced_persistent_volume_claim(
+    #         name=pvc_name,
+    #         namespace=namespace
+    #     )
