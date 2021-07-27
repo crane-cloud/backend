@@ -27,7 +27,3 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] My changes generate no new warnings
 - [ ] Any dependent changes have been merged and published in downstream modules
-
-# Screenshots
-
-Add relevant screenshots incase they are relevant
