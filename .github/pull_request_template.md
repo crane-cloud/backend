@@ -1,6 +1,6 @@
 # Description
 
-Please include a summary of what the PR does adding relevant motivation and context.
+Please include a summary of what the PR does adding relevant information, motivation and context.
 
 ## Type of change
 
