@@ -15,7 +15,7 @@ Please delete options that are not relevant.
 
 Please add a link to the Trello ticket for the task.
 
-## How Can This Been Tested?
+## How Can This Be Tested?
 
 Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test scenario/configuration
 
