@@ -302,10 +302,11 @@ class ProjectDatabasePasswordResetView(Resource):
         database_data = request.get_json()
 
         validated_database_data, errors = database_schema.load(database_data, partial=("database_flavour_name",))
+        
 
         if errors:
             return dict(status="fail", message=errors), 400
-
+        
         new_database_password = validated_database_data.get(
             'password', None)
 
