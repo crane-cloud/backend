@@ -289,6 +289,8 @@ class ProjectDatabaseDetailView(Resource):
 
         database_data_list = json.loads(database_data)
         database_data_list['db_status'] = db_status
+        database_data_list['db_size'] = database_service.get_database_size(
+            user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
 
         return dict(status='success', data=dict(database=database_data_list)), 200
 
