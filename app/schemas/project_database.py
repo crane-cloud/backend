@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, pre_load, ValidationError, validates
+from marshmallow import Schema, fields, validate, pre_load
 from app.helpers.age_utility import get_item_age
 
 
@@ -16,7 +16,7 @@ class ProjectDatabaseSchema(Schema):
 
     password = fields.String(
         validate=validate.Regexp(
-            r"""^\S+[^`\\\$'"]$""",  error="""Password must not contain these characters `\"$'"""
+            r"""^\S+[^`?*$#!$'"]$""",  error="""Password must not contain these characters `\"$'"""
         )
     )
     user = fields.String(error_message={
