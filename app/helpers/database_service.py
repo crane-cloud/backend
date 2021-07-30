@@ -67,7 +67,7 @@ class DatabaseService:
         """Reset database to initial state"""
         pass
 
-    def get_database_size(self, db_name):
+    def get_database_size(self, db_name=None, user=None, password=None):
         """Return size of the database"""
         pass
 
@@ -192,7 +192,7 @@ class MysqlDbService(DatabaseService):
             connection = self.create_db_connection(
                 db_name=db_name, user=user, password=password)
             if not connection:
-                return False
+                return 'N/A'
             cursor = connection.cursor()
             cursor.execute(
                 f"""SELECT table_schema "{db_name}",
@@ -204,10 +204,10 @@ class MysqlDbService(DatabaseService):
                 db_size = f'{float(db[1])} MB'
             return db_size
         except self.Error:
-            return False
+            return 'N/A'
         finally:
             if not connection:
-                return False
+                return 'N/A'
             if (connection.is_connected()):
                 cursor.close()
                 connection.close()
@@ -508,7 +508,7 @@ class PostgresqlDbService(DatabaseService):
             connection = self.create_db_connection(
                 db_name=db_name, user=user, password=password)
             if not connection:
-                return False
+                return 'N/A'
             cursor = connection.cursor()
             cursor.execute(
                 f"""SELECT pg_size_pretty( pg_database_size('{db_name}') )""")
@@ -517,10 +517,10 @@ class PostgresqlDbService(DatabaseService):
                 db_size = db[0]
             return db_size
         except self.Error:
-            return False
+            return 'N/A'
         finally:
             if not connection:
-                return False
+                return 'N/A'
             cursor.close()
             connection.close()
 
@@ -583,4 +583,3 @@ class PostgresqlDbService(DatabaseService):
                 return False
             cursor.close()
             connection.close()
-
