@@ -67,6 +67,10 @@ class DatabaseService:
         """Reset database to initial state"""
         pass
 
+    def get_database_size(self, db_name=None, user=None, password=None):
+        """Return size of the database"""
+        pass
+
     # Show all databases
     def get_all_databases(self):
         """Return list of databases"""
@@ -183,6 +187,31 @@ class MysqlDbService(DatabaseService):
                 cursor.close()
                 connection.close()
 
+    def get_database_size(self, db_name=None, user=None, password=None):
+        try:
+            connection = self.create_db_connection(
+                db_name=db_name, user=user, password=password)
+            if not connection:
+                return 'N/A'
+            cursor = connection.cursor()
+            cursor.execute(
+                f"""SELECT table_schema "{db_name}",
+                SUM(data_length + index_length) / 1024 / 1024 AS "Size(MB)"
+                FROM information_schema.TABLES
+                GROUP BY table_schema""")
+            db_size = '0'
+            for db in cursor:
+                db_size = f'{float(db[1])} MB'
+            return db_size
+        except self.Error:
+            return 'N/A'
+        finally:
+            if not connection:
+                return 'N/A'
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
     # reset password for database user
     def reset_password(self, user=None, password=None):
         try:
@@ -191,8 +220,8 @@ class MysqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(
-               f"ALTER USER '{user}'@'%' IDENTIFIED BY '{password}'")
-               
+                f"ALTER USER '{user}'@'%' IDENTIFIED BY '{password}'")
+
             return True
         except self.Error:
             return False
@@ -474,6 +503,27 @@ class PostgresqlDbService(DatabaseService):
             cursor.close()
             connection.close()
 
+    def get_database_size(self, db_name=None, user=None, password=None):
+        try:
+            connection = self.create_db_connection(
+                db_name=db_name, user=user, password=password)
+            if not connection:
+                return 'N/A'
+            cursor = connection.cursor()
+            cursor.execute(
+                f"""SELECT pg_size_pretty( pg_database_size('{db_name}') )""")
+            db_size = 0
+            for db in cursor:
+                db_size = db[0]
+            return db_size
+        except self.Error:
+            return 'N/A'
+        finally:
+            if not connection:
+                return 'N/A'
+            cursor.close()
+            connection.close()
+
     # Show all databases
     def get_all_databases(self):
         try:
@@ -533,4 +583,3 @@ class PostgresqlDbService(DatabaseService):
                 return False
             cursor.close()
             connection.close()
-
