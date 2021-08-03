@@ -9,7 +9,7 @@ import datetime
 from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, update_app_deployment
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -793,7 +793,7 @@ class ProjectAppsView(Resource):
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
-
+    
 
 class AppDetailView(Resource):
 
@@ -934,6 +934,135 @@ class AppDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+class ProjectAppDetailView(Resource):
+    @jwt_required
+    def patch(self, project_id, app_id):
+        
+        app_schema = AppSchema(partial=True)
+
+        update_data = request.get_json()
+
+        validated_update_data, errors = app_schema.load(update_data)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
+        app_image = validated_update_data['image']
+        command = validated_update_data.get('command', None)
+        env_vars = validated_update_data.get('env_vars', None)
+        replicas = validated_update_data.get('replicas', 1)
+        app_port = validated_update_data.get('port', None)
+        image_pull_secret = None
+
+        
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                    ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+          
+            # Create a deployment object
+            dep_name = f'{app.alias}-deployment'
+
+            # # EnvVar
+            env = []
+            if env_vars:
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
+            # pod template
+            container = client.V1Container(
+                name=app.alias,
+                image=app_image,
+                ports=[client.V1ContainerPort(container_port=app_port)],
+                env=env,
+                command=command
+                # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
+            )
+
+            #pod volumes 
+            # volumes = client.V1Volume(
+            #     name=dep_name
+            #     # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+            # )
+
+            # spec
+            template = client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(labels={
+                    'app': app.alias
+                }),
+                spec=client.V1PodSpec(
+                    containers=[container],
+                    image_pull_secrets=[image_pull_secret]
+                )
+            )
+
+            # spec of deployment
+            spec = client.V1DeploymentSpec(
+                replicas=replicas,
+                template=template,
+                selector={'matchLabels': {'app': app.alias}}
+            )
+
+            # Instantiate the deployment
+            deployment = client.V1Deployment(
+                api_version="apps/v1",
+                kind="Deployment",
+                metadata=client.V1ObjectMeta(name=dep_name),
+                spec=spec
+            )
+
+            # update the deployment in cluster
+            update_app_deployment(kube_client, namespace, app)
+
+
+            # update the app in database
+            updated_app = App.update(app, **validated_update_data)
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                    ), 500
+
+            return dict(
+                status='success',
+                message=f'App updated successfully'
+                ), 200
+
+            
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
 
 class AppMemoryUsageView(Resource):
 
@@ -1257,7 +1386,6 @@ class AppLogsView(Resource):
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
-
 
 class AppStorageUsageView(Resource):
     @jwt_required
