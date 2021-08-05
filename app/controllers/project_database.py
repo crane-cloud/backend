@@ -289,6 +289,8 @@ class ProjectDatabaseDetailView(Resource):
 
         database_data_list = json.loads(database_data)
         database_data_list['db_status'] = db_status
+        database_data_list['db_size'] = database_service.get_database_size(
+            user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
 
         return dict(status='success', data=dict(database=database_data_list)), 200
 
@@ -302,10 +304,11 @@ class ProjectDatabasePasswordResetView(Resource):
         database_data = request.get_json()
 
         validated_database_data, errors = database_schema.load(database_data, partial=("database_flavour_name",))
+        
 
         if errors:
             return dict(status="fail", message=errors), 400
-
+        
         new_database_password = validated_database_data.get(
             'password', None)
 
@@ -354,6 +357,38 @@ class ProjectDatabasePasswordResetView(Resource):
             return dict(status='fail', message='internal server error'), 500
 
         return dict(status='success', message="Database password reset Successfully"), 200
+
+
+class ProjectDatabaseRetrievePasswordView(Resource):
+    
+    @jwt_required
+    def get(self, project_id, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+        
+        password_data = dict(password=database_existant.password)
+
+        database_password_data, errors = database_schema.dumps(password_data) 
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+    
+        return dict(status='success', data=json.loads(database_password_data)), 200
+
 
 class ProjectDatabaseAdminView(Resource):
     @admin_required
@@ -783,3 +818,29 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
 
 
         return dict(status='success', message="Database password reset Successfully"), 200
+
+
+class ProjectDatabaseAdminRetrievePasswordView(Resource):
+    
+    @admin_required
+    def get(self, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+        
+        password_data = dict(password=database_existant.password)
+
+        database_password_data, errors = database_schema.dumps(password_data) 
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+    
+        return dict(status='success', data=json.loads(database_password_data)), 200
