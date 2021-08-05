@@ -358,6 +358,38 @@ class ProjectDatabasePasswordResetView(Resource):
 
         return dict(status='success', message="Database password reset Successfully"), 200
 
+
+class ProjectDatabaseRetrievePasswordView(Resource):
+    
+    @jwt_required
+    def get(self, project_id, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+        
+        password_data = dict(password=database_existant.password)
+
+        database_password_data, errors = database_schema.dumps(password_data) 
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+    
+        return dict(status='success', data=json.loads(database_password_data)), 200
+
+
 class ProjectDatabaseAdminView(Resource):
     @admin_required
     def post(self):
@@ -786,3 +818,29 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
 
 
         return dict(status='success', message="Database password reset Successfully"), 200
+
+
+class ProjectDatabaseAdminRetrievePasswordView(Resource):
+    
+    @admin_required
+    def get(self, database_id):
+        """
+        """
+        database_schema = ProjectDatabaseSchema()
+
+        database_existant = ProjectDatabase.get_by_id(database_id)
+
+        if not database_existant:
+            return dict(
+                status="fail",
+                message=f"Database with id {database_id} not found."
+            ), 404
+        
+        password_data = dict(password=database_existant.password)
+
+        database_password_data, errors = database_schema.dumps(password_data) 
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+    
+        return dict(status='success', data=json.loads(database_password_data)), 200

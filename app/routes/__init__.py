@@ -15,8 +15,8 @@ from app.controllers import (
     ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView, 
-    ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView
-)
+    ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView, UserDetailView,
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView)
 
 api = Api()
 
@@ -115,3 +115,5 @@ api.add_resource(ProjectDatabaseResetView, '/projects/<string:project_id>/databa
 api.add_resource(ProjectDatabaseAdminResetView, '/databases/<string:database_id>/reset')
 api.add_resource(ProjectDatabasePasswordResetView, '/projects/<string:project_id>/databases/<string:database_id>/reset_password')
 api.add_resource(ProjectDatabaseAdminPasswordResetView, '/databases/<string:database_id>/reset_password')
+api.add_resource(ProjectDatabaseRetrievePasswordView, '/projects/<string:project_id>/databases/<string:database_id>/password')
+api.add_resource(ProjectDatabaseAdminRetrievePasswordView, '/databases/<string:database_id>/password')
