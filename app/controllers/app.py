@@ -938,7 +938,7 @@ class ProjectAppsDetailView(Resource):
     @jwt_required
     def patch(self, project_id, app_id):
         
-        app_schema = AppSchema(partial=True)
+        app_schema = AppSchema(partial=True, exclude=["name"])
 
         update_data = request.get_json()
 
@@ -960,7 +960,6 @@ class ProjectAppsDetailView(Resource):
         docker_email = validated_update_data.get('docker_email', None)
         image_pull_secret = None
 
-        
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
@@ -998,19 +997,49 @@ class ProjectAppsDetailView(Resource):
                 name=dep_name,
                 namespace=namespace
             )
-
-
             if app_image:
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
+
             if replicas:
+
                 cluster_deployment.spec.replicas = replicas
             if app_port:
                 cluster_deployment.spec.template.spec.containers[0].ports[0].container_port = app_port
-                # TODO: Create a service to listen to new port
+                # get service
+                service_name = f'{app.alias}-service'
+                service = kube_client.kube.read_namespaced_service(
+                    name=service_name,
+                    namespace=namespace
+                )
+
+                if service:
+                    service.spec.ports[0].target_port = app_port
+                    kube_client.kube.replace_namespaced_service(
+                        name=service_name,
+                        namespace=namespace,
+                        body=service
+                    )
+
             if command:
                 cluster_deployment.spec.template.spec.containers[0].command = command
 
-            # Environment variables
+            if env_vars:
+                env =[]
+                env_list = cluster_deployment.spec.template.spec.containers[0].env
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
+                # Add existing app variables
+                for env_item in env_list:
+                    if env_item.name in env_vars:
+                        continue
+                    env.append(client.V1EnvVar(
+                        name=str(env_item.name), value=str(env_item.value)
+                    ))
+                cluster_deployment.spec.template.spec.containers[0].env = env
+
             # How to handle private repo
             # what to do with revisions
 
@@ -1022,20 +1051,18 @@ class ProjectAppsDetailView(Resource):
             )
 
             # update the app in database
-            # updated_app = App.update(app, **validated_update_data)
+            updated_app = App.update(app, **validated_update_data)
 
-            # if not updated_app:
-            #     return dict(
-            #         status='fail',
-            #         message='Internal Server Error'
-            #         ), 500
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                    ), 500
 
             return dict(
                 status='success',
                 message=f'App updated successfully'
                 ), 200
-
-            
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status
