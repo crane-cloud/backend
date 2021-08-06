@@ -70,20 +70,3 @@ def delete_cluster_app(kube_client, namespace, app):
     #         name=pvc_name,
     #         namespace=namespace
     #     )
-
-def update_app_deployment(kube_client, namespace, app, new_deployment):
-
-    deployment_name = f'{app.alias}-deployment'
-
-    deployment = kube_client.appsv1_api.read_namespaced_deployment(
-        name=deployment_name,
-        namespace=namespace
-    )
-
-    if deployment:
-        kube_client.appsv1_api.patch_namespaced_deployment(
-            name=deployment_name,
-            namespace=namespace,
-            body=new_deployment
-        )
-    
