@@ -747,17 +747,20 @@ class ProjectAppsView(Resource):
                 return dict(status='fail', message=errors), 500
 
             apps_data_list = json.loads(apps_data)
-
             for app in apps_data_list:
-                app_status_object = \
-                    kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app['alias']+"-deployment", project.alias)
+                try:
+                    app_status_object = \
+                        kube_client.appsv1_api.read_namespaced_deployment_status(
+                            app['alias']+"-deployment", project.alias)
 
-                app_deployment_status_conditions = app_status_object.status.conditions
+                    app_deployment_status_conditions = app_status_object.status.conditions
 
-                for deplyoment_status_condition in app_deployment_status_conditions:
-                    if deplyoment_status_condition.type == "Available":
-                        app_deployment_status = deplyoment_status_condition.status
+                    for deplyoment_status_condition in app_deployment_status_conditions:
+                        if deplyoment_status_condition.type == "Available":
+                            app_deployment_status = deplyoment_status_condition.status
+                
+                except client.rest.ApiException:
+                    app_deployment_status = None
 
                 try:
                     app_db_status_object = \
@@ -793,7 +796,7 @@ class ProjectAppsView(Resource):
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
-
+    
 
 class AppDetailView(Resource):
 
@@ -843,6 +846,9 @@ class AppDetailView(Resource):
                     app_list['alias']+"-deployment", project.alias)
 
             app_deployment_status_conditions = app_status_object.status.conditions
+
+            app_list["replicas"] = app_status_object.spec.replicas
+            app_list["revisions"] = app_status_object.metadata.annotations.get('deployment.kubernetes.io/revision')
 
             for deplyoment_status_condition in app_deployment_status_conditions:
                 if deplyoment_status_condition.type == "Available":
@@ -934,6 +940,378 @@ class AppDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+    
+    @admin_required
+    def patch(self, app_id):
+        
+        app_schema = AppSchema(partial=True, exclude=["name"])
+
+        update_data = request.get_json()
+
+        validated_update_data, errors = app_schema.load(update_data, partial=True)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
+        
+        app_image = validated_update_data.get('image', None)
+        command = validated_update_data.get('command', None)
+        env_vars = validated_update_data.get('env_vars', None)
+        replicas = validated_update_data.get('replicas', None)
+        app_port = validated_update_data.get('port', None)
+        private_repo = validated_update_data.get('private_image', False)
+        docker_server = validated_update_data.get('docker_server', None)
+        docker_username = validated_update_data.get('docker_username', None)
+        docker_password = validated_update_data.get('docker_password', None)
+        docker_email = validated_update_data.get('docker_email', None)
+        image_pull_secret = None
+
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                    ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+          
+            # Create a deployment object
+            dep_name = f'{app.alias}-deployment'
+
+            cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace
+            )
+
+            if app_image:
+                if private_repo:
+                    try:
+                        app_secret = kube_client.kube.read_namespaced_secret(
+                            namespace=namespace,
+                            name=app.alias
+                        )
+                        # delete secret
+                        kube_client.kube.delete_namespaced_secret(
+                            name=app.alias,
+                            namespace=namespace
+                        )
+                    except Exception as e:
+                        if e.status != 404:
+                            return dict(status='fail', message=str(e)), 500
+                            
+                    # Create new secret
+                    # handle gcr credentials
+                    if 'gcr' in docker_server and docker_username == '_json_key':
+                        docker_password = json.dumps(
+                            json.loads(base64.b64decode(docker_password)))
+
+                    # create image pull secrets
+                    authstring = base64.b64encode(
+                        f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+                    secret_dict = dict(auths={
+                        docker_server: {
+                            "username": docker_username,
+                            "password": str(docker_password),
+                            "email": docker_email,
+                            "auth": str(authstring, "utf-8")
+                        }
+                    })
+
+                    secret_b64 = base64.b64encode(
+                        json.dumps(secret_dict).encode("utf-8"))
+
+                    secret_body = client.V1Secret(
+                        metadata=client.V1ObjectMeta(name=app.alias),
+                        type='kubernetes.io/dockerconfigjson',
+                        data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+                    kube_client.kube.create_namespaced_secret(
+                        namespace=namespace,
+                        body=secret_body,
+                        _preload_content=False)
+
+                    image_pull_secret = client.V1LocalObjectReference(
+                        name=app.alias)
+                    cluster_deployment.spec.template.spec.image_pull_secrets.append(image_pull_secret)
+                    
+                cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+            if replicas:
+                cluster_deployment.spec.replicas = replicas
+
+            if app_port:
+                cluster_deployment.spec.template.spec.containers[0].ports[0].container_port = app_port
+                # get service
+                service_name = f'{app.alias}-service'
+                service = kube_client.kube.read_namespaced_service(
+                    name=service_name,
+                    namespace=namespace
+                )
+
+                if service:
+                    service.spec.ports[0].target_port = app_port
+                    kube_client.kube.replace_namespaced_service(
+                        name=service_name,
+                        namespace=namespace,
+                        body=service
+                    )
+
+            if command:
+                cluster_deployment.spec.template.spec.containers[0].command = command
+
+            if env_vars:
+                env =[]
+                env_list = cluster_deployment.spec.template.spec.containers[0].env
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
+                # Add existing app variables
+                for env_item in env_list:
+                    if env_item.name in env_vars:
+                        continue
+                    env.append(client.V1EnvVar(
+                        name=str(env_item.name), value=str(env_item.value)
+                    ))
+                cluster_deployment.spec.template.spec.containers[0].env = env
+
+            # Update the application
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace,
+                body=cluster_deployment
+            )
+
+            # update the app in database
+            updated_app = App.update(app, **validated_update_data)
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                    ), 500
+
+            return dict(
+                status='success',
+                message=f'App updated successfully'
+                ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
+
+class ProjectAppsDetailView(Resource):
+    @jwt_required
+    def patch(self, project_id, app_id):
+        
+        app_schema = AppSchema(partial=True, exclude=["name"])
+
+        update_data = request.get_json()
+
+        validated_update_data, errors = app_schema.load(update_data, partial=True)
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
+        
+        app_image = validated_update_data.get('image', None)
+        command = validated_update_data.get('command', None)
+        env_vars = validated_update_data.get('env_vars', None)
+        replicas = validated_update_data.get('replicas', None)
+        app_port = validated_update_data.get('port', None)
+        private_repo = validated_update_data.get('private_image', False)
+        docker_server = validated_update_data.get('docker_server', None)
+        docker_username = validated_update_data.get('docker_username', None)
+        docker_password = validated_update_data.get('docker_password', None)
+        docker_email = validated_update_data.get('docker_email', None)
+        image_pull_secret = None
+
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                    ), 404
+            project = Project.get_by_id(project_id)
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+            
+            if project != app.project:
+                return dict(status='fail', message='App does not exist in the project'), 404
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+          
+            # Create a deployment object
+            dep_name = f'{app.alias}-deployment'
+
+            cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace
+            )
+
+            if app_image:
+                if private_repo:
+                    try:
+                        app_secret = kube_client.kube.read_namespaced_secret(
+                            namespace=namespace,
+                            name=app.alias
+                        )
+                        # delete secret
+                        kube_client.kube.delete_namespaced_secret(
+                            name=app.alias,
+                            namespace=namespace
+                        )
+                    except Exception as e:
+                        if e.status != 404:
+                            return dict(status='fail', message=str(e)), 500
+                            
+                    # Create new secret
+                    # handle gcr credentials
+                    if 'gcr' in docker_server and docker_username == '_json_key':
+                        docker_password = json.dumps(
+                            json.loads(base64.b64decode(docker_password)))
+
+                    # create image pull secrets
+                    authstring = base64.b64encode(
+                        f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+                    secret_dict = dict(auths={
+                        docker_server: {
+                            "username": docker_username,
+                            "password": str(docker_password),
+                            "email": docker_email,
+                            "auth": str(authstring, "utf-8")
+                        }
+                    })
+
+                    secret_b64 = base64.b64encode(
+                        json.dumps(secret_dict).encode("utf-8"))
+
+                    secret_body = client.V1Secret(
+                        metadata=client.V1ObjectMeta(name=app.alias),
+                        type='kubernetes.io/dockerconfigjson',
+                        data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+                    kube_client.kube.create_namespaced_secret(
+                        namespace=namespace,
+                        body=secret_body,
+                        _preload_content=False)
+
+                    image_pull_secret = client.V1LocalObjectReference(
+                        name=app.alias)
+                    cluster_deployment.spec.template.spec.image_pull_secrets.append(image_pull_secret)
+                    
+                cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+            if replicas:
+                cluster_deployment.spec.replicas = replicas
+
+            if app_port:
+                cluster_deployment.spec.template.spec.containers[0].ports[0].container_port = app_port
+                # get service
+                service_name = f'{app.alias}-service'
+                service = kube_client.kube.read_namespaced_service(
+                    name=service_name,
+                    namespace=namespace
+                )
+
+                if service:
+                    service.spec.ports[0].target_port = app_port
+                    kube_client.kube.replace_namespaced_service(
+                        name=service_name,
+                        namespace=namespace,
+                        body=service
+                    )
+
+            if command:
+                cluster_deployment.spec.template.spec.containers[0].command = command
+
+            if env_vars:
+                env =[]
+                env_list = cluster_deployment.spec.template.spec.containers[0].env
+                for key, value in env_vars.items():
+                    env.append(client.V1EnvVar(
+                        name=str(key), value=str(value)
+                    ))
+
+                # Add existing app variables
+                for env_item in env_list:
+                    if env_item.name in env_vars:
+                        continue
+                    env.append(client.V1EnvVar(
+                        name=str(env_item.name), value=str(env_item.value)
+                    ))
+                cluster_deployment.spec.template.spec.containers[0].env = env
+
+            # Update the application
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace,
+                body=cluster_deployment
+            )
+
+            # update the app in database
+            updated_app = App.update(app, **validated_update_data)
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                    ), 500
+
+            return dict(
+                status='success',
+                message=f'App updated successfully'
+                ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
 
 class AppMemoryUsageView(Resource):
 
@@ -1257,7 +1635,6 @@ class AppLogsView(Resource):
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
-
 
 class AppStorageUsageView(Resource):
     @jwt_required
