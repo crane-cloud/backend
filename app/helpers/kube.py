@@ -57,6 +57,19 @@ def delete_cluster_app(kube_client, namespace, app):
             namespace=namespace
         )
 
+    try:
+        secret = kube_client.kube.read_namespaced_secret(
+            name=app.alias,
+            namespace=namespace
+        )
+        kube_client.kube.delete_namespaced_secret(
+            name=app.alias,
+            namespace=namespace
+        )
+    except  Exception as e:
+        if e.status != 404:
+            return dict(status='fail', message=str(e)), 500
+
     # delete pvc
     # pvc_name = f'{app.alias}-pvc'
 
