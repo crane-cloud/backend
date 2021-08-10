@@ -2361,10 +2361,6 @@ paths:
                   required: true
                   type: string
                 - in: path
-                  name: project_id
-                  required: true
-                  type: string
-                - in: path
                   name: app_id
                   required: true
                   type: string
@@ -2373,8 +2369,6 @@ paths:
                   schema:
                   properties:
                       image:
-                          type: string
-                      project_id:
                           type: string
                       env_vars:
                           type: object
@@ -2423,8 +2417,6 @@ paths:
                   schema:
                   properties:
                       image:
-                          type: string
-                      project_id:
                           type: string
                       env_vars:
                           type: object
