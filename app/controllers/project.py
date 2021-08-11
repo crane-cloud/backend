@@ -2,7 +2,7 @@ from app.helpers.prometheus import prometheus
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
-from app.helpers.kube import create_kube_clients
+from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -13,6 +13,7 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from app.helpers.db_flavor import get_db_flavour
 
 
 class ProjectsView(Resource):
@@ -200,6 +201,50 @@ class ProjectDetailView(Resource):
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='unauthorised'), 403
+                            
+            # check for dbs in project and delete them from host and CC db
+            databases_list = project.project_databases
+
+            if databases_list:
+                for database in databases_list:
+
+                    database_flavour_name = database.database_flavour_name
+                    if not database_flavour_name:
+                        database_flavour_name= "mysql" 
+
+                    db_flavour = get_db_flavour(database_flavour_name)
+
+                    if not db_flavour:
+                        return dict(
+                            status="fail",
+                            message=f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
+                        ), 409
+
+                    # Delete the database
+                    database_service = db_flavour['class']
+                    database_connection = database_service.check_db_connection()
+
+                    if not database_connection:
+                        return dict(
+                            status="fail",
+                            message=f"Failed to connect to the database service"
+                        ), 500
+
+                    delete_database = database_service.delete_database(
+                        database.name)
+
+                    if not delete_database:
+                        return dict(
+                            status="fail",
+                            message=f"Unable to delete database"
+                        ), 500
+
+                    # Delete database record from database
+                    deleted_database = database.delete()
+
+                    if not deleted_database:
+                        return dict(status='fail', message=f'Internal Server Error'), 500
+
 
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)
@@ -212,8 +257,15 @@ class ProjectDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
+            # check and delete apps within a project
+            apps_list = project.apps
+            if apps_list:
+                for app in apps_list:
+                    delete_cluster_app( kube_client, project.alias, app)
+                    # delete the app from the database
+                    deleted = app.delete()
+        
             # get corresponding namespace
-
             namespace = kube_client.kube.read_namespace(project.alias)
 
             # delete namespace if it exists

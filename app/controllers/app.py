@@ -9,7 +9,7 @@ import datetime
 from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients
+from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -918,43 +918,7 @@ class AppDetailView(Resource):
             kube_client = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
-            deployment_name = f'{app.alias}-deployment'
-            service_name = f'{app.alias}-service'
-            deployment = kube_client.appsv1_api.read_namespaced_deployment(
-                name=deployment_name,
-                namespace=namespace
-            )
-
-            if deployment:
-                kube_client.appsv1_api.delete_namespaced_deployment(
-                    name=deployment_name,
-                    namespace=namespace
-                )
-
-            service = kube_client.kube.read_namespaced_service(
-                name=service_name,
-                namespace=namespace
-            )
-
-            if service:
-                kube_client.kube.delete_namespaced_service(
-                    name=service_name,
-                    namespace=namespace
-                )
-
-            #delete pvc 
-            # pvc_name = f'{app.alias}-pvc'
-
-            # pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
-            #     name=pvc_name,
-            #     namespace=namespace
-            # )
-
-            # if pvc:
-            #     kube_client.kube.delete_namespaced_persistent_volume_claim(
-            #         name=pvc_name,
-            #         namespace=namespace
-            #     )
+            delete_cluster_app(kube_client, namespace, app)
 
             # delete the app from the database
             deleted = app.delete()

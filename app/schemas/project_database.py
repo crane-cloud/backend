@@ -1,6 +1,7 @@
 from marshmallow import Schema, fields, validate, pre_load
 from app.helpers.age_utility import get_item_age
 
+
 class ProjectDatabaseSchema(Schema):
 
     id = fields.String(dump_only=True)
@@ -12,6 +13,12 @@ class ProjectDatabaseSchema(Schema):
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
     ])
+
+    password = fields.String(
+        validate=validate.Regexp(
+            r"""^\S+[^`?*#!$+<>.'"]$""",  error="""Password must not contain these characters `\"$'"""
+        )
+    )
     user = fields.String(error_message={
         "required": "user is required"},
         validate=[
@@ -26,13 +33,7 @@ class ProjectDatabaseSchema(Schema):
                 regex=r'^(?!\s*$)', error='host should be a valid string'
             ),
     ])
-    password = fields.String(error_message={
-        "required": "password is required"},
-        validate=[
-            validate.Regexp(
-                regex=r'^(?!\s*$)', error='password should be a valid string'
-            ),
-    ])
+    
     project_id = fields.String()
     database_flavour_name = fields.String(
         required=True,
@@ -45,6 +46,9 @@ class ProjectDatabaseSchema(Schema):
     date_created = fields.Date(dump_only=True)
     port = fields.Int()
     age = fields.Method("get_age", dump_only=True)
+
+    
+    
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
