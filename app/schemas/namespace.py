@@ -11,6 +11,4 @@ class NamespaceSchema(Schema):
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
         ])
-    # organisation_id = fields.Integer(required=True, error_message={
-    #     "required": "organisation_id"
-    # })
+
