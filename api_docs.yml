@@ -2208,10 +2208,6 @@ paths:
                   required: true
                   type: string
                 - in: path
-                  name: project_id
-                  required: true
-                  type: string
-                - in: path
                   name: app_id
                   required: true
                   type: string
@@ -2220,8 +2216,6 @@ paths:
                   schema:
                   properties:
                       image:
-                          type: string
-                      project_id:
                           type: string
                       env_vars:
                           type: object
@@ -2242,61 +2236,10 @@ paths:
                       docker_email:
                           type: string
                       replicas:
-                          type: number
-
-    "/projects/{project_id}/apps/{app_id}":
-        patch:
-            tags:
-                - apps
-            consumes:
-                - application/json
-            produces:
-                - application/json
-            parameters:
-                - in: header
-                  name: Authorization
-                  required: true
-                  type: string
-                - in: path
-                  name: project_id
-                  required: true
-                  type: string
-                - in: path
-                  name: app_id
-                  required: true
-                  type: string
-                - in: body
-                  name: app data
-                  schema:
-                  properties:
-                      image:
-                          type: string
-                      project_id:
-                          type: string
-                      env_vars:
-                          type: object
-                          additionalProperties:
-                              type: string
-                      port:
-                          type: number
-                      command:
-                          type: string
-                      private_image:
-                          type: boolean
-                      docker_server:
-                          type: string
-                      docker_username:
-                          type: string
-                      docker_password:
-                          type: string
-                      docker_email:
-                          type: string
-                      replicas:
-                          type: number
-              
+                          type: number              
             responses:
-                200:
-                    description: "Cpu metrics for an App"
+                201:
+                    description: "App update successful"
                 404:
                     description: "metrics not found"
                 400:

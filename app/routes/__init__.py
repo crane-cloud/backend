@@ -11,7 +11,7 @@ from app.controllers import (
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView, ProjectAppsDetailView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
+    ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView, 
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
@@ -82,7 +82,6 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 # App routes 
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
-api.add_resource(ProjectAppsDetailView, '/projects/<string:project_id>/apps/<string:app_id>')
 api.add_resource(AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
 api.add_resource(AppNetworkUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/network')
