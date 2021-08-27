@@ -10,9 +10,6 @@ from app.helpers.admin import create_superuser, create_default_roles
 from app.helpers.registry import add_registries
 from app.models.user import User
 from app.models.user_role import UserRole
-from app.models.organisation import Organisation
-from app.models.organisation_members import OrganisationMembers
-from app.models.organisation_admins import OrganisationAdmins
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.models.app import App

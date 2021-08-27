@@ -1,10 +1,9 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OrganisationsView,
-    OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
+    IndexView, UsersView, UserLoginView,NamespacesView,
     NamespaceDetailView, DeploymentsView, RolesView,
     RolesDetailView, UserRolesView, ClustersView,
-    OrgMemberView, OrgAdminView, ClusterDetailView, ClusterNamespacesView,
+    ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
@@ -32,20 +31,6 @@ api.add_resource(EmailVerificationRequest, '/users/verify')
 api.add_resource(ForgotPasswordView, '/users/forgot_password')
 api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
-
-# Organisation routes
-api.add_resource(OrganisationsView, '/organisations', endpoint='organisations')
-api.add_resource(OrganisationDetailView, '/organisations/<string:org_id>', endpoint='organisation')
-
-# Organisation Members routes
-api.add_resource(OrgMemberView, '/organisations/<string:organisation_id>/members', endpoint='org_members')
-
-# Organisation Admins routes
-api.add_resource(OrgAdminView, '/organisations/<string:organisation_id>/admins', endpoint='org_admins')
-
-# Organisation Namespaces
-api.add_resource(
-    OrganisationNamespaceView, '/organisations/<string:organisation_id>/namespaces', endpoint='org_namespaces')
 
 # Namespaces
 api.add_resource(NamespacesView, '/namespaces', endpoint='namespaces')
