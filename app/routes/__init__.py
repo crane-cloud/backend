@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OrganisationsView,
+    IndexView, UsersView, UserLoginView, GithubAuthView, OrganisationsView,
     OrganisationDetailView, NamespacesView, OrganisationNamespaceView,
     NamespaceDetailView, DeploymentsView, RolesView,
     RolesDetailView, UserRolesView, ClustersView,
@@ -32,6 +32,7 @@ api.add_resource(EmailVerificationRequest, '/users/verify')
 api.add_resource(ForgotPasswordView, '/users/forgot_password')
 api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
+api.add_resource(GithubAuthView, '/users/github_auth')
 
 # Organisation routes
 api.add_resource(OrganisationsView, '/organisations', endpoint='organisations')
