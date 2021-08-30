@@ -467,7 +467,7 @@ class ForgotPasswordView(Resource):
             message=f'Password reset link sent to {email}'
             ), 200
 
-class GithubAuthView(Resource):
+class OAuthView(Resource):
 
     def post(self):
         """
@@ -482,6 +482,7 @@ class GithubAuthView(Resource):
                 message='No data received'
                 ), 400
 
+        # Github Oauth
         code = request_data.get('code')
         if not code:
             return dict(
@@ -505,7 +506,7 @@ class GithubAuthView(Resource):
             return dict(status='fail', message="User authentication failed"), 401
 
         response_json = response.json()
-        print(response_json)
+        
         if response_json.get('error'):
             return dict(status='fail', 
                     message=f"{response_json['error'], response_json['error_description']}"), 401

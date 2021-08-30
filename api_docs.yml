@@ -329,7 +329,7 @@ paths:
                 500:
                     description: "Internal Server Error"
     
-    "/users/github_auth":
+    "/users/oauth":
         post:
             tags:
                 - users

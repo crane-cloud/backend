@@ -4,7 +4,7 @@ from .index import IndexView
 from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
-    UserDetailView, AdminLoginView, GithubAuthView)
+    UserDetailView, AdminLoginView, OAuthView)
 from .organisation import OrganisationsView, OrganisationDetailView
 from .namespaces import NamespacesView, OrganisationNamespaceView, NamespaceDetailView
 from .deployments import DeploymentsView
@@ -28,5 +28,5 @@ from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
-                            ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-                            ProjectDatabaseRetrievePasswordView,ProjectDatabaseAdminRetrievePasswordView)
+                               ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
+                               ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView)
