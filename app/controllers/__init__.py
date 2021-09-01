@@ -5,7 +5,6 @@ from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
     UserDetailView, AdminLoginView, OAuthView)
-from .namespaces import NamespacesView, NamespaceDetailView
 from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,

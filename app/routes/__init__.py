@@ -1,7 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, NamespacesView,
-    NamespaceDetailView, DeploymentsView, RolesView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
     RolesDetailView, UserRolesView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -32,10 +31,6 @@ api.add_resource(ForgotPasswordView, '/users/forgot_password')
 api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
-
-# Namespaces
-api.add_resource(NamespacesView, '/namespaces', endpoint='namespaces')
-api.add_resource(NamespaceDetailView, '/namespaces/<string:id>', endpoint='namespace')
 
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
