@@ -4,8 +4,7 @@ from .index import IndexView
 from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
-    UserDetailView, AdminLoginView)
-from .namespaces import NamespacesView, NamespaceDetailView
+    UserDetailView, AdminLoginView, OAuthView)
 from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,
@@ -25,5 +24,5 @@ from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
-                            ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-                            ProjectDatabaseRetrievePasswordView,ProjectDatabaseAdminRetrievePasswordView)
+                               ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
+                               ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView)

@@ -1,5 +1,4 @@
 from .user import UserSchema
-from .namespace import NamespaceSchema
 from .deployment import DeploymentSchema
 from .cluster import ClusterSchema
 from .role import RoleSchema

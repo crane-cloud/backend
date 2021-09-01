@@ -9,7 +9,9 @@ from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
-
+import requests
+import secrets
+import string
 
 class UsersView(Resource):
 
@@ -464,6 +466,117 @@ class ForgotPasswordView(Resource):
             status='success',
             message=f'Password reset link sent to {email}'
             ), 200
+
+class OAuthView(Resource):
+
+    def post(self):
+        """
+        """
+        token_schema = UserSchema(partial=("password"),)
+
+        request_data = request.get_json()
+
+        if not request_data:
+            return dict(
+                status='fail',
+                message='No data received'
+                ), 400
+
+        # Github Oauth
+        code = request_data.get('code')
+        if not code:
+            return dict(
+                status='fail',
+                message='No code received'
+                ), 400
+        data = {
+                'client_id': current_app.config.get('GITHUB_CLIENT_ID'),
+                'client_secret': current_app.config.get('GITHUB_CLIENT_SECRET'),
+                'code': code
+            }
+
+        # exchange the 'code' for an access token
+        response = requests.post(
+            url='https://github.com/login/oauth/access_token',
+            data=data,
+            headers={'Accept': 'application/json'}
+        )
+
+        if response.status_code != 200:
+            return dict(status='fail', message="User authentication failed"), 401
+
+        response_json = response.json()
+        
+        if response_json.get('error'):
+            return dict(status='fail', 
+                    message=f"{response_json['error'], response_json['error_description']}"), 401
+        
+        access_token = response_json['access_token']
+
+        # get the user details using the access token
+        user_response = requests.get(
+            url='https://api.github.com/user',
+            headers={
+                'Accept': 'application/json',
+                'Authorization': f'token {access_token}'
+            }
+        )
+        if user_response.status_code != 200:
+            return dict(status='fail', message="User authentication failed"), 401
+
+        res_json = user_response.json()
+        
+        name = res_json['name']
+        username = res_json['login']
+        email = res_json['email']
+
+        user = User.find_first(email=email)
+
+        # create the user
+        if not user:
+            user = User(
+                email=email,
+                name=name,
+                password= ''.join((secrets.choice(string.ascii_letters)
+                                for i in range(24))),
+            )
+            user.verified = True
+            user.username = username
+            saved_user =user.save()
+
+            if not saved_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
+
+        # update user info
+        user.name = name
+        user.username = username
+        user.verified = True
+        updated_user = user.save()
+        
+        if not updated_user:
+            return dict(status='fail', message='Internal Server Error'), 500
+        
+        # create user token
+        user_dict, errors = token_schema.dump(user)
+        
+        access_token = user.generate_token(user_dict)
+
+        if not access_token:
+            return dict(
+                status="fail",
+                message="Internal Server Error"
+                ), 500
+
+        return dict(
+            status='success',
+            data=dict(
+                access_token=access_token,
+                email=user.email,
+                name=user.name,
+                username=user.username,
+                verified=user.verified,
+                id=str(user.id),
+                )), 200
 
 
 class ResetPasswordView(Resource):

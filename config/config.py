@@ -24,7 +24,10 @@ class Base:
     # EXCEPTIONS 
     PROPAGATE_EXCEPTIONS = True
 
-    
+    # Github auth
+    GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+    GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+
 
 
 class Development(Base):
