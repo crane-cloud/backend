@@ -5,7 +5,8 @@ from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
     UserDetailView, AdminLoginView)
-from .namespaces import NamespacesView, NamespaceDetailView
+from .organisation import OrganisationsView, OrganisationDetailView
+from .namespaces import NamespacesView, OrganisationNamespaceView, NamespaceDetailView
 from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,
@@ -17,6 +18,8 @@ from .clusters import (
     ClusterStorageClassView, ClusterStorageClassDetailView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
+from .organisation_admins import OrgAdminView
+from .organisation_members import OrgMemberView
 from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
