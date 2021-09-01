@@ -546,7 +546,15 @@ class OAuthView(Resource):
 
             if not saved_user:
                 return dict(status='fail', message=f'Internal Server Error'), 500
-    
+
+        # update user info
+        user.name = name
+        user.username = username
+        user.verified = True
+        updated_user = user.save()
+        
+        if not updated_user:
+            return dict(status='fail', message='Internal Server Error'), 500
         
         # create user token
         user_dict, errors = token_schema.dump(user)
