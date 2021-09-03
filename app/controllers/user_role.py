@@ -18,7 +18,8 @@ class UserRolesView(Resource):
 
         user_role_data = request.get_json()
 
-        validated_user_role_data, errors = user_role_schema.load(user_role_data)
+        validated_user_role_data, errors = user_role_schema.load(
+            user_role_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
@@ -56,7 +57,7 @@ class UserRolesView(Resource):
         return dict(
             status='success',
             data=dict(user_role=json.loads(new_user_role_data))
-            ), 201
+        ), 201
 
     def get(self, user_id):
         """
@@ -78,7 +79,7 @@ class UserRolesView(Resource):
         return dict(
             status="success",
             data=dict(user_roles=json.loads(user_role_data))
-            ), 200
+        ), 200
 
     # delete user role
 
@@ -89,7 +90,8 @@ class UserRolesView(Resource):
 
         user_role_data = request.get_json()
 
-        validated_user_role_data, errors = user_role_schema.load(user_role_data)
+        validated_user_role_data, errors = user_role_schema.load(
+            user_role_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
@@ -124,4 +126,4 @@ class UserRolesView(Resource):
         return dict(
             status='success',
             data=dict(user_role=json.loads(new_user_role_data))
-            ), 201
+        ), 201

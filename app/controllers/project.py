@@ -201,7 +201,7 @@ class ProjectDetailView(Resource):
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='unauthorised'), 403
-                            
+
             # check for dbs in project and delete them from host and CC db
             databases_list = project.project_databases
 
@@ -210,7 +210,7 @@ class ProjectDetailView(Resource):
 
                     database_flavour_name = database.database_flavour_name
                     if not database_flavour_name:
-                        database_flavour_name= "mysql" 
+                        database_flavour_name = "mysql"
 
                     db_flavour = get_db_flavour(database_flavour_name)
 
@@ -245,7 +245,6 @@ class ProjectDetailView(Resource):
                     if not deleted_database:
                         return dict(status='fail', message=f'Internal Server Error'), 500
 
-
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)
 
@@ -261,10 +260,10 @@ class ProjectDetailView(Resource):
             apps_list = project.apps
             if apps_list:
                 for app in apps_list:
-                    delete_cluster_app( kube_client, project.alias, app)
+                    delete_cluster_app(kube_client, project.alias, app)
                     # delete the app from the database
                     deleted = app.delete()
-        
+
             # get corresponding namespace
             namespace = kube_client.kube.read_namespace(project.alias)
 
@@ -570,17 +569,17 @@ class ProjectStorageUsageView(Resource):
         prometheus = Prometheus()
 
         try:
-            prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                namespace+'"})'
-            )
-            #  change array values to json 
+            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                                         namespace+'"})'
+                                         )
+            #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
 
-            percentage_data = prometheus.query( metric='sum(100*(kubelet_volume_stats_used_bytes{namespace="' +
-                namespace+'"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                namespace+'"}))'
-            )
+            percentage_data = prometheus.query(metric='sum(100*(kubelet_volume_stats_used_bytes{namespace="' +
+                                               namespace+'"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                                               namespace+'"}))'
+                                               )
 
             data = json.loads(percentage_data)
             volume_perc_value = data["data"]
