@@ -35,6 +35,7 @@ database_flavours = [
     }
 ]
 
+
 def get_db_flavour(flavour_name=None):
     if flavour_name == 'mysql':
         return database_flavours[0]

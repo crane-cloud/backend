@@ -13,6 +13,7 @@ import requests
 import secrets
 import string
 
+
 class UsersView(Resource):
 
     def post(self):
@@ -29,7 +30,7 @@ class UsersView(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         # To do change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -51,7 +52,7 @@ class UsersView(Resource):
             return dict(
                 status="fail",
                 message=f"Email {validated_user_data['email']} already in use."
-                ), 400
+            ), 400
 
         user = User(**validated_user_data)
 
@@ -74,15 +75,15 @@ class UsersView(Resource):
             current_app._get_current_object(),
             template,
             subject
-            )
+        )
 
         new_user_data, errors = user_schema.dumps(user)
 
         return dict(
             status='success',
             data=dict(user=json.loads(new_user_data))
-            ), 201
-            
+        ), 201
+
     @admin_required
     def get(self):
         """
@@ -132,7 +133,7 @@ class UserLoginView(Resource):
             return dict(
                 status='fail',
                 message='email not verified', data=dict(verified=user.verified)
-                ), 401
+            ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -144,7 +145,7 @@ class UserLoginView(Resource):
                 return dict(
                     status="fail",
                     message="Internal Server Error"
-                    ), 500
+                ), 500
 
             return dict(
                 status='success',
@@ -154,7 +155,7 @@ class UserLoginView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -172,7 +173,7 @@ class UserDetailView(Resource):
             return dict(
                 status='fail',
                 message=f'user {user_id} not found'
-                ), 404
+            ), 404
 
         user_data, errors = user_schema.dumps(user)
 
@@ -193,7 +194,7 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'user {user_id} not found'
-                    ), 404
+                ), 404
 
             deleted = user.delete()
 
@@ -203,7 +204,7 @@ class UserDetailView(Resource):
             return dict(
                 status='success',
                 message=f'user {user_id} deleted successfully'
-                ), 200
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -227,7 +228,7 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'User {user_id} not found'
-                    ), 404
+                ), 404
 
             updated = User.update(user, **validate_user_data)
 
@@ -235,12 +236,12 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message='Internal Server Error'
-                    ), 500
+                ), 500
 
             return dict(
                 status='success',
                 message=f'User {user_id} updated successfully'
-                ), 200
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -277,7 +278,7 @@ class AdminLoginView(Resource):
                 status='fail',
                 message='Email not verified',
                 data=dict(verified=user.verified)
-                ), 401
+            ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -297,7 +298,7 @@ class AdminLoginView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -324,7 +325,7 @@ class UserEmailVerificationView(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         if user.verified:
             return dict(
@@ -354,7 +355,7 @@ class UserEmailVerificationView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message='Internal Server Error'), 500
 
@@ -377,7 +378,7 @@ class EmailVerificationRequest(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         # To do, change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -393,7 +394,7 @@ class EmailVerificationRequest(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         # send verification
         send_verification(
@@ -406,12 +407,12 @@ class EmailVerificationRequest(Resource):
             current_app._get_current_object(),
             template,
             subject
-            )
+        )
 
         return dict(
             status='success',
             message=f'Verification link sent to {email}'
-            ), 200
+        ), 200
 
 
 class ForgotPasswordView(Resource):
@@ -432,7 +433,7 @@ class ForgotPasswordView(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         verification_url = f"{client_base_url}/reset_password/"
         secret_key = current_app.config["SECRET_KEY"]
@@ -447,7 +448,7 @@ class ForgotPasswordView(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         # send password reset link
         send_verification(
@@ -465,7 +466,8 @@ class ForgotPasswordView(Resource):
         return dict(
             status='success',
             message=f'Password reset link sent to {email}'
-            ), 200
+        ), 200
+
 
 class OAuthView(Resource):
 
@@ -480,7 +482,7 @@ class OAuthView(Resource):
             return dict(
                 status='fail',
                 message='No data received'
-                ), 400
+            ), 400
 
         # Github Oauth
         code = request_data.get('code')
@@ -488,12 +490,12 @@ class OAuthView(Resource):
             return dict(
                 status='fail',
                 message='No code received'
-                ), 400
+            ), 400
         data = {
-                'client_id': current_app.config.get('GITHUB_CLIENT_ID'),
-                'client_secret': current_app.config.get('GITHUB_CLIENT_SECRET'),
-                'code': code
-            }
+            'client_id': current_app.config.get('GITHUB_CLIENT_ID'),
+            'client_secret': current_app.config.get('GITHUB_CLIENT_SECRET'),
+            'code': code
+        }
 
         # exchange the 'code' for an access token
         response = requests.post(
@@ -506,11 +508,11 @@ class OAuthView(Resource):
             return dict(status='fail', message="User authentication failed"), 401
 
         response_json = response.json()
-        
+
         if response_json.get('error'):
-            return dict(status='fail', 
-                    message=f"{response_json['error'], response_json['error_description']}"), 401
-        
+            return dict(status='fail',
+                        message=f"{response_json['error'], response_json['error_description']}"), 401
+
         access_token = response_json['access_token']
 
         # get the user details using the access token
@@ -525,7 +527,7 @@ class OAuthView(Resource):
             return dict(status='fail', message="User authentication failed"), 401
 
         res_json = user_response.json()
-        
+
         name = res_json['name']
         username = res_json['login']
         email = res_json['email']
@@ -537,12 +539,12 @@ class OAuthView(Resource):
             user = User(
                 email=email,
                 name=name,
-                password= ''.join((secrets.choice(string.ascii_letters)
-                                for i in range(24))),
+                password=''.join((secrets.choice(string.ascii_letters)
+                                  for i in range(24))),
             )
             user.verified = True
             user.username = username
-            saved_user =user.save()
+            saved_user = user.save()
 
             if not saved_user:
                 return dict(status='fail', message=f'Internal Server Error'), 500
@@ -552,20 +554,20 @@ class OAuthView(Resource):
         user.username = username
         user.verified = True
         updated_user = user.save()
-        
+
         if not updated_user:
             return dict(status='fail', message='Internal Server Error'), 500
-        
+
         # create user token
         user_dict, errors = token_schema.dump(user)
-        
+
         access_token = user.generate_token(user_dict)
 
         if not access_token:
             return dict(
                 status="fail",
                 message="Internal Server Error"
-                ), 500
+            ), 500
 
         return dict(
             status='success',
@@ -576,7 +578,7 @@ class OAuthView(Resource):
                 username=user.username,
                 verified=user.verified,
                 id=str(user.id),
-                )), 200
+            )), 200
 
 
 class ResetPasswordView(Resource):
@@ -609,7 +611,7 @@ class ResetPasswordView(Resource):
             return dict(
                 status="fail",
                 message=f'user with email {email} not found'
-                ), 404
+            ), 404
 
         if not user.verified:
             return dict(

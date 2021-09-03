@@ -19,6 +19,6 @@ class RegistriesView(Resource):
 
         if errors:
             return dict(status='fail', message='Internal Server Error'), 500
-  
+
         return dict(status='success',
                     data=dict(registries=json.loads(validated_reg_data))), 200

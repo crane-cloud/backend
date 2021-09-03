@@ -193,7 +193,7 @@ class ProjectDatabaseDetailView(Resource):
 
         database_flavour_name = database_existant.database_flavour_name
         if not database_flavour_name:
-            database_flavour_name= "mysql" 
+            database_flavour_name = "mysql"
 
         db_flavour = get_db_flavour(database_flavour_name)
 
@@ -257,7 +257,7 @@ class ProjectDatabaseDetailView(Resource):
         # Check the database status on host
         flavour_name = database_existant.database_flavour_name
         if not flavour_name:
-            flavour_name= "mysql"           
+            flavour_name = "mysql"
 
         db_flavour = get_db_flavour(flavour_name)
 
@@ -269,7 +269,7 @@ class ProjectDatabaseDetailView(Resource):
 
         database_service = db_flavour['class']
 
-        # Get db status  
+        # Get db status
         try:
             database_connection = database_service.create_db_connection(
                 user=database_existant.user, password=database_existant.password, db_name=database_existant.name)
@@ -294,6 +294,7 @@ class ProjectDatabaseDetailView(Resource):
 
         return dict(status='success', data=dict(database=database_data_list)), 200
 
+
 class ProjectDatabasePasswordResetView(Resource):
 
     @jwt_required
@@ -303,12 +304,12 @@ class ProjectDatabasePasswordResetView(Resource):
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
-        validated_database_data, errors = database_schema.load(database_data, partial=("database_flavour_name",))
-        
+        validated_database_data, errors = database_schema.load(
+            database_data, partial=("database_flavour_name",))
 
         if errors:
             return dict(status="fail", message=errors), 400
-        
+
         new_database_password = validated_database_data.get(
             'password', None)
 
@@ -344,7 +345,7 @@ class ProjectDatabasePasswordResetView(Resource):
             ), 500
 
         reset_database_password = database_service.reset_password(user=database_existant.user,
-            password=new_database_password)
+                                                                  password=new_database_password)
 
         if not reset_database_password:
             return dict(
@@ -352,7 +353,8 @@ class ProjectDatabasePasswordResetView(Resource):
                 message=f"Unable to reset database password"
             ), 500
 
-        updated = ProjectDatabase.update(database_existant, **validated_database_data)        
+        updated = ProjectDatabase.update(
+            database_existant, **validated_database_data)
         if not updated:
             return dict(status='fail', message='internal server error'), 500
 
@@ -360,7 +362,7 @@ class ProjectDatabasePasswordResetView(Resource):
 
 
 class ProjectDatabaseRetrievePasswordView(Resource):
-    
+
     @jwt_required
     def get(self, project_id, database_id):
         """
@@ -379,14 +381,14 @@ class ProjectDatabaseRetrievePasswordView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-        
+
         password_data = dict(password=database_existant.password)
 
-        database_password_data, errors = database_schema.dumps(password_data) 
+        database_password_data, errors = database_schema.dumps(password_data)
 
         if errors:
             return dict(status='fail', message=errors), 500
-    
+
         return dict(status='success', data=json.loads(database_password_data)), 200
 
 
@@ -543,7 +545,6 @@ class ProjectDatabaseAdminView(Resource):
                             database_connection.close()
 
             database['db_status'] = db_status
-
 
         return dict(status='success', data=dict(databases=database_data_list)), 200
 
@@ -760,6 +761,7 @@ class ProjectDatabaseAdminResetView(Resource):
 
         return dict(status='success', message="Database Reset Successfully"), 200
 
+
 class ProjectDatabaseAdminPasswordResetView(Resource):
 
     @admin_required
@@ -769,7 +771,8 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
-        validated_database_data, errors = database_schema.load(database_data , partial=("database_flavour_name",))
+        validated_database_data, errors = database_schema.load(
+            database_data, partial=("database_flavour_name",))
         if errors:
             return dict(status="fail", message=errors), 400
 
@@ -803,25 +806,25 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
             ), 500
 
         reset_database_password = database_service.reset_password(user=database_existant.user,
-            password=new_database_password)
+                                                                  password=new_database_password)
 
         if not reset_database_password:
             return dict(
                 status="fail",
                 message=f"Unable to reset database password"
             ), 500
-            
-        updated = ProjectDatabase.update(database_existant, **validated_database_data)
+
+        updated = ProjectDatabase.update(
+            database_existant, **validated_database_data)
 
         if not updated:
             return dict(status='fail', message='internal server error'), 500
-
 
         return dict(status='success', message="Database password reset Successfully"), 200
 
 
 class ProjectDatabaseAdminRetrievePasswordView(Resource):
-    
+
     @admin_required
     def get(self, database_id):
         """
@@ -835,12 +838,12 @@ class ProjectDatabaseAdminRetrievePasswordView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-        
+
         password_data = dict(password=database_existant.password)
 
-        database_password_data, errors = database_schema.dumps(password_data) 
+        database_password_data, errors = database_schema.dumps(password_data)
 
         if errors:
             return dict(status='fail', message=errors), 500
-    
+
         return dict(status='success', data=json.loads(database_password_data)), 200

@@ -97,29 +97,35 @@ class ClusterDetailView(Resource):
             resource_count.append(dict(name='nodes', count=node_count))
 
             # get count of pvcs in the cluster
-            pvc_count = len(kube_client.kube.list_persistent_volume_claim_for_all_namespaces().items)
+            pvc_count = len(
+                kube_client.kube.list_persistent_volume_claim_for_all_namespaces().items)
 
             resource_count.append(dict(name='PVCs', count=pvc_count))
 
             # get count of all pods in the cluster
-            pod_count = len(kube_client.kube.list_pod_for_all_namespaces().items)
+            pod_count = len(
+                kube_client.kube.list_pod_for_all_namespaces().items)
 
             resource_count.append(dict(name='pods', count=pod_count))
 
             # get count of all services
-            service_count = len(kube_client.kube.list_service_for_all_namespaces().items)
+            service_count = len(
+                kube_client.kube.list_service_for_all_namespaces().items)
 
             resource_count.append(dict(name='services', count=service_count))
 
             # get count of all deployments
-            deployment_count = len(kube_client.appsv1_api.list_deployment_for_all_namespaces().items)
+            deployment_count = len(
+                kube_client.appsv1_api.list_deployment_for_all_namespaces().items)
 
-            resource_count.append(dict(name='deployments', count=deployment_count))
+            resource_count.append(
+                dict(name='deployments', count=deployment_count))
 
             # get count of all namespaces in the cluster
             namespace_count = len(kube_client.kube.list_namespace().items)
 
-            resource_count.append(dict(name='namespaces', count=namespace_count))
+            resource_count.append(
+                dict(name='namespaces', count=namespace_count))
 
             resource_count_json = json.dumps(resource_count)
 
@@ -128,7 +134,7 @@ class ClusterDetailView(Resource):
                 data=dict(
                     cluster=json.loads(validated_cluster_data),
                     resource_count=json.loads(resource_count_json))
-                ), 200
+            ), 200
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
@@ -199,7 +205,7 @@ class ClusterNamespacesView(Resource):
 
             # get all namespaces in the cluster
             namespace_resp = kube_client.kube.list_namespace()
-            
+
             for item in namespace_resp.items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 namespaces.append(item)
@@ -229,7 +235,7 @@ class ClusterNamespaceDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -237,7 +243,8 @@ class ClusterNamespaceDetailView(Resource):
             kube_client = create_kube_clients(kube_host, kube_token)
 
             namespace = kube_client.kube.read_namespace(name=namespace_name)
-            namespace = kube_client.api_client.sanitize_for_serialization(namespace)
+            namespace = kube_client.api_client.sanitize_for_serialization(
+                namespace)
 
             namespace_json = json.dumps(namespace)
 
@@ -372,18 +379,18 @@ class ClusterDeploymentDetailView(Resource):
 
             deployment = kube_client.appsv1_api.read_namespaced_deployment(
                 deployment_name, namespace_name
-                )
+            )
 
             deployment = kube_client.api_client.sanitize_for_serialization(
                 deployment
-                )
+            )
 
             deployment_json = json.dumps(deployment)
 
             return dict(
                 status='success',
                 data=dict(deployment=json.loads(deployment_json))
-                ), 200
+            ), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -449,7 +456,7 @@ class ClusterPvcDetailView(Resource):
 
             pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
                 pvc_name, namespace_name
-                )
+            )
 
             pvc = kube_client.api_client.sanitize_for_serialization(pvc)
 
@@ -513,7 +520,7 @@ class ClusterPVDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -549,7 +556,7 @@ class ClusterPodsView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -590,7 +597,8 @@ class ClusterPodDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            pod = kube_client.kube.read_namespaced_pod(pod_name, namespace_name)
+            pod = kube_client.kube.read_namespaced_pod(
+                pod_name, namespace_name)
             pod = kube_client.api_client.sanitize_for_serialization(pod)
 
             pod_json = json.dumps(pod)
@@ -619,7 +627,7 @@ class ClusterServicesView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -661,8 +669,10 @@ class ClusterServiceDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            service = kube_client.kube.read_namespaced_service(service_name, namespace_name)
-            service = kube_client.api_client.sanitize_for_serialization(service)
+            service = kube_client.kube.read_namespaced_service(
+                service_name, namespace_name)
+            service = kube_client.api_client.sanitize_for_serialization(
+                service)
 
             service_json = json.dumps(service)
 
@@ -728,7 +738,8 @@ class ClusterJobDetailView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            job = kube_client.batchv1_api.read_namespaced_job(job_name, namespace_name)
+            job = kube_client.batchv1_api.read_namespaced_job(
+                job_name, namespace_name)
 
             job = kube_client.api_client.sanitize_for_serialization(job)
 
@@ -758,7 +769,7 @@ class ClusterStorageClassView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -776,7 +787,7 @@ class ClusterStorageClassView(Resource):
             return dict(
                 status='success',
                 data=dict(storage_classes=json.loads(storage_classes_json))
-                ), 200
+            ), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -798,7 +809,7 @@ class ClusterStorageClassDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
-                    ), 404
+                ), 404
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -809,14 +820,15 @@ class ClusterStorageClassDetailView(Resource):
                 kube_client.storageV1Api.read_storage_class(storage_class_name)
 
             storage_class =\
-                kube_client.api_client.sanitize_for_serialization(storage_class)
+                kube_client.api_client.sanitize_for_serialization(
+                    storage_class)
 
             storage_class_json = json.dumps(storage_class)
 
             return dict(
                 status='success',
                 data=dict(storage_class=json.loads(storage_class_json))
-                ), 200
+            ), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status

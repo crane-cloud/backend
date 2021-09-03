@@ -161,10 +161,10 @@ class AppsView(Resource):
             # pvc_spec = client.V1PersistentVolumeClaimSpec(
             #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-            # Create a PVC 
+            # Create a PVC
             # pvc = client.V1PersistentVolumeClaim(
             #     api_version="v1",
-            #     kind="PersistentVolumeClaim", 
+            #     kind="PersistentVolumeClaim",
             #     metadata=pvc_meta,
             #     spec=pvc_spec
             # )
@@ -244,7 +244,8 @@ class AppsView(Resource):
                 labels={'app': app_alias}
             )
 
-            service_port = client.V1ServicePort(port=3000, target_port=app_port)
+            service_port = client.V1ServicePort(
+                port=3000, target_port=app_port)
 
             service_spec = client.V1ServiceSpec(
                 type='ClusterIP',
@@ -273,7 +274,7 @@ class AppsView(Resource):
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
                 service_name=service_name,
                 service_port=3000
-                )
+            )
 
             new_ingress_rule = client.ExtensionsV1beta1IngressRule(
                 host=sub_domain,
@@ -281,9 +282,9 @@ class AppsView(Resource):
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
                         path="",
                         backend=new_ingress_backend
-                        )]
-                    )
+                    )]
                 )
+            )
 
             ingress_name = f'{project.alias}-ingress'
 
@@ -510,10 +511,10 @@ class ProjectAppsView(Resource):
             # pvc_spec = client.V1PersistentVolumeClaimSpec(
             #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
 
-            # Create a PVC 
+            # Create a PVC
             # pvc = client.V1PersistentVolumeClaim(
             #     api_version="v1",
-            #     kind="PersistentVolumeClaim", 
+            #     kind="PersistentVolumeClaim",
             #     metadata=pvc_meta,
             #     spec=pvc_spec
             # )
@@ -522,7 +523,6 @@ class ProjectAppsView(Resource):
             #     namespace=namespace,
             #     body=pvc
             # )
-
 
             # create deployment
             dep_name = f'{app_alias}-deployment'
@@ -545,7 +545,7 @@ class ProjectAppsView(Resource):
                 # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
             )
 
-            #pod volumes 
+            # pod volumes
             # volumes = client.V1Volume(
             #     name=dep_name
             #     # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
@@ -624,7 +624,7 @@ class ProjectAppsView(Resource):
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
                 service_name=service_name,
                 service_port=3000
-                )
+            )
 
             new_ingress_rule = client.ExtensionsV1beta1IngressRule(
                 host=sub_domain,
@@ -632,9 +632,9 @@ class ProjectAppsView(Resource):
                     paths=[client.ExtensionsV1beta1HTTPIngressPath(
                         path="",
                         backend=new_ingress_backend
-                        )]
-                    )
+                    )]
                 )
+            )
 
             ingress_name = f'{project.alias}-ingress'
 
@@ -758,7 +758,7 @@ class ProjectAppsView(Resource):
                     for deplyoment_status_condition in app_deployment_status_conditions:
                         if deplyoment_status_condition.type == "Available":
                             app_deployment_status = deplyoment_status_condition.status
-                
+
                 except client.rest.ApiException:
                     app_deployment_status = None
 
@@ -796,7 +796,7 @@ class ProjectAppsView(Resource):
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
-    
+
 
 class AppDetailView(Resource):
 
@@ -848,7 +848,8 @@ class AppDetailView(Resource):
             app_deployment_status_conditions = app_status_object.status.conditions
 
             app_list["replicas"] = app_status_object.spec.replicas
-            app_list["revisions"] = app_status_object.metadata.annotations.get('deployment.kubernetes.io/revision')
+            app_list["revisions"] = app_status_object.metadata.annotations.get(
+                'deployment.kubernetes.io/revision')
 
             for deplyoment_status_condition in app_deployment_status_conditions:
                 if deplyoment_status_condition.type == "Available":
@@ -942,17 +943,17 @@ class AppDetailView(Resource):
 
     @jwt_required
     def patch(self, app_id):
-        
+
         app_schema = AppSchema(partial=True, exclude=["name"])
 
         update_data = request.get_json()
 
-        validated_update_data, errors = app_schema.load(update_data, partial=True)
+        validated_update_data, errors = app_schema.load(
+            update_data, partial=True)
 
         if errors:
             return dict(status="fail", message=errors), 400
-        
-        
+
         app_image = validated_update_data.get('image', None)
         command = validated_update_data.get('command', None)
         env_vars = validated_update_data.get('env_vars', None)
@@ -975,7 +976,7 @@ class AppDetailView(Resource):
                 return dict(
                     status="fail",
                     message=f"App with id {app_id} not found"
-                    ), 404
+                ), 404
             project = app.project
 
             if not project:
@@ -994,7 +995,7 @@ class AppDetailView(Resource):
             kube_token = cluster.token
 
             kube_client = create_kube_clients(kube_host, kube_token)
-          
+
             # Create a deployment object
             dep_name = f'{app.alias}-deployment'
 
@@ -1018,7 +1019,7 @@ class AppDetailView(Resource):
                     except Exception as e:
                         if e.status != 404:
                             return dict(status='fail', message=str(e)), 500
-                            
+
                     # Create new secret
                     # handle gcr credentials
                     if 'gcr' in docker_server and docker_username == '_json_key':
@@ -1053,8 +1054,9 @@ class AppDetailView(Resource):
 
                     image_pull_secret = client.V1LocalObjectReference(
                         name=app.alias)
-                    cluster_deployment.spec.template.spec.image_pull_secrets.append(image_pull_secret)
-                    
+                    cluster_deployment.spec.template.spec.image_pull_secrets.append(
+                        image_pull_secret)
+
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
 
             if replicas:
@@ -1081,7 +1083,7 @@ class AppDetailView(Resource):
                 cluster_deployment.spec.template.spec.containers[0].command = command
 
             if env_vars:
-                env =[]
+                env = []
                 env_list = cluster_deployment.spec.template.spec.containers[0].env
                 for key, value in env_vars.items():
                     env.append(client.V1EnvVar(
@@ -1111,18 +1113,20 @@ class AppDetailView(Resource):
                 return dict(
                     status='fail',
                     message='Internal Server Error'
-                    ), 500
+                ), 500
 
             return dict(
                 status='success',
                 message=f'App updated successfully'
-                ), 200
+            ), 200
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
+
+
 class AppMemoryUsageView(Resource):
 
     @jwt_required
@@ -1446,6 +1450,7 @@ class AppLogsView(Resource):
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
 
+
 class AppStorageUsageView(Resource):
     @jwt_required
     def post(self, project_id, app_id):
@@ -1479,21 +1484,21 @@ class AppStorageUsageView(Resource):
         prometheus = Prometheus()
 
         try:
-            prom_data = prometheus.query( metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-            )
-            #  change array values to json 
+            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                                         namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+                                         )
+            #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
 
-            percentage_data = prometheus.query( metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
-                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-            )
+            percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
+                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+                                               )
 
             data = json.loads(percentage_data)
             volume_perc_value = data["data"]
         except:
             return dict(status='fail', message='No values found'), 404
 
-        return dict(status='success', data=dict(storage_capacity=values,storage_percentage_usage=volume_perc_value)), 200
+        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
