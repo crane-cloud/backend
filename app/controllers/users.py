@@ -530,7 +530,9 @@ class OAuthView(Resource):
 
         res_json = user_response.json()
 
-        name = res_json.get('name', res_json['login'])
+        name = res_json.get('name')
+        if not name:
+            name = res_json['login']
         username = res_json['login']
         email = res_json['email']
 
