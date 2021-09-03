@@ -491,6 +491,7 @@ class OAuthView(Resource):
                 status='fail',
                 message='No code received'
             ), 400
+
         data = {
             'client_id': current_app.config.get('GITHUB_CLIENT_ID'),
             'client_secret': current_app.config.get('GITHUB_CLIENT_SECRET'),
@@ -523,14 +524,26 @@ class OAuthView(Resource):
                 'Authorization': f'token {access_token}'
             }
         )
+
         if user_response.status_code != 200:
             return dict(status='fail', message="User authentication failed"), 401
 
         res_json = user_response.json()
 
-        name = res_json['name']
+        name = res_json.get('name', res_json['login'])
         username = res_json['login']
         email = res_json['email']
+
+        if not email:
+            new_res = requests.get(
+                url='https://api.github.com/user/emails',
+                headers={
+                    'Accept': 'application/json',
+                    'Authorization': f'token {access_token}'
+                }
+            )
+            res_json = new_res.json()
+            email = res_json[0]['email']
 
         user = User.find_first(email=email)
 
