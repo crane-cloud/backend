@@ -413,7 +413,32 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
-        
+
+    "/clusters/stats":
+        get:
+            tags:
+                - clusters
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "Stats on clusters"
+                404:
+                    description: "Cluster stats not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/clusters/{cluster_id}":
         get:
             tags:

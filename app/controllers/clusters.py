@@ -63,6 +63,28 @@ class ClustersView(Resource):
         return dict(status='Success',
                     data=dict(clusters=json.loads(validated_cluster_data))), 200
 
+class ClusterStatsView(Resource):
+    
+    @admin_required
+    def get(self):
+        """
+        Get stats about the clusters
+        """
+
+        cluster_schema = ClusterSchema(many=True)
+
+        clusters = Cluster.find_all()
+
+        validated_cluster_data, errors = cluster_schema.dumps(clusters)
+
+        if errors:
+            return dict(status='fail', message='Internal Server Error'), 500
+        
+        clusters_data_list = json.loads(validated_cluster_data)
+        cluster_count = len(clusters_data_list)
+
+        return dict(status='Success',
+                    data=dict(clusters=dict(cluster_count=cluster_count))), 200
 
 class ClusterDetailView(Resource):
 

@@ -14,7 +14,7 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView, 
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView)
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, ClusterStatsView)
 
 api = Api()
 
@@ -56,6 +56,7 @@ api.add_resource(ClusterJobsView, '/clusters/<string:cluster_id>/jobs')
 api.add_resource(ClusterJobDetailView, '/clusters/<string:cluster_id>/jobs/<string:namespace_name>/<string:job_name>')
 api.add_resource(ClusterStorageClassView, '/clusters/<string:cluster_id>/storage_classes')
 api.add_resource(ClusterStorageClassDetailView, '/clusters/<string:cluster_id>/storage_classes/<string:storage_class_name>')
+api.add_resource(ClusterStatsView, '/clusters/stats')
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')

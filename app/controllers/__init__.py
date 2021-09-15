@@ -13,7 +13,7 @@ from .clusters import (
     ClusterPvcDetailView, ClusterPVsView, ClusterPVDetailView,
     ClusterPodsView, ClusterPodDetailView, ClusterServicesView,
     ClusterServiceDetailView, ClusterJobsView, ClusterJobDetailView,
-    ClusterStorageClassView, ClusterStorageClassDetailView)
+    ClusterStorageClassView, ClusterStorageClassDetailView, ClusterStatsView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
 from .project import (
