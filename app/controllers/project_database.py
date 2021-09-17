@@ -847,3 +847,38 @@ class ProjectDatabaseAdminRetrievePasswordView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=json.loads(database_password_data)), 200
+
+
+class DatabaseStatsView(Resource):
+    @admin_required
+    def get(self):
+        """
+        """
+        database_schema = ProjectDatabaseSchema(many=True)
+        
+        databases = ProjectDatabase.find_all()
+        print(databases)
+
+        validated_database_data, errors = database_schema.dumps(databases)
+
+        if errors:
+            return dict(status='fail', message='Internal Server Error'), 500
+        
+        # get total number of databases
+        databases_data_list = json.loads(validated_database_data)
+        database_count = len(databases_data_list)
+
+        # get databases count per flavour
+
+        flavour_list = []
+        for database in databases_data_list:
+            flavour_list.append(database['database_flavour_name'])
+        
+        dbs_per_flavour = {}
+        for flavour in flavour_list:
+            dbs_per_flavour[flavour] = dbs_per_flavour.get(flavour, 0) + 1
+
+        data = dict(total_database_count=database_count,dbs_stats_per_flavour=dbs_per_flavour)
+
+        return dict(status='Success',
+                    data=dict(databases=data)), 200
