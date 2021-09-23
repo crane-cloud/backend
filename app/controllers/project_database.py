@@ -8,7 +8,7 @@ from app.helpers.database_service import MysqlDbService, PostgresqlDbService, ge
 from app.models.project import Project
 from flask_jwt_extended import jwt_required
 from app.helpers.decorators import admin_required
-from app.helpers.db_flavor import get_db_flavour
+from app.helpers.db_flavor import get_db_flavour,database_flavours
 
 
 class ProjectDatabaseView(Resource):
@@ -847,3 +847,25 @@ class ProjectDatabaseAdminRetrievePasswordView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=json.loads(database_password_data)), 200
+
+
+class DatabaseStatsView(Resource):
+    @admin_required
+    def get(self):
+        """
+        """
+
+        # get databases count per flavour
+        dbs_per_flavour = {}
+        tot_database_count=0
+        for flavour in database_flavours:
+            databases = ProjectDatabase.find_all(database_flavour_name=flavour['name'])
+            database_count = len(databases)
+            dbs_per_flavour[f"{flavour['name']}_db_count"]= database_count
+
+            tot_database_count = tot_database_count + database_count
+
+        data = dict(total_database_count=tot_database_count,dbs_stats_per_flavour=dbs_per_flavour)
+
+        return dict(status='Success',
+                    data=dict(databases=data)), 200
