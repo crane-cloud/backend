@@ -8,7 +8,7 @@ from app.helpers.database_service import MysqlDbService, PostgresqlDbService, ge
 from app.models.project import Project
 from flask_jwt_extended import jwt_required
 from app.helpers.decorators import admin_required
-from app.helpers.db_flavor import get_db_flavour
+from app.helpers.db_flavor import get_db_flavour,database_flavours
 
 
 class ProjectDatabaseView(Resource):
@@ -854,31 +854,18 @@ class DatabaseStatsView(Resource):
     def get(self):
         """
         """
-        database_schema = ProjectDatabaseSchema(many=True)
-        
-        databases = ProjectDatabase.find_all()
-        print(databases)
-
-        validated_database_data, errors = database_schema.dumps(databases)
-
-        if errors:
-            return dict(status='fail', message='Internal Server Error'), 500
-        
-        # get total number of databases
-        databases_data_list = json.loads(validated_database_data)
-        database_count = len(databases_data_list)
 
         # get databases count per flavour
-
-        flavour_list = []
-        for database in databases_data_list:
-            flavour_list.append(database['database_flavour_name'])
-        
         dbs_per_flavour = {}
-        for flavour in flavour_list:
-            dbs_per_flavour[flavour] = dbs_per_flavour.get(flavour, 0) + 1
+        tot_database_count=0
+        for flavour in database_flavours:
+            databases = ProjectDatabase.find_all(database_flavour_name=flavour['name'])
+            database_count = len(databases)
+            dbs_per_flavour[f"{flavour['name']}_db_count"]= database_count
 
-        data = dict(total_database_count=database_count,dbs_stats_per_flavour=dbs_per_flavour)
+            tot_database_count = tot_database_count + database_count
+
+        data = dict(total_database_count=tot_database_count,dbs_stats_per_flavour=dbs_per_flavour)
 
         return dict(status='Success',
                     data=dict(databases=data)), 200
