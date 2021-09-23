@@ -60,8 +60,11 @@ class ClustersView(Resource):
         if errors:
             return dict(status='fail', message='Internal Server Error'), 500
 
+        clusters_data_list = json.loads(validated_cluster_data)
+        cluster_count = len(clusters_data_list)
+
         return dict(status='Success',
-                    data=dict(clusters=json.loads(validated_cluster_data))), 200
+                    data=dict(clusters=json.loads(validated_cluster_data),metadata=dict(cluster_count=cluster_count))), 200
 
 
 class ClusterDetailView(Resource):
