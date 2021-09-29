@@ -348,14 +348,23 @@ class ClusterDeploymentsView(Resource):
 
             deployment_resp =\
                 kube_client.appsv1_api.list_deployment_for_all_namespaces()
-
+            tot_deployment_count = 0
+            tot_success_deployments=0
             for item in deployment_resp.items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 deployments.append(item)
 
+                if((item["status"]["conditions"][0]["status"]=="True") and (item["status"]["conditions"][1]["status"]=="True")):
+                    tot_success_deployments = tot_success_deployments + 1
+
+                tot_deployment_count = tot_deployment_count +1
+
+            tot_failed_deployments = tot_deployment_count - tot_success_deployments
+
+            summary_stats_metadata = dict(total_deployment_count=tot_deployment_count, total_successful_deployments=tot_success_deployments,total_failed_deployment=tot_failed_deployments)
             deployments_json = json.dumps(deployments)
 
-            return dict(status='success', data=dict(deployments=json.loads(deployments_json))), 200
+            return dict(status='success', data=dict(deployments=json.loads(deployments_json), deployment_summary_stats=summary_stats_metadata)), 200
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
