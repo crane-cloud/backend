@@ -850,6 +850,22 @@ class AppDetailView(Resource):
             app_list["replicas"] = app_status_object.spec.replicas
             app_list["revisions"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
+            # Get app command
+            app_command = app_status_object.spec.template.spec.containers[0].command
+            if app_command:
+                app_list["command"] = ' '.join(app_command)
+            else:
+                app_list["command"] = app_command
+
+            # Get environment variables
+            env_list = app_status_object.spec.template.spec.containers[0].env
+            envs = {}
+            if not env_list:
+                app_list["env_vars"] = env_list
+            else:
+                for item in env_list:
+                    envs[item.name] = item.value
+                app_list["env_vars"] = envs
 
             for deplyoment_status_condition in app_deployment_status_conditions:
                 if deplyoment_status_condition.type == "Available":
@@ -1078,13 +1094,14 @@ class AppDetailView(Resource):
                         namespace=namespace,
                         body=service
                     )
-
             if command:
-                cluster_deployment.spec.template.spec.containers[0].command = command
+                cluster_deployment.spec.template.spec.containers[0].command = command.split()
 
             if env_vars:
                 env = []
                 env_list = cluster_deployment.spec.template.spec.containers[0].env
+                if not env_list:
+                    env_list = []
                 for key, value in env_vars.items():
                     env.append(client.V1EnvVar(
                         name=str(key), value=str(value)
