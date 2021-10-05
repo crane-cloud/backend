@@ -3,7 +3,7 @@ import os
 from flask import current_app
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema
+from app.schemas import UserSchema, UserGraphSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
@@ -12,6 +12,9 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
+from sqlalchemy import func, column
+from app.models import db
+from datetime import date, datetime
 
 
 class UsersView(Resource):
@@ -641,3 +644,61 @@ class ResetPasswordView(Resource):
 
         return dict(
             status='success', message='password reset successfully'), 200
+
+
+class UserDataSummaryView(Resource):
+
+    @admin_required
+    def post(self):
+        """
+        Shows new users per month or year
+        """
+        user_filter_data = request.get_json()
+        filter_schema = UserGraphSchema()
+
+        validated_query_data, errors = filter_schema.load(user_filter_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start', '2018-01-01')
+        end = validated_query_data.get('end', datetime.now())
+        set_by = validated_query_data.get('set_by', 'month')
+        total_users = len(User.find_all())
+        print(set_by)
+        if set_by == 'month':
+            date_list = func.generate_series(
+                start, end, '1 month').alias('month')
+            month = column('month')
+
+            user_data = db.session.query(month, func.count(User.id)).\
+                select_from(date_list).\
+                outerjoin(User, func.date_trunc('month', User.date_created) == month).\
+                group_by(month).\
+                order_by(month).\
+                all()
+
+        else:
+            date_list = func.generate_series(
+                start, end, '1 year').alias('year')
+            year = column('year')
+
+            user_data = db.session.query(year, func.count(User.id)).\
+                select_from(date_list).\
+                outerjoin(User, func.date_trunc('year', User.date_created) == year).\
+                group_by(year).\
+                order_by(year).\
+                all()
+
+        user_info = []
+        for item in user_data:
+            item_dict = {
+                'year': item[0].year, 'month': item[0].month, 'value': item[1]
+            }
+            user_info.append(item_dict)
+        return dict(
+            status='success',
+            data=dict(
+                metadata=dict(total_users=total_users),
+                graph_data=user_info)
+        ), 200

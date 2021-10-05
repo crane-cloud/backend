@@ -6,6 +6,6 @@ from .user_role import UserRoleSchema
 from .project import ProjectSchema
 from .app import AppSchema
 from .registry import RegistrySchema
-from .monitoring_metrics import MetricsSchema
+from .monitoring_metrics import (MetricsSchema, UserGraphSchema)
 from .pod_logs import PodsLogsSchema
 from .project_database import ProjectDatabaseSchema
