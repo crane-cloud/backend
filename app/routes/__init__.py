@@ -14,7 +14,7 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView)
 
 api = Api()
 
@@ -106,6 +106,7 @@ api.add_resource(
     AppLogsView, '/projects/<string:project_id>/apps/<string:app_id>/logs')
 api.add_resource(AppStorageUsageView,
                  '/projects/<string:project_id>/apps/<string:app_id>/metrics/storage')
+api.add_resource(AppDataSummaryView, '/apps/summary')
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')

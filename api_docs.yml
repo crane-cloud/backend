@@ -2227,7 +2227,39 @@ paths:
                         description: "Error"
                     500:
                         description: "Internal Server Error"
-    
+
+    "/apps/summary":
+        post:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                - in: body
+                  name: app
+                  schema:
+                    type: object
+                    properties:
+                        start:
+                            type: string
+                        end:
+                            type: string
+                        set_by:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/apps/{app_id}":
         get:
             tags:

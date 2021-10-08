@@ -20,7 +20,7 @@ from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
-                  AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView)
+                  AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView, AppDataSummaryView)
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
