@@ -32,6 +32,10 @@ Make sure you have `pip` installed on your machine.
 
 Create a pip virtual environment you can call it `venv`
 
+Activate the virtual environment.
+
+`. venv/bin/activate`
+
 Install the dependencies.
 
 `pip install -r requirements.txt`
@@ -48,9 +52,6 @@ export FLASK_RUN_PORT=5000
 export FLASK_APP_SECRET=<app_secret>
 ```
 
-Activate the virtual environment.
-
-`. venv/bin/activate`
 
 Run the application.
 
