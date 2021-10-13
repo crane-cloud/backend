@@ -18,8 +18,6 @@ from app.models.clusters import Cluster
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
-from sqlalchemy import func, column
-from app.models import db
 
 
 class AppsView(Resource):
@@ -1542,37 +1540,9 @@ class AppDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_apps = len(App.find_all())
+        
+        app_info = App.graph_data(self=App, start=start, end=end, set_by=set_by)
 
-        if set_by == 'month':
-            date_list = func.generate_series(
-                start, end, '1 month').alias('month')
-            month = column('month')
-
-            app_data = db.session.query(month, func.count(App.id)).\
-                select_from(date_list).\
-                outerjoin(App, func.date_trunc('month', App.date_created) == month).\
-                group_by(month).\
-                order_by(month).\
-                all()
-
-        else:
-            date_list = func.generate_series(
-                start, end, '1 year').alias('year')
-            year = column('year')
-
-            app_data = db.session.query(year, func.count(App.id)).\
-                select_from(date_list).\
-                outerjoin(App, func.date_trunc('year', App.date_created) == year).\
-                group_by(year).\
-                order_by(year).\
-                all()
-
-        app_info = []
-        for item in app_data:
-            item_dict = {
-                'year': item[0].year, 'month': item[0].month, 'value': item[1]
-            }
-            app_info.append(item_dict)
         return dict(
             status='success',
             data=dict(
