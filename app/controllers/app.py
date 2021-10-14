@@ -1541,7 +1541,7 @@ class AppDataSummaryView(Resource):
         set_by = validated_query_data.get('set_by', 'month')
         total_apps = len(App.find_all())
         
-        app_info = App.graph_data(self=App, start=start, end=end, set_by=set_by)
+        app_info = App.graph_data(start=start, end=end, set_by=set_by)
 
         return dict(
             status='success',

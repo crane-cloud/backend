@@ -76,16 +76,16 @@ class ModelMixin(db.Model):
         return {
             c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
-
-    def graph_data(self, start, end, set_by):
+    @classmethod
+    def graph_data(cls, start, end, set_by):
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')
             month = column('month')
 
-            app_data = db.session.query(month, func.count(self.id)).\
+            app_data = db.session.query(month, func.count(cls.id)).\
                 select_from(date_list).\
-                outerjoin(self, func.date_trunc('month', self.date_created) == month).\
+                outerjoin(cls, func.date_trunc('month', cls.date_created) == month).\
                 group_by(month).\
                 order_by(month).\
                 all()
@@ -95,9 +95,9 @@ class ModelMixin(db.Model):
                 start, end, '1 year').alias('year')
             year = column('year')
 
-            app_data = db.session.query(year, func.count(self.id)).\
+            app_data = db.session.query(year, func.count(cls.id)).\
                 select_from(date_list).\
-                outerjoin(self, func.date_trunc('year', self.date_created) == year).\
+                outerjoin(cls, func.date_trunc('year', cls.date_created) == year).\
                 group_by(year).\
                 order_by(year).\
                 all()
