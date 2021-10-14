@@ -10,7 +10,7 @@ from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import create_kube_clients, delete_cluster_app
-from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema
+from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
@@ -1519,3 +1519,33 @@ class AppStorageUsageView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+
+
+class AppDataSummaryView(Resource):
+
+    @admin_required
+    def post(self):
+        """
+        Aggregate apps per month or year
+        """
+        app_filter_data = request.get_json()
+        filter_schema = AppGraphSchema()
+
+        validated_query_data, errors = filter_schema.load(app_filter_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start', '2018-01-01')
+        end = validated_query_data.get('end', datetime.datetime.now())
+        set_by = validated_query_data.get('set_by', 'month')
+        total_apps = len(App.find_all())
+        
+        app_info = App.graph_data(start=start, end=end, set_by=set_by)
+
+        return dict(
+            status='success',
+            data=dict(
+                metadata=dict(total_apps=total_apps),
+                graph_data=app_info)
+        ), 200
