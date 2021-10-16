@@ -16,7 +16,8 @@ class User(ModelMixin):
     _tablename_ = "users"
 
     # fields of the user table
-    id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
+    id = db.Column(UUID(as_uuid=True), primary_key=True,
+                   server_default=sa_text("uuid_generate_v4()"))
     email = db.Column(db.String(256), unique=True, nullable=False, default="")
     name = db.Column(db.String(256), nullable=False, default="")
     username = db.Column(db.String(256), nullable=False, default="")

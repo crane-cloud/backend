@@ -3,12 +3,18 @@ import os
 from flask import current_app
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema
+from app.schemas import UserSchema, UserGraphSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
+import requests
+import secrets
+import string
+from sqlalchemy import func, column
+from app.models import db
+from datetime import date, datetime
 
 
 class UsersView(Resource):
@@ -27,7 +33,7 @@ class UsersView(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         # To do change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -49,7 +55,7 @@ class UsersView(Resource):
             return dict(
                 status="fail",
                 message=f"Email {validated_user_data['email']} already in use."
-                ), 400
+            ), 400
 
         user = User(**validated_user_data)
 
@@ -72,15 +78,15 @@ class UsersView(Resource):
             current_app._get_current_object(),
             template,
             subject
-            )
+        )
 
         new_user_data, errors = user_schema.dumps(user)
 
         return dict(
             status='success',
             data=dict(user=json.loads(new_user_data))
-            ), 201
-            
+        ), 201
+
     @admin_required
     def get(self):
         """
@@ -130,7 +136,7 @@ class UserLoginView(Resource):
             return dict(
                 status='fail',
                 message='email not verified', data=dict(verified=user.verified)
-                ), 401
+            ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -142,7 +148,7 @@ class UserLoginView(Resource):
                 return dict(
                     status="fail",
                     message="Internal Server Error"
-                    ), 500
+                ), 500
 
             return dict(
                 status='success',
@@ -152,7 +158,7 @@ class UserLoginView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -170,7 +176,7 @@ class UserDetailView(Resource):
             return dict(
                 status='fail',
                 message=f'user {user_id} not found'
-                ), 404
+            ), 404
 
         user_data, errors = user_schema.dumps(user)
 
@@ -191,7 +197,7 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'user {user_id} not found'
-                    ), 404
+                ), 404
 
             deleted = user.delete()
 
@@ -201,7 +207,7 @@ class UserDetailView(Resource):
             return dict(
                 status='success',
                 message=f'user {user_id} deleted successfully'
-                ), 200
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -225,7 +231,7 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message=f'User {user_id} not found'
-                    ), 404
+                ), 404
 
             updated = User.update(user, **validate_user_data)
 
@@ -233,12 +239,12 @@ class UserDetailView(Resource):
                 return dict(
                     status='fail',
                     message='Internal Server Error'
-                    ), 500
+                ), 500
 
             return dict(
                 status='success',
                 message=f'User {user_id} updated successfully'
-                ), 200
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -275,7 +281,7 @@ class AdminLoginView(Resource):
                 status='fail',
                 message='Email not verified',
                 data=dict(verified=user.verified)
-                ), 401
+            ), 401
 
         user_dict, errors = token_schema.dump(user)
 
@@ -295,7 +301,7 @@ class AdminLoginView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -322,7 +328,7 @@ class UserEmailVerificationView(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         if user.verified:
             return dict(
@@ -352,7 +358,7 @@ class UserEmailVerificationView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
-                    )), 200
+                )), 200
 
         return dict(status='fail', message='Internal Server Error'), 500
 
@@ -375,7 +381,7 @@ class EmailVerificationRequest(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         # To do, change to a frontend url
         verification_url = f"{client_base_url}/verify/"
@@ -391,7 +397,7 @@ class EmailVerificationRequest(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         # send verification
         send_verification(
@@ -404,12 +410,12 @@ class EmailVerificationRequest(Resource):
             current_app._get_current_object(),
             template,
             subject
-            )
+        )
 
         return dict(
             status='success',
             message=f'Verification link sent to {email}'
-            ), 200
+        ), 200
 
 
 class ForgotPasswordView(Resource):
@@ -430,7 +436,7 @@ class ForgotPasswordView(Resource):
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
-            )
+        )
 
         verification_url = f"{client_base_url}/reset_password/"
         secret_key = current_app.config["SECRET_KEY"]
@@ -445,7 +451,7 @@ class ForgotPasswordView(Resource):
             return dict(
                 status='fail',
                 message=f'User with email {email} not found'
-                ), 404
+            ), 404
 
         # send password reset link
         send_verification(
@@ -463,7 +469,134 @@ class ForgotPasswordView(Resource):
         return dict(
             status='success',
             message=f'Password reset link sent to {email}'
-            ), 200
+        ), 200
+
+
+class OAuthView(Resource):
+
+    def post(self):
+        """
+        """
+        token_schema = UserSchema(partial=("password"),)
+
+        request_data = request.get_json()
+
+        if not request_data:
+            return dict(
+                status='fail',
+                message='No data received'
+            ), 400
+
+        # Github Oauth
+        code = request_data.get('code')
+        if not code:
+            return dict(
+                status='fail',
+                message='No code received'
+            ), 400
+
+        data = {
+            'client_id': current_app.config.get('GITHUB_CLIENT_ID'),
+            'client_secret': current_app.config.get('GITHUB_CLIENT_SECRET'),
+            'code': code
+        }
+
+        # exchange the 'code' for an access token
+        response = requests.post(
+            url='https://github.com/login/oauth/access_token',
+            data=data,
+            headers={'Accept': 'application/json'}
+        )
+
+        if response.status_code != 200:
+            return dict(status='fail', message="User authentication failed"), 401
+
+        response_json = response.json()
+
+        if response_json.get('error'):
+            return dict(status='fail',
+                        message=f"{response_json['error'], response_json['error_description']}"), 401
+
+        access_token = response_json['access_token']
+
+        # get the user details using the access token
+        user_response = requests.get(
+            url='https://api.github.com/user',
+            headers={
+                'Accept': 'application/json',
+                'Authorization': f'token {access_token}'
+            }
+        )
+
+        if user_response.status_code != 200:
+            return dict(status='fail', message="User authentication failed"), 401
+
+        res_json = user_response.json()
+
+        name = res_json.get('name')
+        if not name:
+            name = res_json['login']
+        username = res_json['login']
+        email = res_json['email']
+
+        if not email:
+            new_res = requests.get(
+                url='https://api.github.com/user/emails',
+                headers={
+                    'Accept': 'application/json',
+                    'Authorization': f'token {access_token}'
+                }
+            )
+            res_json = new_res.json()
+            email = res_json[0]['email']
+
+        user = User.find_first(email=email)
+
+        # create the user
+        if not user:
+            user = User(
+                email=email,
+                name=name,
+                password=''.join((secrets.choice(string.ascii_letters)
+                                  for i in range(24))),
+            )
+            user.verified = True
+            user.username = username
+            saved_user = user.save()
+
+            if not saved_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
+
+        # update user info
+        user.name = name
+        user.username = username
+        user.verified = True
+        updated_user = user.save()
+
+        if not updated_user:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        # create user token
+        user_dict, errors = token_schema.dump(user)
+
+        access_token = user.generate_token(user_dict)
+
+        if not access_token:
+            return dict(
+                status="fail",
+                message="Internal Server Error"
+            ), 500
+
+        return dict(
+            status='success',
+            data=dict(
+                access_token=access_token,
+                email=user.email,
+                name=user.name,
+                username=user.username,
+                verified=user.verified,
+                id=str(user.id),
+            )), 200
 
 
 class ResetPasswordView(Resource):
@@ -496,7 +629,7 @@ class ResetPasswordView(Resource):
             return dict(
                 status="fail",
                 message=f'user with email {email} not found'
-                ), 404
+            ), 404
 
         if not user.verified:
             return dict(
@@ -511,3 +644,61 @@ class ResetPasswordView(Resource):
 
         return dict(
             status='success', message='password reset successfully'), 200
+
+
+class UserDataSummaryView(Resource):
+
+    @admin_required
+    def post(self):
+        """
+        Shows new users per month or year
+        """
+        user_filter_data = request.get_json()
+        filter_schema = UserGraphSchema()
+
+        validated_query_data, errors = filter_schema.load(user_filter_data)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start', '2018-01-01')
+        end = validated_query_data.get('end', datetime.now())
+        set_by = validated_query_data.get('set_by', 'month')
+        total_users = len(User.find_all())
+        print(set_by)
+        if set_by == 'month':
+            date_list = func.generate_series(
+                start, end, '1 month').alias('month')
+            month = column('month')
+
+            user_data = db.session.query(month, func.count(User.id)).\
+                select_from(date_list).\
+                outerjoin(User, func.date_trunc('month', User.date_created) == month).\
+                group_by(month).\
+                order_by(month).\
+                all()
+
+        else:
+            date_list = func.generate_series(
+                start, end, '1 year').alias('year')
+            year = column('year')
+
+            user_data = db.session.query(year, func.count(User.id)).\
+                select_from(date_list).\
+                outerjoin(User, func.date_trunc('year', User.date_created) == year).\
+                group_by(year).\
+                order_by(year).\
+                all()
+
+        user_info = []
+        for item in user_data:
+            item_dict = {
+                'year': item[0].year, 'month': item[0].month, 'value': item[1]
+            }
+            user_info.append(item_dict)
+        return dict(
+            status='success',
+            data=dict(
+                metadata=dict(total_users=total_users),
+                graph_data=user_info)
+        ), 200

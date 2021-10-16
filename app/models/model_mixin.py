@@ -1,7 +1,6 @@
-from sqlalchemy import inspect
+from sqlalchemy import inspect, func, column
 from sqlalchemy.exc import SQLAlchemyError
 from ..models import db
-
 
 class ModelMixin(db.Model):
 
@@ -76,3 +75,37 @@ class ModelMixin(db.Model):
     def toDict(self):
         return {
             c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
+
+    @classmethod
+    def graph_data(cls, start, end, set_by):
+        if set_by == 'month':
+            date_list = func.generate_series(
+                start, end, '1 month').alias('month')
+            month = column('month')
+
+            app_data = db.session.query(month, func.count(cls.id)).\
+                select_from(date_list).\
+                outerjoin(cls, func.date_trunc('month', cls.date_created) == month).\
+                group_by(month).\
+                order_by(month).\
+                all()
+
+        else:
+            date_list = func.generate_series(
+                start, end, '1 year').alias('year')
+            year = column('year')
+
+            app_data = db.session.query(year, func.count(cls.id)).\
+                select_from(date_list).\
+                outerjoin(cls, func.date_trunc('year', cls.date_created) == year).\
+                group_by(year).\
+                order_by(year).\
+                all()
+
+        app_info = []
+        for item in app_data:
+            item_dict = {
+                'year': item[0].year, 'month': item[0].month, 'value': item[1]
+            }
+            app_info.append(item_dict)
+        return app_info

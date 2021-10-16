@@ -52,6 +52,37 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+                    
+    "/users/summary":
+        post:
+            tags:
+                - users
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                - in: body
+                  name: user
+                  schema:
+                    type: object
+                    properties:
+                        start:
+                            type: string
+                        end:
+                            type: string
+                        set_by:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
     "/users/{user_id}":
         get:
@@ -329,47 +360,31 @@ paths:
                 500:
                     description: "Internal Server Error"
     
-    "/organisations":
+    "/users/oauth":
         post:
             tags:
-                - organisations
+                - users
             consumes:
                 - application/json
             parameters:
                 - in: body
-                  name: organisation
+                  name: git code
                   schema:
                     type: object
                     required:
-                        - name
+                        - code
                     properties:
-                        name:
+                        code:
                             type: string
-                    
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-        get:
-            tags:
-                - organisations
-            consumes:
-                - application/json
             produces:
                 - application/json
             responses:
                 200:
-                    description: "Success"
+                    description: "success"
                 400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
+                    description: "bad request"
+                401:
+                    description: "failed to authenticate user"
 
     "/clusters":
         post:
@@ -1292,175 +1307,6 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-
-    "/organisations/{organisation_id}/members":
-        post:
-            tags:
-                - organisation_members
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-
-                - in: body
-                  name: organisation_member
-                  schema:
-                    type: object
-                    required:
-                        - user_id
-                    properties:
-                        user_id:
-                            type: string
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-        
-        get:
-            tags:
-                - organisation_members
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-
-            produces:
-                - application/json
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-        
-
-
-
-        delete:
-            tags:
-                - organisation_members
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-                  
-                - in: body
-                  name: organisation_member
-                  schema:
-                    type: object
-                    required:
-                        - user_id
-                    properties:
-                        user_id:
-                            type: string
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-
-                
-    "/organisations/{organisation_id}/admins":
-
-        post:
-            tags:
-                - organisation_admins
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-
-                - in: body
-                  name: organisation_admin
-                  schema:
-                    type: object
-                    required:
-                        - user_id
-                    properties:
-                        user_id:
-                            type: string
-            produces:
-                - application/json
-            responses:
-                201:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-        get:
-            tags:
-                - organisation_admins
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-            produces:
-                - application/json
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
-
-        delete:
-            tags:
-                - organisation_admins
-            consumes:
-                - application/json
-            parameters:
-                - in: path
-                  name: organisation_id
-                  required: true
-                  type: string
-
-                - in: body
-                  name: organisation_admin
-                  schema:
-                    type: object
-                    required:
-                        - user_id
-                    properties:
-                        user_id:
-                            type: string
-            produces:
-                - application/json
-            responses:
-                200:
-                    description: "Success"
-                400:
-                    description: "Bad request"
-                500:
-                    description: "Internal Server Error"
     
     "/projects":
 
@@ -2162,6 +2008,31 @@ paths:
                     description: "Internal Server Error"                    
 
 
+    "/databases/stats":
+
+        get:
+            tags:
+                - databases
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                404:
+                    description: "Database stats not found"
+                500:
+                    description: "Internal Server Error"                    
+
+
     "/databases/{database_id}":
         delete:
             tags:
@@ -2356,7 +2227,39 @@ paths:
                         description: "Error"
                     500:
                         description: "Internal Server Error"
-    
+
+    "/apps/summary":
+        post:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                - in: body
+                  name: app
+                  schema:
+                    type: object
+                    properties:
+                        start:
+                            type: string
+                        end:
+                            type: string
+                        set_by:
+                            type: string
+            produces:
+                - application/json
+            responses:
+                200:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/apps/{app_id}":
         get:
             tags:
@@ -2407,6 +2310,58 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+        patch:
+            tags:
+                - apps
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: app_id
+                  required: true
+                  type: string
+                - in: body
+                  name: app data
+                  schema:
+                  properties:
+                      image:
+                          type: string
+                      env_vars:
+                          type: object
+                          additionalProperties:
+                              type: string
+                      port:
+                          type: number
+                      command:
+                          type: string
+                      private_image:
+                          type: boolean
+                      docker_server:
+                          type: string
+                      docker_username:
+                          type: string
+                      docker_password:
+                          type: string
+                      docker_email:
+                          type: string
+                      replicas:
+                          type: number              
+            responses:
+                201:
+                    description: "App update successful"
+                404:
+                    description: "metrics not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+             
 
     "/projects/{project_id}/apps/{app_id}/metrics/cpu":
         post:
