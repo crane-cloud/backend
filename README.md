@@ -57,11 +57,21 @@ Run the application.
 
 `flask run`
 
+#### Running Migrations
+
+The application uses sqlalchemy ORM to manange and run database migrations
+
+Run `python manage.py db upgrade` command to run migration upgrade against the database relations
+
+Run `python manage.py db migrate` command to run migrations incase there are changes in the schema
+
 ##### Testing and Coverage
 
 This app uses `nose` to run tests.
 
-`nosetests --with-coverage --cover-package=routes`
+`nosetests --with-coverage --cover-package=routes` to run with coverage
+
+or `nosetests` to run without coverage
 
 ##### Creating default roles
 
