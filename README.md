@@ -86,6 +86,18 @@ To create an admin account run
 
 `python manage.py admin_user --email=<an email> --password=<the password> --confirm_password=<the password>`
 
+#### To add clusters locally
+
+Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/`
+
+`{
+  "description": "string",
+  "host": "string",
+  "name": "string",
+  "token": "string"
+}`
+Reach out to backend team to get token and host values
+
 ##### Add image repositories
 
 To add image repositories to the database run
