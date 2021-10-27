@@ -1336,6 +1336,10 @@ paths:
                             type: string
                         description:
                             type: string
+                        organisation:
+                            type: string
+                        project_type:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -1419,6 +1423,10 @@ paths:
                         name:
                             type: string
                         description:
+                            type: string
+                        organisation:
+                            type: string
+                        project_type:
                             type: string
             responses:
                 200:
