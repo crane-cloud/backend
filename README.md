@@ -88,7 +88,7 @@ To create an admin account run
 
 #### To add clusters locally
 
-Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/`
+Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/#/clusters/post_clusters`
 
 `{
   "description": "string",
