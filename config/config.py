@@ -1,5 +1,6 @@
 import os
 
+
 class Base:
     """ base config """
 
@@ -29,13 +30,12 @@ class Base:
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
 
-
 class Development(Base):
     """ development config """
 
     DEBUG = True
-    # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
-    SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud"
+
+    SQLALCHEMY_DATABASE_URI = os.getenv("LOCAL_DATABASE_URI") or "postgresql:///cranecloud"
 
 
 class Testing(Base):
@@ -45,14 +45,14 @@ class Testing(Base):
     DEBUG = True
     # use a separate db
 
-    SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
+    SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
+
 
 class Staging(Base):
     """ Staging config """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-
 
 
 class Production(Base):
