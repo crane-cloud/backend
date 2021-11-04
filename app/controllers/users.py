@@ -106,6 +106,46 @@ class UsersView(Resource):
             data=dict(users=json.loads(users_data))
         ), 200
 
+class UserAdimUpdateView(Resource):
+    
+    @admin_required
+    def patch(self):
+        try:
+            user_schema = UserSchema(only=("is_beta_user",))
+
+            user_data = request.get_json()
+            user_id = user_data["user_id"]
+            
+            validate_user_data, errors = user_schema.load(user_data)
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            
+            user = User.get_by_id(user_id)
+            if not user:
+                return dict(
+                    status='fail',
+                    message=f'User {user_id} not found'
+                ), 404
+
+            updated = User.update(user, **validate_user_data)
+
+            if not updated:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                ), 500
+
+            return dict(
+                status='success',
+                message=f'User {user_id} updated successfully'
+            ), 200
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 500
+
+
 
 class UserLoginView(Resource):
 
@@ -158,6 +198,7 @@ class UserLoginView(Resource):
                     username=user.username,
                     verified=user.verified,
                     id=str(user.id),
+                    is_beta_user=user.is_beta_user,
                 )), 200
 
         return dict(status='fail', message="login failed"), 401
