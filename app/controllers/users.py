@@ -106,7 +106,7 @@ class UsersView(Resource):
             data=dict(users=json.loads(users_data))
         ), 200
 
-class UserAdimUpdateView(Resource):
+class UserAdminUpdateView(Resource):
     
     @admin_required
     def patch(self):
