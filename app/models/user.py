@@ -25,6 +25,7 @@ class User(ModelMixin):
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
+    is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, email, name, password):
         """ initialize with email, username and password """

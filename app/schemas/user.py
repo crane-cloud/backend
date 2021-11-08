@@ -27,6 +27,7 @@ class UserSchema(Schema):
     verified = fields.Boolean(dump_only=True)
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
+    is_beta_user = fields.Boolean()
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)

@@ -14,7 +14,7 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView)
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, UserAdminUpdateView)
 
 api = Api()
 
@@ -32,6 +32,7 @@ api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/summary')
+api.add_resource(UserAdminUpdateView, '/users/admin_update')
 
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
