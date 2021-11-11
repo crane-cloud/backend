@@ -2254,6 +2254,8 @@ paths:
                                 type: string
                             docker_email:
                                 type: string
+                            custom_domain:
+                                type: string
                             replicas:
                                 type: number
                 produces:
@@ -2389,6 +2391,8 @@ paths:
                       docker_password:
                           type: string
                       docker_email:
+                          type: string
+                      custom_domain:
                           type: string
                       replicas:
                           type: number              
