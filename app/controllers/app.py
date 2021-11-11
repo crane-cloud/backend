@@ -414,6 +414,7 @@ class ProjectAppsView(Resource):
         docker_email = validated_app_data.get('docker_email', None)
         replicas = validated_app_data.get('replicas', 1)
         app_port = validated_app_data.get('port', None)
+        custom_domain = validated_app_data.get('custom_domain', None)
         image_pull_secret = None
 
         command = command.split() if command else None
@@ -618,7 +619,10 @@ class ProjectAppsView(Resource):
 
             # subdomain for the app
             # sub_domain = f'{app_alias}.cranecloud.io'
-            sub_domain = get_app_subdomain(app_alias)
+            if custom_domain:
+                sub_domain = custom_domain
+            else:
+                sub_domain = get_app_subdomain(app_alias)
 
             # create new ingres rule for the application
             new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
@@ -980,6 +984,7 @@ class AppDetailView(Resource):
         docker_username = validated_update_data.get('docker_username', None)
         docker_password = validated_update_data.get('docker_password', None)
         docker_email = validated_update_data.get('docker_email', None)
+        custom_domain = validated_update_data.get('custom_domain', None)
         image_pull_secret = None
 
         try:
@@ -1074,6 +1079,9 @@ class AppDetailView(Resource):
                         image_pull_secret)
 
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+            if custom_domain:
+                ...
 
             if replicas:
                 cluster_deployment.spec.replicas = replicas

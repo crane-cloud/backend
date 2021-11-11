@@ -27,6 +27,12 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
         ])
+    # custom_domain = fields.String(validate=[
+    #     validate.Regexp(
+    #         regex=r'^((?!-)[A-Za-z0-9-]{1, 63}(?<!-)\\.)+[A-Za-z]{2, 6}$',
+    #         error='custom_domain should be a valid domain'
+    #     ),
+    # ])
     alias = fields.String()
     url = fields.Url(dump_only=True)
     env_vars = fields.Dict()
