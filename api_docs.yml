@@ -84,6 +84,39 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/users/admin_update":
+        patch:
+            tags:
+                - users
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                - in: body
+                  name: user_update
+                  schema:
+                    type: object
+                    properties:
+                        user_id:
+                            type: string
+                        is_beta_user:
+                            type: boolean
+                        
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "User not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+
     "/users/{user_id}":
         get:
             tags:
@@ -1336,6 +1369,10 @@ paths:
                             type: string
                         description:
                             type: string
+                        organisation:
+                            type: string
+                        project_type:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -1420,6 +1457,10 @@ paths:
                             type: string
                         description:
                             type: string
+                        organisation:
+                            type: string
+                        project_type:
+                            type: string
             responses:
                 200:
                     description: "Success"
@@ -1499,6 +1540,8 @@ paths:
                         docker_password:
                             type: string
                         docker_email:
+                            type: string
+                        custom_domain:
                             type: string
                         replicas:
                             type: number
@@ -2214,6 +2257,8 @@ paths:
                                 type: string
                             docker_email:
                                 type: string
+                            custom_domain:
+                                type: string
                             replicas:
                                 type: number
                 produces:
@@ -2349,6 +2394,8 @@ paths:
                       docker_password:
                           type: string
                       docker_email:
+                          type: string
+                      custom_domain:
                           type: string
                       replicas:
                           type: number              

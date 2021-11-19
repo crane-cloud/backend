@@ -9,13 +9,14 @@ from types import SimpleNamespace
 
 
 def generate_db_credentials():
-    punctuation = r"""!#%&()+,-:;<=>?@[]^_{|}~"""
+    punctuation = r"""#%+,-:;<=>@[]^_{|}~"""
     name = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(24)))
     user = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(16)))
     password = ''.join((secrets.choice(
         string.ascii_letters + string.digits + punctuation) for i in range(32)))
+
     return SimpleNamespace(
         user=user.lower(),
         name=name.lower(),

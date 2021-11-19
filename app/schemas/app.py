@@ -1,6 +1,7 @@
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 
+
 class AppSchema(Schema):
 
     id = fields.String(dump_only=True)
@@ -26,6 +27,12 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
         ])
+    # custom_domain = fields.String(validate=[
+    #     validate.Regexp(
+    #         regex=r'^((?!-)[A-Za-z0-9-]{1, 63}(?<!-)\\.)+[A-Za-z]{2, 6}$',
+    #         error='custom_domain should be a valid domain'
+    #     ),
+    # ])
     alias = fields.String()
     url = fields.Url(dump_only=True)
     env_vars = fields.Dict()
@@ -36,6 +43,7 @@ class AppSchema(Schema):
     docker_username = fields.String()
     docker_password = fields.String()
     docker_email = fields.String()
+    custom_domain = fields.String()
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
