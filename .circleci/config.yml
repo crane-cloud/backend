@@ -69,7 +69,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pip install -r requirements.txt
+            sudo pip install -r requirements.txt
 #      - save_cache:
 #          key: o-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
 #          paths:
