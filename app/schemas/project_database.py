@@ -14,11 +14,8 @@ class ProjectDatabaseSchema(Schema):
             ),
     ])
 
-    password = fields.String(
-        validate=validate.Regexp(
-            r"""^\S+[^`?*#!$+<>.'"]$""",  error="""Password must not contain these characters `\"$'"""
-        )
-    )
+    password = fields.String()
+
     user = fields.String(error_message={
         "required": "user is required"},
         validate=[
