@@ -116,6 +116,7 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+
     "/users/{user_id}":
         get:
             tags:

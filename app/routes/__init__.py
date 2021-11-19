@@ -16,6 +16,7 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, UserAdminUpdateView)
 
+
 api = Api()
 
 # Index route
@@ -33,6 +34,7 @@ api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/summary')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
+
 
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
