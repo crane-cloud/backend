@@ -912,6 +912,73 @@ class AppDetailView(Resource):
             return dict(status='fail', message=str(exc)), 500
 
     @jwt_required
+    def post(self, app_id):
+        """
+        revert app custom domain back to crane cloud domain
+        """
+
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            # Create kube client
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            newUrl = None
+
+            for item in ingress_list:
+                if item.host == app.alias:
+                    newUrl = item.host
+
+            if newUrl:
+                ...
+            #   Add the Url to DB
+            #   delete custom URL from ingress list
+            else:
+                ...
+            #     Create a new ingress rule with app Alias
+
+            ingress = ingress_list[0]
+
+            # ingress.spec.rules.append(new_ingress_rule)
+
+            # kube_client.extension_api.patch_namespaced_ingress(
+            #     name=ingress_name,
+            #     namespace=namespace,
+            #     body=ingress
+            # )
+
+        except:
+            pass
+
+    @jwt_required
     def delete(self, app_id):
         """
         """
@@ -1542,7 +1609,7 @@ class AppStorageUsageView(Resource):
             prom_data = prometheus.query(
                 metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
                        namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
-                )
+            )
             #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
