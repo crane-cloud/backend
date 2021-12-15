@@ -33,31 +33,33 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
 
 def delete_cluster_app(kube_client, namespace, app):
     # delete deployment and service for the app
+
     deployment_name = f'{app.alias}-deployment'
     service_name = f'{app.alias}-service'
-    deployment = kube_client.appsv1_api.read_namespaced_deployment(
-        name=deployment_name,
-        namespace=namespace
-    )
+    try:
 
-    if deployment:
-        kube_client.appsv1_api.delete_namespaced_deployment(
+        deployment = kube_client.appsv1_api.read_namespaced_deployment(
             name=deployment_name,
             namespace=namespace
         )
 
-    service = kube_client.kube.read_namespaced_service(
-        name=service_name,
-        namespace=namespace
-    )
+        if deployment:
+            kube_client.appsv1_api.delete_namespaced_deployment(
+                name=deployment_name,
+                namespace=namespace
+            )
 
-    if service:
-        kube_client.kube.delete_namespaced_service(
+        service = kube_client.kube.read_namespaced_service(
             name=service_name,
             namespace=namespace
         )
 
-    try:
+        if service:
+            kube_client.kube.delete_namespaced_service(
+                name=service_name,
+                namespace=namespace
+            )
+
         secret = kube_client.kube.read_namespaced_secret(
             name=app.alias,
             namespace=namespace
@@ -66,7 +68,7 @@ def delete_cluster_app(kube_client, namespace, app):
             name=app.alias,
             namespace=namespace
         )
-    except  Exception as e:
+    except Exception as e:
         if e.status != 404:
             return dict(status='fail', message=str(e)), 500
 

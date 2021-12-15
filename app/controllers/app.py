@@ -942,7 +942,6 @@ class AppDetailView(Resource):
 
             kube_host = cluster.host
             kube_token = cluster.token
-
             kube_client = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
@@ -1132,7 +1131,8 @@ class AppDetailView(Resource):
                         body=service
                     )
             if command:
-                cluster_deployment.spec.template.spec.containers[0].command = command.split()
+                cluster_deployment.spec.template.spec.containers[0].command = command.split(
+                )
 
             if env_vars:
                 env = []
@@ -1268,7 +1268,6 @@ class AppCpuUsageView(Resource):
                 status='fail',
                 message=f'project {project_id} not found'
             ), 404
-
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
 
@@ -1542,7 +1541,7 @@ class AppStorageUsageView(Resource):
             prom_data = prometheus.query(
                 metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
                        namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
-                )
+            )
             #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
