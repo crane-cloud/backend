@@ -912,73 +912,6 @@ class AppDetailView(Resource):
             return dict(status='fail', message=str(exc)), 500
 
     @jwt_required
-    def post(self, app_id):
-        """
-        revert app custom domain back to crane cloud domain
-        """
-
-        try:
-            current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
-
-            app = App.get_by_id(app_id)
-
-            if not app:
-                return dict(
-                    status="fail",
-                    message=f"App with id {app_id} not found"
-                ), 404
-            project = app.project
-
-            if not project:
-                return dict(status='fail', message='Internal server error'), 500
-
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
-
-            cluster = project.cluster
-            namespace = project.alias
-
-            if not cluster or not namespace:
-                return dict(status='fail', message='Internal server error'), 500
-
-            # Create kube client
-            kube_host = cluster.host
-            kube_token = cluster.token
-
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
-
-            newUrl = None
-
-            for item in ingress_list:
-                if item.host == app.alias:
-                    newUrl = item.host
-
-            if newUrl:
-                ...
-            #   Add the Url to DB
-            #   delete custom URL from ingress list
-            else:
-                ...
-            #     Create a new ingress rule with app Alias
-
-            ingress = ingress_list[0]
-
-            # ingress.spec.rules.append(new_ingress_rule)
-
-            # kube_client.extension_api.patch_namespaced_ingress(
-            #     name=ingress_name,
-            #     namespace=namespace,
-            #     body=ingress
-            # )
-
-        except:
-            pass
-
-    @jwt_required
     def delete(self, app_id):
         """
         """
@@ -1199,7 +1132,8 @@ class AppDetailView(Resource):
                         body=service
                     )
             if command:
-                cluster_deployment.spec.template.spec.containers[0].command = command.split()
+                cluster_deployment.spec.template.spec.containers[0].command = command.split(
+                )
 
             if env_vars:
                 env = []
@@ -1240,6 +1174,125 @@ class AppDetailView(Resource):
             return dict(
                 status='success',
                 message=f'App updated successfully'
+            ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
+
+
+class AppRevertView(Resource):
+    @jwt_required
+    def get(self, app_id):
+        """
+        revert app custom domain back to crane cloud domain
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            app_sub_domain = get_app_subdomain(app.alias)
+            custom_domain = app.url.split("//", 1)[-1]
+
+            if custom_domain == app_sub_domain:
+                return dict(
+                    status='fail',
+                    message='App already has the crane cloud domain'
+                ), 409
+
+            # Create kube client
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            service_name = f'{app.alias}-service'
+            ingress_name = f'{project.alias}-ingress'
+            newUrl = None
+            ingress = ingress_list[0]
+            routes_list = ingress.spec.rules
+
+            print(routes_list)
+
+            # Check if app subdomain is present in ingress list
+            for item in routes_list:
+                if item.host == app_sub_domain:
+                    newUrl = app_sub_domain
+
+            if not newUrl:
+                # Create a new ingress rule with app Alias
+                new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
+                    service_name=service_name,
+                    service_port=3000
+                )
+
+                new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                    host=app_sub_domain,
+                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                            path="",
+                            backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.extension_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
+
+            # Remove custom domain from ingress list
+            for item in routes_list:
+                if item.host == custom_domain:
+                    ingress.spec.rules.remove(item)
+
+            kube_client.extension_api.patch_namespaced_ingress(
+                name=ingress_name,
+                namespace=namespace,
+                body=ingress
+            )
+
+            # Update the database with new url
+            updated_app = App.update(app, url=f'https://{app_sub_domain}')
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                ), 500
+
+            return dict(
+                status='success',
+                message=f'App url reverted successfully'
             ), 200
 
         except client.rest.ApiException as exc:

@@ -2408,6 +2408,33 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+
+    "/apps/{app_id}/revert_url":
+        get:
+            description: "reverts custom url to CC provided url"
+            tags:
+                - apps
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  type: string
+                - in: path
+                  name: app_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "Success"
+                404:
+                    description: "App not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
              
 
     "/projects/{project_id}/apps/{app_id}/metrics/cpu":
