@@ -1238,8 +1238,6 @@ class AppRevertView(Resource):
             ingress = ingress_list[0]
             routes_list = ingress.spec.rules
 
-            print(routes_list)
-
             # Check if app subdomain is present in ingress list
             for item in routes_list:
                 if item.host == app_sub_domain:
