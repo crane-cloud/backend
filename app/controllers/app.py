@@ -1262,12 +1262,6 @@ class AppRevertView(Resource):
 
                 ingress.spec.rules.append(new_ingress_rule)
 
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
-
             # Remove custom domain from ingress list
             for item in routes_list:
                 if item.host == custom_domain:
