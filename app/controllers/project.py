@@ -22,7 +22,6 @@ class ProjectsView(Resource):
     def post(self):
         """
         """
-
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
@@ -124,7 +123,7 @@ class ProjectsView(Resource):
             return dict(status='success', data=dict(project=new_project_data)), 201
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.body), e.status
+            return dict(status='fail', message=json.loads(e.body)), e.status
 
         except Exception as err:
             return dict(status='fail', message=str(err)), 500
@@ -187,21 +186,20 @@ class ProjectDetailView(Resource):
         """
         """
 
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
         try:
-            current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
-
-            project = Project.get_by_id(project_id)
-
-            if not project:
-                return dict(
-                    status='fail',
-                    message=f'project {project_id} not found'
-                ), 404
-
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='unauthorised'), 403
-
             # check for dbs in project and delete them from host and CC db
             databases_list = project.project_databases
 
@@ -265,11 +263,14 @@ class ProjectDetailView(Resource):
                     deleted = app.delete()
 
             # get corresponding namespace
-            namespace = kube_client.kube.read_namespace(project.alias)
-
-            # delete namespace if it exists
-            if namespace:
-                kube_client.kube.delete_namespace(project.alias)
+            try:
+                namespace = kube_client.kube.read_namespace(project.alias)
+                # delete namespace if it exists
+                if namespace:
+                    kube_client.kube.delete_namespace(project.alias)
+            except Exception as e:
+                # if unable to get namespace, it means it is already deleted
+                pass
 
             # To do; change delete to a soft delete
             deleted = project.delete()
@@ -283,6 +284,26 @@ class ProjectDetailView(Resource):
             ), 200
 
         except client.rest.ApiException as e:
+            if e.status == 404:
+                """
+                deletes apps and project from db if not found on the cluster
+                """
+                apps_list = project.apps
+                if apps_list:
+                    for app in apps_list:
+                        # delete the app from the database
+                        deleted = app.delete()
+
+                deleted = project.delete()
+
+                if not deleted:
+                    return dict(status='fail', message='deletion failed'), 500
+
+                return dict(
+                    status='success',
+                    message=f'project {project_id} deleted successfully'
+                ), 200
+
             return dict(status='fail', message=e.reason), e.status
 
         except Exception as e:
