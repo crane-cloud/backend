@@ -100,7 +100,7 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 # App routes
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
-api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
+api.add_resource(AppRevertView, '/apps/<string:app_id>/custom_domains')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,

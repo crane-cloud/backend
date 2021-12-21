@@ -622,6 +622,8 @@ class ProjectAppsView(Resource):
             # sub_domain = f'{app_alias}.cranecloud.io'
             if custom_domain:
                 sub_domain = custom_domain
+                validated_app_data['has_custom_domain'] = True
+
             else:
                 sub_domain = get_app_subdomain(app_alias)
 
@@ -1110,6 +1112,8 @@ class AppDetailView(Resource):
                     namespace=namespace,
                     body=ingress
                 )
+                validated_update_data['url'] = f'https://{custom_domain}'
+                validated_update_data['has_custom_domain'] = True
 
             if replicas:
                 cluster_deployment.spec.replicas = replicas
@@ -1161,7 +1165,6 @@ class AppDetailView(Resource):
             )
 
             # update the app in database
-            validated_update_data['url'] = f'https://{custom_domain}'
             updated_app = App.update(app, **validated_update_data)
 
             if not updated_app:
@@ -1184,7 +1187,7 @@ class AppDetailView(Resource):
 
 class AppRevertView(Resource):
     @jwt_required
-    def get(self, app_id):
+    def patch(self, app_id):
         """
         revert app custom domain back to crane cloud domain
         """
@@ -1273,7 +1276,7 @@ class AppRevertView(Resource):
             )
 
             # Update the database with new url
-            updated_app = App.update(app, url=f'https://{app_sub_domain}')
+            updated_app = App.update(app, url=f'https://{app_sub_domain}', has_custom_domain=False)
 
             if not updated_app:
                 return dict(
