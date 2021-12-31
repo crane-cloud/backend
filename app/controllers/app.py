@@ -1,23 +1,24 @@
-import json
-from urllib.parse import urlsplit
 import base64
 import datetime
+import json
+from urllib.parse import urlsplit
+
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-import datetime
 from prometheus_http_client import Prometheus
-from app.models.app import App
-from app.models.project import Project
-from app.helpers.kube import create_kube_clients, delete_cluster_app
-from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+
 from app.helpers.admin import is_owner_or_admin
-from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
-from app.models.clusters import Cluster
 from app.helpers.clean_up import resource_clean_up
+from app.helpers.decorators import admin_required
+from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
+from app.models.app import App
+from app.models.clusters import Cluster
+from app.models.project import Project
+from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 
 
 class AppsView(Resource):
@@ -755,7 +756,7 @@ class ProjectAppsView(Resource):
                 try:
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias']+"-deployment", project.alias)
+                            app['alias'] + "-deployment", project.alias)
 
                     app_deployment_status_conditions = app_status_object.status.conditions
 
@@ -769,7 +770,7 @@ class ProjectAppsView(Resource):
                 try:
                     app_db_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias']+"-postgres-db", project.alias)
+                            app['alias'] + "-postgres-db", project.alias)
 
                     app_db_state_conditions = app_db_status_object.status.conditions
 
@@ -847,7 +848,7 @@ class AppDetailView(Resource):
 
             app_status_object = \
                 kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias']+"-deployment", project.alias)
+                    app_list['alias'] + "-deployment", project.alias)
 
             app_deployment_status_conditions = app_status_object.status.conditions
 
@@ -878,7 +879,7 @@ class AppDetailView(Resource):
             try:
                 app_db_status_object = \
                     kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app_list['alias']+"-postgres-db", project.alias)
+                        app_list['alias'] + "-postgres-db", project.alias)
 
                 app_db_state_conditions = app_db_status_object.status.conditions
 
@@ -941,7 +942,6 @@ class AppDetailView(Resource):
 
             kube_host = cluster.host
             kube_token = cluster.token
-
             kube_client = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
@@ -1081,7 +1081,35 @@ class AppDetailView(Resource):
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
 
             if custom_domain:
-                ...
+                service_name = f'{app.alias}-service'
+                ingress_name = f'{project.alias}-ingress'
+
+                new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
+                    service_name=service_name,
+                    service_port=3000
+                )
+
+                new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                    host=custom_domain,
+                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                            path="",
+                            backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                    namespace=namespace).items
+                ingress = ingress_list[0]
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.extension_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
 
             if replicas:
                 cluster_deployment.spec.replicas = replicas
@@ -1103,7 +1131,8 @@ class AppDetailView(Resource):
                         body=service
                     )
             if command:
-                cluster_deployment.spec.template.spec.containers[0].command = command.split()
+                cluster_deployment.spec.template.spec.containers[0].command = command.split(
+                )
 
             if env_vars:
                 env = []
@@ -1132,6 +1161,7 @@ class AppDetailView(Resource):
             )
 
             # update the app in database
+            validated_update_data['url'] = f'https://{custom_domain}'
             updated_app = App.update(app, **validated_update_data)
 
             if not updated_app:
@@ -1143,6 +1173,117 @@ class AppDetailView(Resource):
             return dict(
                 status='success',
                 message=f'App updated successfully'
+            ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
+
+
+class AppRevertView(Resource):
+    @jwt_required
+    def get(self, app_id):
+        """
+        revert app custom domain back to crane cloud domain
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            app_sub_domain = get_app_subdomain(app.alias)
+            custom_domain = app.url.split("//", 1)[-1]
+
+            if custom_domain == app_sub_domain:
+                return dict(
+                    status='fail',
+                    message='App already has the crane cloud domain'
+                ), 409
+
+            # Create kube client
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            service_name = f'{app.alias}-service'
+            ingress_name = f'{project.alias}-ingress'
+            newUrl = None
+            ingress = ingress_list[0]
+            routes_list = ingress.spec.rules
+
+            # Check if app subdomain is present in ingress list
+            for item in routes_list:
+                if item.host == app_sub_domain:
+                    newUrl = app_sub_domain
+
+            if not newUrl:
+                # Create a new ingress rule with app Alias
+                new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
+                    service_name=service_name,
+                    service_port=3000
+                )
+
+                new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                    host=app_sub_domain,
+                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
+                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                            path="",
+                            backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+            # Remove custom domain from ingress list
+            for item in routes_list:
+                if item.host == custom_domain:
+                    ingress.spec.rules.remove(item)
+
+            kube_client.extension_api.patch_namespaced_ingress(
+                name=ingress_name,
+                namespace=namespace,
+                body=ingress
+            )
+
+            # Update the database with new url
+            updated_app = App.update(app, url=f'https://{app_sub_domain}')
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                ), 500
+
+            return dict(
+                status='success',
+                message=f'App url reverted successfully'
             ), 200
 
         except client.rest.ApiException as exc:
@@ -1201,7 +1342,7 @@ class AppMemoryUsageView(Resource):
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"'+app_alias+'.*", namespace="'+namespace+'"}[5m]))')
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"' + app_alias + '.*", namespace="' + namespace + '"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
@@ -1238,7 +1379,6 @@ class AppCpuUsageView(Resource):
                 status='fail',
                 message=f'project {project_id} not found'
             ), 404
-
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
 
@@ -1268,7 +1408,7 @@ class AppCpuUsageView(Resource):
             end=end,
             step=step,
             metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="", namespace="' +
-            namespace+'", pod=~"'+app_alias+'.*"}[5m]))'
+                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
         )
         #  change array values to json"values"
         new_data = json.loads(prom_data)
@@ -1336,7 +1476,7 @@ class AppNetworkUsageView(Resource):
             end=end,
             step=step,
             metric='sum(rate(container_network_receive_bytes_total{namespace="' +
-            namespace+'", pod=~"'+app_alias+'.*"}[5m]))'
+                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
         )
         #  change array values to json "values"
         new_data = json.loads(prom_data)
@@ -1509,16 +1649,17 @@ class AppStorageUsageView(Resource):
         prometheus = Prometheus()
 
         try:
-            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                                         namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-                                         )
+            prom_data = prometheus.query(
+                metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                       namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
+            )
             #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
 
             percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
                                                )
 
             data = json.loads(percentage_data)
@@ -1526,7 +1667,8 @@ class AppStorageUsageView(Resource):
         except:
             return dict(status='fail', message='No values found'), 404
 
-        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+        return dict(status='success',
+                    data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
 
 
 class AppDataSummaryView(Resource):
@@ -1548,7 +1690,7 @@ class AppDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_apps = len(App.find_all())
-        
+
         app_info = App.graph_data(start=start, end=end, set_by=set_by)
 
         return dict(

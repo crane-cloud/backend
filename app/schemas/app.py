@@ -47,6 +47,7 @@ class AppSchema(Schema):
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
+    has_custom_domain = fields.Boolean()
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
