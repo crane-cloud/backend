@@ -6,10 +6,12 @@ from app.models.user_role import UserRole
 from app.schemas.role import RoleSchema
 from app.models.user import User
 from app.models.role import Role
+from app.helpers.decorators import admin_required
 
 
 class UserRolesView(Resource):
 
+    @admin_required
     def post(self, user_id):
         """
         """
@@ -59,6 +61,7 @@ class UserRolesView(Resource):
             data=dict(user_role=json.loads(new_user_role_data))
         ), 201
 
+    @admin_required
     def get(self, user_id):
         """
         """
@@ -83,6 +86,7 @@ class UserRolesView(Resource):
 
     # delete user role
 
+    @admin_required
     def delete(self, user_id):
         """
         """
