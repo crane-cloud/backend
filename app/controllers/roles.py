@@ -3,9 +3,11 @@ from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import RoleSchema
 from app.models.role import Role
+from app.helpers.decorators import admin_required
 
 
 class RolesView(Resource):
+    @admin_required
     def post(self):
         """
         """
@@ -42,6 +44,7 @@ class RolesView(Resource):
             data=dict(role=json.loads(new_role_data))
         ), 201
 
+    @admin_required
     def get(self):
         """
         """
@@ -62,6 +65,7 @@ class RolesView(Resource):
 
 class RolesDetailView(Resource):
 
+    @admin_required
     def get(self, role_id):
         """
         """
@@ -85,6 +89,7 @@ class RolesDetailView(Resource):
             data=dict(role=json.loads(role_data))
         ), 200
 
+    @admin_required
     def patch(self, role_id):
         """
         """
@@ -121,6 +126,7 @@ class RolesDetailView(Resource):
             message=f"Role {role.name} updated successfully"
         ), 200
 
+    @admin_required
     def delete(self, role_id):
         """
         """
