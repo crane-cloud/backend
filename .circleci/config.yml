@@ -78,8 +78,8 @@ jobs:
 #            - "/usr/local/lib/python3.6/site-packages"
       - run:
           name: run tests
-          command: nosetests --with-coverage --cover-package=app
-#          command: pipenv run nosetests --with-coverage --cover-package=app
+          command: python -m pytest
+#          command: nosetests --with-coverage --cover-package=app
       - run:
           name: upload tests coverage
           command: codecov
