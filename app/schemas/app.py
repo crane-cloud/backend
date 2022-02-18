@@ -27,12 +27,6 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
     ])
-    # custom_domain = fields.String(validate=[
-    #     validate.Regexp(
-    #         regex=r'^((?!-)[A-Za-z0-9-]{1, 63}(?<!-)\\.)+[A-Za-z]{2, 6}$',
-    #         error='custom_domain should be a valid domain'
-    #     ),
-    # ])
     alias = fields.String()
     url = fields.Url(dump_only=True)
     env_vars = fields.Dict()
@@ -45,7 +39,7 @@ class AppSchema(Schema):
     docker_email = fields.String()
     custom_domain = fields.String(validate=validate.Regexp(
         regex=r'^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$',
-        error='custom domain should be a valid url, no protocal required'))
+        error='custom domain should be a valid domain, no protocal required'))
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
