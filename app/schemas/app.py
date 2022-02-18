@@ -12,21 +12,21 @@ class AppSchema(Schema):
             validate.Regexp(
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
-        ])
+    ])
     image = fields.String(required=True, error_message={
         "required": "image is required"},
         validate=[
             validate.Regexp(
                 regex=r'^(?!\s*$)', error='image should be a valid string'
             ),
-        ])
+    ])
     project_id = fields.String(required=True, error_message={
         "required": "project_id is required"},
         validate=[
             validate.Regexp(
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
-        ])
+    ])
     # custom_domain = fields.String(validate=[
     #     validate.Regexp(
     #         regex=r'^((?!-)[A-Za-z0-9-]{1, 63}(?<!-)\\.)+[A-Za-z]{2, 6}$',

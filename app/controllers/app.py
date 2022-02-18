@@ -750,8 +750,8 @@ class ProjectAppsView(Resource):
 
             apps_data, errors = app_schema.dumps(apps)
 
-            if errors:
-                return dict(status='fail', message=errors), 500
+            # if errors:
+            #     return dict(status='fail', message=errors), 500
 
             apps_data_list = json.loads(apps_data)
             for app in apps_data_list:
@@ -795,7 +795,8 @@ class ProjectAppsView(Resource):
                         app['app_running_status'] = "failed"
                 else:
                     app['app_running_status'] = "unknown"
-
+            if errors:
+                return dict(status='error', error=errors, data=dict(apps=apps_data_list)), 409
             return dict(status='success', data=dict(apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
@@ -832,8 +833,8 @@ class AppDetailView(Resource):
 
             app_data, errors = app_schema.dumps(app)
 
-            if errors:
-                return dict(status='fail', message=errors), 500
+            # if errors:
+            #     return dict(status='fail', message=errors), 500
 
             app_list = json.loads(app_data)
 
@@ -904,7 +905,8 @@ class AppDetailView(Resource):
                     app_list['app_running_status'] = "failed"
             else:
                 app_list['app_running_status'] = "unknown"
-
+            if errors:
+                return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success', data=dict(apps=app_list)), 200
 
         except client.rest.ApiException as exc:
@@ -1083,6 +1085,8 @@ class AppDetailView(Resource):
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
 
             if custom_domain:
+                # Todo: Check beta user
+                # Todo: validate custom domain
                 service_name = f'{app.alias}-service'
                 ingress_name = f'{project.alias}-ingress'
 
@@ -1276,7 +1280,8 @@ class AppRevertView(Resource):
             )
 
             # Update the database with new url
-            updated_app = App.update(app, url=f'https://{app_sub_domain}', has_custom_domain=False)
+            updated_app = App.update(
+                app, url=f'https://{app_sub_domain}', has_custom_domain=False)
 
             if not updated_app:
                 return dict(
