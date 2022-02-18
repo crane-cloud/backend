@@ -16,6 +16,7 @@ from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
+from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
@@ -618,9 +619,9 @@ class ProjectAppsView(Resource):
             # update resource registry
             resource_registry['app_service'] = True
 
-            # subdomain for the app
-            # sub_domain = f'{app_alias}.cranecloud.io'
-            if custom_domain:
+            user = User.get_by_id(current_user_id)
+
+            if custom_domain and user.is_beta_user:
                 sub_domain = custom_domain
                 validated_app_data['has_custom_domain'] = True
 
@@ -1084,9 +1085,10 @@ class AppDetailView(Resource):
 
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
 
-            if custom_domain:
-                # Todo: Check beta user
-                # Todo: validate custom domain
+            user = User.get_by_id(current_user_id)
+
+            if custom_domain and user.is_beta_user:
+
                 service_name = f'{app.alias}-service'
                 ingress_name = f'{project.alias}-ingress'
 
