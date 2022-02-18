@@ -43,7 +43,9 @@ class AppSchema(Schema):
     docker_username = fields.String()
     docker_password = fields.String()
     docker_email = fields.String()
-    custom_domain = fields.String()
+    custom_domain = fields.String(validate=validate.Regexp(
+        regex=r'^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$',
+        error='custom domain should be a valid url, no protocal required'))
     replicas = fields.Int(validate=validate.Range(min=1, max=4))
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
