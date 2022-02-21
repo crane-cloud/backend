@@ -61,25 +61,13 @@ jobs:
     steps:
       - checkout
       - *attach_workspace
-#      - restore_cache:
-#          keys:
-#            - o-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-#            - o-{{ .Branch }}
-#            - o
       - run:
           name: install dependencies
           command: |
             sudo pip install -r requirements.txt
-#      - save_cache:
-#          key: o-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-#          paths:
-#            - ".venv"
-#            - "/usr/local/bin"
-#            - "/usr/local/lib/python3.6/site-packages"
       - run:
           name: run tests
-          command: nosetests --with-coverage --cover-package=app
-#          command: pipenv run nosetests --with-coverage --cover-package=app
+          command: python -m pytest
       - run:
           name: upload tests coverage
           command: codecov
