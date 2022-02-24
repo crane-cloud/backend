@@ -14,7 +14,7 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, 
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     UserAdminUpdateView, AppRevertView)
 
 
@@ -76,6 +76,7 @@ api.add_resource(ClusterStorageClassDetailView,
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
+api.add_resource(RolesDetailView, '/roles/<string:role_id>', endpoint='roles_detail')
 
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles',
@@ -100,7 +101,7 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 # App routes
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
-api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
+api.add_resource(AppRevertView, '/apps/<string:app_id>/custom_domains')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
