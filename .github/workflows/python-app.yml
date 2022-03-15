@@ -9,7 +9,7 @@ on:
     branches: [ develop-new ]
 
 env:
-  FLASK_ENV: Testing
+  FLASK_ENV: testing
 
 jobs:
   build:
