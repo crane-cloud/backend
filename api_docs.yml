@@ -2097,6 +2097,10 @@ paths:
                     properties: 
                         database_flavour_name:
                             type: string  
+                        name:
+                            type: string
+                        project_id:
+                            type: string
             produces:
                 - application/json
             responses:
