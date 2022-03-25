@@ -14,7 +14,7 @@ class BillingInvoice(ModelMixin):
     id = db.Column(UUID(as_uuid=True), primary_key=True, 
                     server_default=sa_text("uuid_generate_v4()"))
     total_amount = db.Column(db.Integer, nullable=True, default=0.00)
-    date_cashed = db.Column(db.Datetime)
+    date_cashed = db.Column(db.DateTime)
     is_cashed = db.Column(db.Boolean, nullable=False, default=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
     
