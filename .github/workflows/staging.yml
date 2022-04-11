@@ -111,8 +111,17 @@ jobs:
           --install \
           cranecloud-backend cranecloud-backend/cranecloud-backend \
           --version 0.1.4 \
-          --values values.staging.yaml \
+          --values helm/values.staging.yaml \
           --namespace cranecloud \
+          --set image.tag="${{ needs.build.outputs.tag }}" \
+          --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \
+          --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
+          --set environment.APP_MAIL_PASSWORD="${{ secrets.STAGING_APP_MAIL_PASSWORD }}" \
+          --set environment.DATABASE_URI="${{ secrets.STAGING_DATABASE_URI }}" \
+          --set environment.FLASK_APP_SALT="${{ secrets.STAGING_FLASK_APP_SALT }}" \
+          --set environment.FLASK_APP_SECRET="${{ secrets.STAGING_FLASK_APP_SECRET }}" \
+          --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
+          --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.STAGING_NEW_RELIC_LICENSE_KEY }}" \
           --timeout=300s
 
       - name: Monitor Rollout
