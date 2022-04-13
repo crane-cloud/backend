@@ -24,3 +24,5 @@ class TransactionRecord(ModelMixin):
     status = db.Column(db.String(256), nullable=True)
     tx_ref = db.Column(db.String(256), nullable=True)
     transaction_id = db.Column(db.Integer, nullable=True)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+
