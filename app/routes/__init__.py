@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView)
+    UserAdminUpdateView, AppRevertView, TransactionRecordView)
 
 
 api = Api()
@@ -81,6 +81,9 @@ api.add_resource(RolesDetailView, '/roles/<string:role_id>', endpoint='roles_det
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles',
                  endpoint='user_roles')
+
+# Transaction routes
+api.add_resource(TransactionRecordView, '/transactions', endpoint='transactions')
 
 # Project route
 api.add_resource(ProjectsView, '/projects', endpoint='projects')
