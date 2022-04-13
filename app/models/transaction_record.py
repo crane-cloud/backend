@@ -1,4 +1,3 @@
-from locale import currency
 from flask_sqlalchemy import Model
 from sqlalchemy.dialects.postgresql import UUID
 from ..models import db
