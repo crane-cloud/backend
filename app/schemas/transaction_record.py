@@ -5,9 +5,6 @@ from app.helpers.age_utility import get_item_age
 class TransactionRecordSchema(Schema):
 
     id = fields.UUID(dump_only=True)
-    owner_id = fields.UUID(required=True, error_message={
-        "required": "owner_id is required"
-    })
     amount = fields.Int()
     currency = fields.String()
     name = fields.String(required=False, error_message={
