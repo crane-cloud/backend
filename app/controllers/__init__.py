@@ -16,6 +16,7 @@ from .clusters import (
     ClusterStorageClassView, ClusterStorageClassDetailView)
 from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
+from .transactions import TransactionRecordView
 from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
