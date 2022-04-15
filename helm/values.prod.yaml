@@ -1,0 +1,79 @@
+replicaCount: 2
+
+image:
+  repository: gcr.io/crane-cloud-274413/cranecloud-backend
+  pullPolicy: Always
+  tag: ${{ DOCKER_IMAGE_TAG }}
+
+imagePullSecrets: []
+
+nameOverride: "cranecloud-backend"
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: NodePort
+  port: 80
+
+resources: {}
+  # limits:
+  #   cpu: 512m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 512m
+  #   memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+nginxConf:
+  server {
+        listen 80;
+
+        location / {
+            proxy_pass http://localhost:5000/;
+        }
+    }
+
+environment:
+  ADMIN_MYSQL_HOST: 102.134.147.233
+  ADMIN_MYSQL_PASSWORD: ${{ MYSQL_PASSWORD }}
+  ADMIN_MYSQL_PORT: 32764
+  ADMIN_MYSQL_USER: crane
+  ADMIN_PSQL_HOST: 102.134.147.233
+  ADMIN_PSQL_PASSWORD: ${{ PSQL_PASSWORD }}
+  ADMIN_PSQL_PORT: 32761
+  ADMIN_PSQL_USER: crane
+  APP_MAIL_PASSWORD: ${{ MAIL_PASSWORD }}
+  APP_MAIL_USERNAME: no-reply@cranecloud.io
+  CLIENT_BASE_URL: https://cranecloud.io
+  DATABASE_URI: ${{ DATABASE_URL }}
+  FLASK_APP: server.py
+  FLASK_APP_SALT: ${{ APP_SALT }}
+  FLASK_APP_SECRET: ${{ APP_SECRET }}
+  FLASK_ENV: production
+  GITHUB_CLIENT_ID: e29838cbaa62227d71bc
+  GITHUB_CLIENT_SECRET: ${{ GITHUB_CLIENT_SECRET }}
+  NEW_RELIC_APP_NAME: Cranecloud-api-production
+  NEW_RELIC_LICENSE_KEY: ${{ NEW_RELIC_LICENSE_KEY }}
+  PROMETHEUS_URL: https://prom.cranecloud.io/
