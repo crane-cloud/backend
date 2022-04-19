@@ -1476,6 +1476,35 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+        
+    "/transactions/{record_id}":
+        get:
+            tags:
+                - transactions
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A single transaction record"
+                404:
+                    description: "Transaction record not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
 
     "/projects":
 
