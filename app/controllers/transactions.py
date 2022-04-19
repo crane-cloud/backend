@@ -72,3 +72,33 @@ class TransactionRecordView(Resource):
 
         return dict(status='success', data=dict(
             transaction=json.loads(transaction_data))), 200
+
+
+class TransactionRecordDetailView(Resource):
+    
+    @jwt_required
+    def get(self, record_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        transaction_schema = TransactionRecordSchema()
+
+        transaction = TransactionRecord.get_by_id(record_id)
+
+        if not transaction:
+            return dict(
+                status='fail',
+                message=f'transaction with record {record_id} not found'
+            ), 404
+
+        if not has_role(current_user_roles, 'administrator'):
+                current_user_id = current_user_id
+
+        transaction_data, errors = transaction_schema.dumps(transaction)
+        
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(
+            transaction=json.loads(transaction_data))), 200
