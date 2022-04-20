@@ -20,3 +20,5 @@ class Project(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     project_databases = db.relationship(
         'ProjectDatabase', backref='project', lazy=True)
+    project_transactions = db.relationship(
+        'TransactionRecord', backref='project', lazy=True)
