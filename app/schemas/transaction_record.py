@@ -5,6 +5,14 @@ from app.helpers.age_utility import get_item_age
 class TransactionRecordSchema(Schema):
 
     id = fields.UUID(dump_only=True)
+    owner_id = fields.UUID()
+    project_id = fields.String(required=True, error_message={
+        "required": "project_id is required"},
+        validate=[
+            validate.Regexp(
+                regex=r'^(?!\s*$)', error='project_id should be a valid string'
+            ),
+    ])
     amount = fields.Int()
     currency = fields.String()
     name = fields.String(required=False, error_message={
