@@ -1399,7 +1399,7 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-    "/transactions":
+    "/projects/{project_id}/transactions":
 
         post:
             tags:
@@ -1412,6 +1412,11 @@ paths:
                   required: true
                   description: "Bearer [token]"
                   type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
                 - in: body
                   name: transaction
                   schema:
@@ -1468,6 +1473,10 @@ paths:
                   required: true
                   description: "Bearer [token]"
                   type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
 
             responses:
                 200:
@@ -1477,7 +1486,7 @@ paths:
                 500:
                     description: "Internal Server Error"
         
-    "/transactions/{record_id}":
+    "/projects/{project_id}/transactions/{record_id}":
         get:
             tags:
                 - transactions
@@ -1492,9 +1501,14 @@ paths:
                   description: "Bearer [token]"
                   type: string
                 - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
                   name: record_id
                   required: true
                   type: string
+
 
             responses:
                 200:
