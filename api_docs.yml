@@ -1849,6 +1849,50 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/projects/{project_id}/billing/info":
+        post:
+            tags:
+                - projects
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: body
+                  name: project
+                  type: json
+                  schema:
+                    properties: 
+                        start:
+                            type: integer
+                        end:
+                            type: integer
+                        window:
+                            type: string
+                            description: "lastmonth, lastweek"
+                        series:
+                            type: boolean 
+                        show_deployments:
+                            type: boolean 
+            responses:
+                200:
+                    description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+                404:
+                    description: "Project not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
 
     "/projects/{project_id}/databases":
         post:

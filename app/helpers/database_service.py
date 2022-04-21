@@ -259,7 +259,7 @@ class MysqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(f"DROP DATABASE {db_name}")
-            # todo: Need to delete users too
+            # TODO: Need to delete users too
             return True
         except self.Error:
             return False
@@ -385,7 +385,7 @@ class PostgresqlDbService(DatabaseService):
             return False
 
     def check_user_db_rights(self, user=None, password=None, db_name=None):
-        # todo: Restrict users from accessing databases they dont own
+        # TODO: Restrict users from accessing databases they dont own
         try:
             user_connection = self.create_db_connection(
                 user=user, password=password, db_name=db_name)
@@ -470,7 +470,7 @@ class PostgresqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(f"DROP DATABASE {db_name}")
-            # todo: Need to delete users too
+            # TODO: Need to delete users too
             return True
         except self.Error as e:
             print(e)

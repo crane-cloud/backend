@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView)
 
 
 api = Api()
@@ -76,7 +76,8 @@ api.add_resource(ClusterStorageClassDetailView,
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
-api.add_resource(RolesDetailView, '/roles/<string:role_id>', endpoint='roles_detail')
+api.add_resource(RolesDetailView, '/roles/<string:role_id>',
+                 endpoint='roles_detail')
 
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles',
@@ -94,6 +95,8 @@ api.add_resource(ProjectNetworkRequestView,
                  '/projects/<string:project_id>/metrics/network')
 api.add_resource(ProjectStorageUsageView,
                  '/projects/<string:project_id>/metrics/storage')
+api.add_resource(ProjectGetCostsView,
+                 '/projects/<string:project_id>/billing/info')
 
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')

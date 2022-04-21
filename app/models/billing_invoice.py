@@ -17,4 +17,5 @@ class BillingInvoice(ModelMixin):
     date_cashed = db.Column(db.DateTime)
     is_cashed = db.Column(db.Boolean, nullable=False, default=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     
