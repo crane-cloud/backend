@@ -73,7 +73,7 @@ def get_namespace_cost(window, namespace, show_deployments=False, series=False):
     not_series = not series
     try:
         query = f"""{BASE_URL}/model/allocation?
-            window=dd{window}
+            window={window}
             &aggregate={'deployment' if show_deployments else 'namespace'}
             &idle=false
             &accumulate={not_series}

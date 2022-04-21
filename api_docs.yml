@@ -1399,7 +1399,127 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-    
+    "/projects/{project_id}/transactions":
+
+        post:
+            tags:
+                - transactions
+            consumes:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+                - in: body
+                  name: transaction
+                  schema:
+                    required:
+                        - name
+                        - owner_id
+                        - amount
+                        - currency
+                        - phone_number
+                        - email
+                        - flutterwave_ref
+                        - status
+                        - tx_ref
+                        - transaction_id
+                    properties:
+                        name:
+                            type: string
+                        amount:
+                            type: integer
+                        currency:
+                            type: string
+                        phone_number:
+                            type: string
+                        email:
+                            type: string
+                        flutterwave_ref:
+                            type: string
+                        status:
+                            type: string
+                        tx_ref:
+                            type: string
+                        transaction_id:
+                            type: integer
+            produces:
+                - application/json
+            responses:
+                201:
+                    description: "Success"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+        get:
+            tags:
+                - transactions
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A list of user transactions"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+        
+    "/projects/{project_id}/transactions/{record_id}":
+        get:
+            tags:
+                - transactions
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  type: string
+
+
+            responses:
+                200:
+                    description: "A single transaction record"
+                404:
+                    description: "Transaction record not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
     "/projects":
 
         post:
