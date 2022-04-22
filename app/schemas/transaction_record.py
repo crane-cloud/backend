@@ -6,8 +6,7 @@ class TransactionRecordSchema(Schema):
 
     id = fields.UUID(dump_only=True)
     owner_id = fields.UUID()
-    project_id = fields.String(required=True, error_message={
-        "required": "project_id is required"},
+    project_id = fields.String(required=False,
         validate=[
             validate.Regexp(
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
