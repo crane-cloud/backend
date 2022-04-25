@@ -152,3 +152,45 @@ class TransactionRecordDetailView(Resource):
 
         return dict(status='success', data=dict(
             transaction=json.loads(transaction_data))), 200
+
+
+
+    @jwt_required
+    def patch(self,project_id ,record_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        update_data = request.get_json()
+
+        transaction_schema = TransactionRecordSchema(partial=True)
+        validated_transaction_data, errors = transaction_schema.load(update_data)
+        
+        if errors:
+            return dict(status="fail", message=errors), 400
+
+        project = Project.get_by_id(project_id)
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+        transaction = TransactionRecord.get_by_id(record_id)
+
+        if not transaction:
+            return dict(
+                status='fail',
+                message=f'transaction with record {record_id} not found'
+            ), 404
+
+        if 'status' in validated_transaction_data:
+            transaction.status = validated_transaction_data['status']
+
+        updated_transaction = transaction.save()
+
+        if not updated_transaction:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status="success",
+            message=f"Transaction {transaction.id} updated successfully"
+        ), 200
