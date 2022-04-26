@@ -1,3 +1,4 @@
+from app.helpers.cost_modal import get_namespace_cost
 from app.helpers.prometheus import prometheus
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
@@ -14,6 +15,7 @@ from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
+from app.schemas.monitoring_metrics import BillingMetricsSchema
 
 
 class ProjectsView(Resource):
@@ -102,10 +104,14 @@ class ProjectsView(Resource):
                     spec=ingress_spec
                 )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace_name,
-                    body=ingress_body
-                )
+                # TODO: Remove the try and handle the error
+                try:
+                    kube_client.extension_api.create_namespaced_ingress(
+                        namespace=namespace_name,
+                        body=ingress_body
+                    )
+                except client.rest.ApiException as e:
+                    print(e)
 
                 project = Project(**validated_project_data)
 
@@ -123,7 +129,7 @@ class ProjectsView(Resource):
             return dict(status='success', data=dict(project=new_project_data)), 201
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=json.loads(e.body)), e.status
+            return dict(status='fail', message=str(e.body)), e.status
 
         except Exception as err:
             return dict(status='fail', message=str(err)), 500
@@ -608,3 +614,49 @@ class ProjectStorageUsageView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+
+
+class ProjectGetCostsView(Resource):
+    @jwt_required
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project_billing_schema = BillingMetricsSchema()
+        project_billing_data = request.get_json()
+
+        validated_query_data, errors = project_billing_schema.load(
+            project_billing_data)
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        creation_timestamp = int(project.date_created.timestamp())
+
+        # TODO: Have start date begin from last bill payment date
+        start = validated_query_data.get('start', creation_timestamp)
+        end = validated_query_data.get(
+            'end', int(datetime.datetime.now().timestamp()))
+        series = validated_query_data.get('series', False)
+        show_deployments = validated_query_data.get('show_deployments', False)
+        window = validated_query_data.get('window', None)
+
+        if not window:
+            window = f'{start},{end}'
+
+        namespace = project.alias
+        # namespace = 'liqo'
+        cost_data = get_namespace_cost(
+            window, namespace, series=series, show_deployments=show_deployments)
+        if not cost_data:
+            return dict(status='fail', message='Error occurred'), 500
+
+        return dict(status='success', data=dict(cost_data=cost_data)), 200

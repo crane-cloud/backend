@@ -291,44 +291,47 @@ class AppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
+            # TODO: Remove the try and handle the error
+            try:
+                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                    namespace=namespace).items
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
+                if not ingress_list:
 
-            if not ingress_list:
+                    ingress_meta = client.V1ObjectMeta(
+                        name=ingress_name
+                    )
 
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
+                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                        # backend=ingress_backend,
+                        rules=[new_ingress_rule]
+                    )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                    ingress_body = client.ExtensionsV1beta1Ingress(
+                        metadata=ingress_meta,
+                        spec=ingress_spec
+                    )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                    kube_client.extension_api.create_namespaced_ingress(
+                        namespace=namespace,
+                        body=ingress_body
+                    )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
+                    # update registry
+                    resource_registry['ingress_entry'] = True
+                else:
+                    # Update ingress with new entry
+                    ingress = ingress_list[0]
 
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
+                    ingress.spec.rules.append(new_ingress_rule)
 
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
+                    kube_client.extension_api.patch_namespaced_ingress(
+                        name=ingress_name,
+                        namespace=namespace,
+                        body=ingress
+                    )
+            except client.rest.ApiException as e:
+                print(e)
 
             service_url = f'https://{sub_domain}'
 
@@ -647,44 +650,47 @@ class ProjectAppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
+            # TODO: Remove the try and handle the error
+            try:
+                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                    namespace=namespace).items
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
+                if not ingress_list:
 
-            if not ingress_list:
+                    ingress_meta = client.V1ObjectMeta(
+                        name=ingress_name
+                    )
 
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
+                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                        # backend=ingress_backend,
+                        rules=[new_ingress_rule]
+                    )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                    ingress_body = client.ExtensionsV1beta1Ingress(
+                        metadata=ingress_meta,
+                        spec=ingress_spec
+                    )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                    kube_client.extension_api.create_namespaced_ingress(
+                        namespace=namespace,
+                        body=ingress_body
+                    )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
+                    # update registry
+                    resource_registry['ingress_entry'] = True
+                else:
+                    # Update ingress with new entry
+                    ingress = ingress_list[0]
 
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
+                    ingress.spec.rules.append(new_ingress_rule)
 
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
+                    kube_client.extension_api.patch_namespaced_ingress(
+                        name=ingress_name,
+                        namespace=namespace,
+                        body=ingress
+                    )
+            except client.rest.ApiException as e:
+                print(e)
 
             service_url = f'https://{sub_domain}'
 
