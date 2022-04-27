@@ -1,4 +1,3 @@
-import pdb
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_owner_or_admin
@@ -40,7 +39,12 @@ class TransactionRecordView(Resource):
             status = validated_transaction_data['status']
             transaction_id = validated_transaction_data['transaction_id']
             tx_ref = validated_transaction_data['tx_ref']
-
+            # comments for implementation flow
+            # get the latest invoice for a project by date
+            # invoice = BillingInvoice.find_first(project_id=project_id)
+            # check if invoice.is_cashed == True
+            # invoice_bal = (invoice.amount - amount)
+            # amount = invoice_bal
             project = Project.get_by_id(project_id)
             if not project:
                 return dict(status='fail', message=f'project {project_id} not found'), 404
