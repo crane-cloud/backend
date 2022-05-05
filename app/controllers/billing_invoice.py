@@ -38,7 +38,7 @@ class BillingInvoiceView(Resource):
        
         #Invoice Email details
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
-        template = "templates/invoice.html"
+        template = "user/invoice.html"
         subject = "Invoice from Crane Cloud Project"
         email = user.email
         name = user.name

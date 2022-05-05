@@ -88,7 +88,7 @@ api.add_resource(TransactionRecordView, '/projects/<string:project_id>/transacti
 api.add_resource(TransactionRecordDetailView, '/projects/<string:project_id>/transactions/<string:record_id>')
 
 # Invoice routes
-api.add_resource(BillingInvoiceView, '/projects/<string:project_id>/invoice', endpoint='invoices')
+api.add_resource(BillingInvoiceView, '/projects/<string:project_id>/invoices', endpoint='invoices')
 
 # Project route
 api.add_resource(ProjectsView, '/projects', endpoint='projects')
