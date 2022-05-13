@@ -82,36 +82,37 @@ class ProjectsView(Resource):
                     name=ingress_name
                 )
 
-                ingress_default_rule = client.ExtensionsV1beta1IngressRule(
+                ingress_default_rule = client.V1IngressRule(
                     host="traefik-ui.cranecloud.io",
-                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
                             path="/*",
-                            backend=client.ExtensionsV1beta1IngressBackend(
-                                service_name="traefik-web-ui-ext",
-                                service_port=80
+                            path_type="ImplementationSpecific",
+                            backend=client.V1IngressBackend(
+                                service=client.V1IngressServiceBackend(
+                                    name="traefik-web-ui-ext",
+                                    port=client.V1ServiceBackendPort(
+                                        number=80
+                                    )
+                                )
                             )
                         )]
                     )
                 )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                ingress_spec = client.V1IngressSpec(
                     rules=[ingress_default_rule]
                 )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
+                ingress_body = client.V1Ingress(
                     metadata=ingress_meta,
                     spec=ingress_spec
                 )
 
-                # TODO: Remove the try and handle the error
-                try:
-                    kube_client.extension_api.create_namespaced_ingress(
-                        namespace=namespace_name,
-                        body=ingress_body
-                    )
-                except client.rest.ApiException as e:
-                    print(e)
+                kube_client.networking_api.create_namespaced_ingress(
+                    namespace=namespace_name,
+                    body=ingress_body
+                )
 
                 project = Project(**validated_project_data)
 

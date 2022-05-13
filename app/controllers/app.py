@@ -273,16 +273,21 @@ class AppsView(Resource):
             sub_domain = get_app_subdomain(app_alias)
 
             # create new ingress rule for the application
-            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                service_name=service_name,
-                service_port=3000
+            new_ingress_backend = client.V1IngressBackend(
+                service=client.V1IngressServiceBackend(
+                    name=service_name,
+                    port=client.V1ServiceBackendPort(
+                        number=3000
+                    )
+                )
             )
 
-            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+            new_ingress_rule = client.V1IngressRule(
                 host=sub_domain,
-                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                http=client.V1HTTPIngressRuleValue(
+                    paths=[client.V1HTTPIngressPath(
                         path="",
+                        path_type="ImplementationSpecific",
                         backend=new_ingress_backend
                     )]
                 )
@@ -293,7 +298,7 @@ class AppsView(Resource):
             # Check if there is an ingress resource in the namespace, create if not
             # TODO: Remove the try and handle the error
             try:
-                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                ingress_list = kube_client.networking_api.list_namespaced_ingress(
                     namespace=namespace).items
 
                 if not ingress_list:
@@ -312,7 +317,7 @@ class AppsView(Resource):
                         spec=ingress_spec
                     )
 
-                    kube_client.extension_api.create_namespaced_ingress(
+                    kube_client.networking_api.create_namespaced_ingress(
                         namespace=namespace,
                         body=ingress_body
                     )
@@ -325,7 +330,7 @@ class AppsView(Resource):
 
                     ingress.spec.rules.append(new_ingress_rule)
 
-                    kube_client.extension_api.patch_namespaced_ingress(
+                    kube_client.networking_api.patch_namespaced_ingress(
                         name=ingress_name,
                         namespace=namespace,
                         body=ingress
@@ -632,16 +637,21 @@ class ProjectAppsView(Resource):
                 sub_domain = get_app_subdomain(app_alias)
 
             # create new ingres rule for the application
-            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                service_name=service_name,
-                service_port=3000
+            new_ingress_backend = client.V1IngressBackend(
+                service=client.V1IngressServiceBackend(
+                    name=service_name,
+                    port=client.V1ServiceBackendPort(
+                        number=3000
+                    )
+                )
             )
 
-            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+            new_ingress_rule = client.V1IngressRule(
                 host=sub_domain,
-                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                http=client.V1HTTPIngressRuleValue(
+                    paths=[client.V1HTTPIngressPath(
                         path="",
+                        path_type="ImplementationSpecific",
                         backend=new_ingress_backend
                     )]
                 )
@@ -650,47 +660,44 @@ class ProjectAppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
-            # TODO: Remove the try and handle the error
-            try:
-                ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                    namespace=namespace).items
 
-                if not ingress_list:
+            ingress_list = kube_client.networking_api.list_namespaced_ingress(
+                namespace=namespace).items
 
-                    ingress_meta = client.V1ObjectMeta(
-                        name=ingress_name
-                    )
+            if not ingress_list:
 
-                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                        # backend=ingress_backend,
-                        rules=[new_ingress_rule]
-                    )
+                ingress_meta = client.V1ObjectMeta(
+                    name=ingress_name
+                )
 
-                    ingress_body = client.ExtensionsV1beta1Ingress(
-                        metadata=ingress_meta,
-                        spec=ingress_spec
-                    )
+                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                    # backend=ingress_backend,
+                    rules=[new_ingress_rule]
+                )
 
-                    kube_client.extension_api.create_namespaced_ingress(
-                        namespace=namespace,
-                        body=ingress_body
-                    )
+                ingress_body = client.ExtensionsV1beta1Ingress(
+                    metadata=ingress_meta,
+                    spec=ingress_spec
+                )
 
-                    # update registry
-                    resource_registry['ingress_entry'] = True
-                else:
-                    # Update ingress with new entry
-                    ingress = ingress_list[0]
+                kube_client.networking_api.create_namespaced_ingress(
+                    namespace=namespace,
+                    body=ingress_body
+                )
 
-                    ingress.spec.rules.append(new_ingress_rule)
+                # update registry
+                resource_registry['ingress_entry'] = True
+            else:
+                # Update ingress with new entry
+                ingress = ingress_list[0]
 
-                    kube_client.extension_api.patch_namespaced_ingress(
-                        name=ingress_name,
-                        namespace=namespace,
-                        body=ingress
-                    )
-            except client.rest.ApiException as e:
-                print(e)
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.networking_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
 
             service_url = f'https://{sub_domain}'
 
@@ -1098,28 +1105,33 @@ class AppDetailView(Resource):
                 service_name = f'{app.alias}-service'
                 ingress_name = f'{project.alias}-ingress'
 
-                new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                    service_name=service_name,
-                    service_port=3000
+                new_ingress_backend = client.V1IngressBackend(
+                    service=client.V1IngressServiceBackend(
+                        name=service_name,
+                        port=client.V1ServiceBackendPort(
+                            number=3000
+                        )
+                    )
                 )
 
-                new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                new_ingress_rule = client.V1IngressRule(
                     host=custom_domain,
-                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
                             path="",
+                            path_type="ImplementationSpecific",
                             backend=new_ingress_backend
                         )]
                     )
                 )
 
-                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                ingress_list = kube_client.networking_api.list_namespaced_ingress(
                     namespace=namespace).items
                 ingress = ingress_list[0]
 
                 ingress.spec.rules.append(new_ingress_rule)
 
-                kube_client.extension_api.patch_namespaced_ingress(
+                kube_client.networking_api.patch_namespaced_ingress(
                     name=ingress_name,
                     namespace=namespace,
                     body=ingress
@@ -1244,7 +1256,7 @@ class AppRevertView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+            ingress_list = kube_client.networking_api.list_namespaced_ingress(
                 namespace=namespace).items
 
             service_name = f'{app.alias}-service'
@@ -1260,16 +1272,21 @@ class AppRevertView(Resource):
 
             if not newUrl:
                 # Create a new ingress rule with app Alias
-                new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                    service_name=service_name,
-                    service_port=3000
+                new_ingress_backend = client.V1IngressBackend(
+                    service=client.V1IngressServiceBackend(
+                        name=service_name,
+                        port=client.V1ServiceBackendPort(
+                            number=3000
+                        )
+                    )
                 )
 
-                new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+                new_ingress_rule = client.V1IngressRule(
                     host=app_sub_domain,
-                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
                             path="",
+                            path_type="ImplementationSpecific",
                             backend=new_ingress_backend
                         )]
                     )
@@ -1282,7 +1299,7 @@ class AppRevertView(Resource):
                 if item.host == custom_domain:
                     ingress.spec.rules.remove(item)
 
-            kube_client.extension_api.patch_namespaced_ingress(
+            kube_client.networking_api.patch_namespaced_ingress(
                 name=ingress_name,
                 namespace=namespace,
                 body=ingress
