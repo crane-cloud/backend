@@ -1,19 +1,18 @@
 import base64
 import datetime
 import json
+import os
 from urllib.parse import urlsplit
 
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
 from prometheus_http_client import Prometheus
-
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.alias import create_alias
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.decorators import admin_required
 from app.helpers.kube import create_kube_clients, delete_cluster_app
-from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
 from app.models.user import User
@@ -1355,6 +1354,12 @@ class AppMemoryUsageView(Resource):
         app_alias = app.alias
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
+
         prom_memory_data = prometheus.query_rang(
             start=start,
             end=end,
@@ -1414,6 +1419,10 @@ class AppCpuUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1482,6 +1491,10 @@ class AppNetworkUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1663,6 +1676,10 @@ class AppStorageUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         try:

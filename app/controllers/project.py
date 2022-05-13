@@ -1,5 +1,5 @@
+import os
 from app.helpers.cost_modal import get_namespace_cost
-from app.helpers.prometheus import prometheus
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
@@ -436,6 +436,11 @@ class ProjectMemoryUsageView(Resource):
             return dict(status='fail', message='unauthorised'), 403
 
         namespace = project.alias
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
 
         prom_memory_data = prometheus.query_rang(
             start=start,
@@ -488,6 +493,10 @@ class ProjectCPUView(Resource):
         yesterday = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -501,7 +510,8 @@ class ProjectCPUView(Resource):
             metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
             namespace+'"}[5m]))'
         )
-        #  chenge array values to json"values"
+
+        #  change array values to json"values"
         new_data = json.loads(prom_data)
         cpu_data_list = []
 
@@ -546,6 +556,10 @@ class ProjectNetworkRequestView(Resource):
         yesterday = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -593,6 +607,10 @@ class ProjectStorageUsageView(Resource):
 
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         try:
