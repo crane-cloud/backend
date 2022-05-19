@@ -11,10 +11,12 @@ class BillingMetrics(ModelMixin):
     __tablename__ = 'billing_metrics'
 
     # billing metrics fields
-    id = db.Column(UUID(as_uuid=True), primary_key=True, 
-                    server_default=sa_text("uuid_generate_v4()"))
-    app_id = db.Column(UUID(as_uuid=True), db.ForeignKey('app.id'), nullable=False)
-    invoice_id = db.relationship('BillingInvoice', backref='owner', lazy=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True,
+                   server_default=sa_text("uuid_generate_v4()"))
+    app_id = db.Column(UUID(as_uuid=True),
+                       db.ForeignKey('app.id'), nullable=False)
+    invoice_id = db.Column(UUID(as_uuid=True), db.ForeignKey(
+        'billing_invoices.id'), nullable=False)
     memory = db.Column(db.Integer, nullable=True)
     cpu = db.Column(db.Integer, nullable=True)
     network = db.Column(db.Integer, nullable=True)

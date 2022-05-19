@@ -80,7 +80,6 @@ class ClusterDetailView(Resource):
             resource_count = []
 
             cluster = Cluster.get_by_id(cluster_id)
-
             if not cluster:
                 return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
 
@@ -138,6 +137,7 @@ class ClusterDetailView(Resource):
                     cluster=json.loads(validated_cluster_data),
                     resource_count=json.loads(resource_count_json))
             ), 200
+
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
