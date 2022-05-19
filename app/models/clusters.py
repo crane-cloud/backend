@@ -1,9 +1,7 @@
-from email.policy import default
 import os
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
 from sqlalchemy_utils import EncryptedType
-from flask import current_app as app
 from app.models import db
 from app.models.model_mixin import ModelMixin
 
