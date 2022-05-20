@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, TransactionRecordView, BillingInvoiceView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView)
 from app.controllers.transactions import TransactionRecordDetailView
 
 
@@ -77,15 +77,18 @@ api.add_resource(ClusterStorageClassDetailView,
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
-api.add_resource(RolesDetailView, '/roles/<string:role_id>', endpoint='roles_detail')
+api.add_resource(RolesDetailView, '/roles/<string:role_id>',
+                 endpoint='roles_detail')
 
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles',
                  endpoint='user_roles')
 
 # Transaction routes
-api.add_resource(TransactionRecordView, '/projects/<string:project_id>/transactions', endpoint='transactions')
-api.add_resource(TransactionRecordDetailView, '/projects/<string:project_id>/transactions/<string:record_id>')
+api.add_resource(TransactionRecordView,
+                 '/projects/<string:project_id>/transactions', endpoint='transactions')
+api.add_resource(TransactionRecordDetailView,
+                 '/projects/<string:project_id>/transactions/<string:record_id>')
 
 # Invoice routes
 api.add_resource(BillingInvoiceView, '/projects/<string:project_id>/invoices', endpoint='invoices')
@@ -102,6 +105,8 @@ api.add_resource(ProjectNetworkRequestView,
                  '/projects/<string:project_id>/metrics/network')
 api.add_resource(ProjectStorageUsageView,
                  '/projects/<string:project_id>/metrics/storage')
+api.add_resource(ProjectGetCostsView,
+                 '/projects/<string:project_id>/billing/info')
 
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')

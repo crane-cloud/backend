@@ -64,7 +64,7 @@ class ClustersView(Resource):
         cluster_count = len(clusters_data_list)
 
         return dict(status='Success',
-                    data=dict(clusters=json.loads(validated_cluster_data),metadata=dict(cluster_count=cluster_count))), 200
+                    data=dict(clusters=json.loads(validated_cluster_data), metadata=dict(cluster_count=cluster_count))), 200
 
 
 class ClusterDetailView(Resource):
@@ -80,7 +80,6 @@ class ClusterDetailView(Resource):
             resource_count = []
 
             cluster = Cluster.get_by_id(cluster_id)
-
             if not cluster:
                 return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
 
@@ -138,6 +137,7 @@ class ClusterDetailView(Resource):
                     cluster=json.loads(validated_cluster_data),
                     resource_count=json.loads(resource_count_json))
             ), 200
+
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
@@ -349,19 +349,20 @@ class ClusterDeploymentsView(Resource):
             deployment_resp =\
                 kube_client.appsv1_api.list_deployment_for_all_namespaces()
             tot_deployment_count = 0
-            tot_success_deployments=0
+            tot_success_deployments = 0
             for item in deployment_resp.items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 deployments.append(item)
 
-                if((item["status"]["conditions"][0]["status"]=="True") and (item["status"]["conditions"][1]["status"]=="True")):
+                if((item["status"]["conditions"][0]["status"] == "True") and (item["status"]["conditions"][1]["status"] == "True")):
                     tot_success_deployments = tot_success_deployments + 1
 
-                tot_deployment_count = tot_deployment_count +1
+                tot_deployment_count = tot_deployment_count + 1
 
             tot_failed_deployments = tot_deployment_count - tot_success_deployments
 
-            summary_stats_metadata = dict(total_deployment_count=tot_deployment_count, total_successful_deployments=tot_success_deployments,total_failed_deployment=tot_failed_deployments)
+            summary_stats_metadata = dict(total_deployment_count=tot_deployment_count,
+                                          total_successful_deployments=tot_success_deployments, total_failed_deployment=tot_failed_deployments)
             deployments_json = json.dumps(deployments)
 
             return dict(status='success', data=dict(deployments=json.loads(deployments_json), deployment_summary_stats=summary_stats_metadata)), 200

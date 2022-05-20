@@ -1,19 +1,18 @@
 import base64
 import datetime
 import json
+import os
 from urllib.parse import urlsplit
 
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
 from prometheus_http_client import Prometheus
-
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.alias import create_alias
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.decorators import admin_required
 from app.helpers.kube import create_kube_clients, delete_cluster_app
-from app.helpers.prometheus import prometheus
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
 from app.models.user import User
@@ -291,44 +290,47 @@ class AppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
+            # TODO: Remove the try and handle the error
+            try:
+                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                    namespace=namespace).items
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
+                if not ingress_list:
 
-            if not ingress_list:
+                    ingress_meta = client.V1ObjectMeta(
+                        name=ingress_name
+                    )
 
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
+                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                        # backend=ingress_backend,
+                        rules=[new_ingress_rule]
+                    )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                    ingress_body = client.ExtensionsV1beta1Ingress(
+                        metadata=ingress_meta,
+                        spec=ingress_spec
+                    )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                    kube_client.extension_api.create_namespaced_ingress(
+                        namespace=namespace,
+                        body=ingress_body
+                    )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
+                    # update registry
+                    resource_registry['ingress_entry'] = True
+                else:
+                    # Update ingress with new entry
+                    ingress = ingress_list[0]
 
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
+                    ingress.spec.rules.append(new_ingress_rule)
 
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
+                    kube_client.extension_api.patch_namespaced_ingress(
+                        name=ingress_name,
+                        namespace=namespace,
+                        body=ingress
+                    )
+            except client.rest.ApiException as e:
+                print(e)
 
             service_url = f'https://{sub_domain}'
 
@@ -647,44 +649,47 @@ class ProjectAppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
+            # TODO: Remove the try and handle the error
+            try:
+                ingress_list = kube_client.extension_api.list_namespaced_ingress(
+                    namespace=namespace).items
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
+                if not ingress_list:
 
-            if not ingress_list:
+                    ingress_meta = client.V1ObjectMeta(
+                        name=ingress_name
+                    )
 
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
+                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                        # backend=ingress_backend,
+                        rules=[new_ingress_rule]
+                    )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                    ingress_body = client.ExtensionsV1beta1Ingress(
+                        metadata=ingress_meta,
+                        spec=ingress_spec
+                    )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                    kube_client.extension_api.create_namespaced_ingress(
+                        namespace=namespace,
+                        body=ingress_body
+                    )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
+                    # update registry
+                    resource_registry['ingress_entry'] = True
+                else:
+                    # Update ingress with new entry
+                    ingress = ingress_list[0]
 
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
+                    ingress.spec.rules.append(new_ingress_rule)
 
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
+                    kube_client.extension_api.patch_namespaced_ingress(
+                        name=ingress_name,
+                        namespace=namespace,
+                        body=ingress
+                    )
+            except client.rest.ApiException as e:
+                print(e)
 
             service_url = f'https://{sub_domain}'
 
@@ -1349,6 +1354,12 @@ class AppMemoryUsageView(Resource):
         app_alias = app.alias
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
+
         prom_memory_data = prometheus.query_rang(
             start=start,
             end=end,
@@ -1408,6 +1419,10 @@ class AppCpuUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1476,6 +1491,10 @@ class AppNetworkUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1657,6 +1676,10 @@ class AppStorageUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         try:

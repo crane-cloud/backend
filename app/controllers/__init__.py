@@ -18,7 +18,7 @@ from .roles import RolesView, RolesDetailView
 from .user_role import UserRolesView
 from .transactions import TransactionRecordView, TransactionRecordDetailView
 from .project import (
-    ProjectsView, ProjectDetailView, UserProjectsView,
+    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
