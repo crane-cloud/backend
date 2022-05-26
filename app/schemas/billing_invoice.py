@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from numpy import require
 from app.helpers.age_utility import get_item_age
 
 
@@ -15,8 +16,8 @@ class BillingInvoiceSchema(Schema):
     ])
 
     total_amount = fields.Int()
-    date_cashed = fields.Date(dump_only=True)
-    is_cashed = fields.Boolean()
+    date_cashed = fields.Date(dump_only=True, required=False)
+    is_cashed = fields.Boolean(required=False)
     age = fields.Method("get_age", dump_only=True)
 
     def get_age(self, obj):
