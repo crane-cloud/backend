@@ -1,5 +1,4 @@
 from marshmallow import Schema, fields, validate
-from numpy import require
 from app.helpers.age_utility import get_item_age
 
 

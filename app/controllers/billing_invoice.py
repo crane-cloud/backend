@@ -89,6 +89,6 @@ class BillingInvoiceView(Resource):
 
         return dict(
             status='success',
-            message=f'Invoice for user {user.id} and project {project_id} sent successfully'
+            message=f'Invoice for user {user.id} and project {project_id} sent successfully',
             data=dict(invoice=new_invoice_data)
         ), 200
