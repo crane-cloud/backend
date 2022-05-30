@@ -453,6 +453,8 @@ paths:
                             type: string
                         description:
                             type: string
+                        prometheus_url:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -541,6 +543,8 @@ paths:
                         host:
                             type: string
                         token:
+                            type: string
+                        prometheus_url:
                             type: string
             responses:
                 200:
