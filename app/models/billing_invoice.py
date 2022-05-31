@@ -3,6 +3,7 @@ from ..models import db
 from sqlalchemy import text as sa_text
 
 from app.models.model_mixin import ModelMixin
+from app.models.billing_metrics import BillingMetrics
 
 
 class BillingInvoice(ModelMixin):

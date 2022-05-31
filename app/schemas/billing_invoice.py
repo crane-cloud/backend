@@ -18,6 +18,7 @@ class BillingInvoiceSchema(Schema):
     date_cashed = fields.Date(dump_only=True, required=False)
     is_cashed = fields.Boolean(required=False)
     age = fields.Method("get_age", dump_only=True)
+    date_created = fields.Date(dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_cashed)
