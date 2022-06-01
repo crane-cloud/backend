@@ -1188,7 +1188,6 @@ class AppDetailView(Resource):
             )
 
             # update the app in database
-            validated_update_data['url'] = f'https://{custom_domain}'
             updated_app = App.update(app, **validated_update_data)
 
             if not updated_app:

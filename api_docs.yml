@@ -2709,7 +2709,7 @@ paths:
                 500:
                     description: "Internal Server Error"
 
-    "/apps/{app_id}/custom_domains":
+    "/apps/{app_id}/revert_url":
         patch:
             description: "reverts custom url to CC provided url"
             tags:
