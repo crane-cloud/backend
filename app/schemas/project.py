@@ -23,6 +23,10 @@ class ProjectSchema(Schema):
     project_type = fields.String()
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
+    apps_count = fields.Method("get_apps_count", dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
+    def get_apps_count(self, obj):
+        return len(obj.apps)
