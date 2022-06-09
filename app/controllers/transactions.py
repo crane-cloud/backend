@@ -1,9 +1,13 @@
+import datetime
 import pdb
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.role_search import has_role
 import json
+from app.models import billing_invoice
+from app.models.billing_invoice import BillingInvoice
 from app.models.project import Project
 
 from app.models.transaction_record import TransactionRecord
@@ -40,6 +44,10 @@ class TransactionRecordView(Resource):
             status = validated_transaction_data['status']
             transaction_id = validated_transaction_data['transaction_id']
             tx_ref = validated_transaction_data['tx_ref']
+            # comments for implementation flow
+            # get the latest invoice for a project by date
+            invoice = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=False).order_by(
+                sqlalchemy.desc(BillingInvoice.date_created)).first()
 
             project = Project.get_by_id(project_id)
             if not project:
@@ -79,6 +87,11 @@ class TransactionRecordView(Resource):
 
             transaction = TransactionRecord(**validated_transaction_data)
 
+            transaction.invoice = invoice
+            transaction.billing_invoice_id = invoice.id
+            transaction.invoice.is_cashed = True
+            transaction.invoice.date_cashed = datetime.datetime.now()
+
             saved_transaction = transaction.save()
 
             if not saved_transaction:
@@ -86,8 +99,19 @@ class TransactionRecordView(Resource):
                             status='fail',
                             message='An error occured during saving of the record'), 400
 
+            new_invoice = BillingInvoice(project_id=project_id)
+
+            saved_new_invoice = new_invoice.save()
+
+            if not saved_new_invoice:
+                return dict(
+                            status='fail',
+                            message='An error occured during updating of new invoice record'), 400
+
             new_transaction_data, errors = transaction_schema.dump(transaction)
-            return dict(status='success', data=dict(transaction=new_transaction_data)), 201
+            return dict(status='success', data=dict(
+                        transaction={**new_transaction_data, 
+                        "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
 
         except Exception as err:
             return dict(status='fail', message=str(err)), 500

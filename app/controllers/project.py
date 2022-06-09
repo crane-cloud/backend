@@ -4,6 +4,7 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
 from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.models.billing_invoice import BillingInvoice
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -124,6 +125,16 @@ class ProjectsView(Resource):
                     return dict(
                         status='fail',
                         message='Internal Server Error'), 500
+            
+            # create a billing invoice on project creation
+            new_invoice = BillingInvoice(project_id=project.id)
+
+            saved_new_invoice = new_invoice.save()
+
+            if not saved_new_invoice:
+                return dict(
+                            status='fail',
+                            message='An error occured during creation of a new invoice record'), 400
 
             new_project_data, errors = project_schema.dump(project)
 
