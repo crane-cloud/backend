@@ -21,4 +21,4 @@ class BillingInvoiceSchema(Schema):
     date_created = fields.Date(dump_only=True)
 
     def get_age(self, obj):
-        return get_item_age(obj.date_cashed)
+        return get_item_age(obj.date_created)

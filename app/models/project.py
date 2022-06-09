@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import relationship, backref
-from app.models import db
+from app.models import billing_invoice, db
 from app.models.model_mixin import ModelMixin
 
 
@@ -22,3 +22,5 @@ class Project(ModelMixin):
         'ProjectDatabase', backref='project', lazy=True)
     project_transactions = db.relationship(
         'TransactionRecord', backref='project', lazy=True)
+    billing_invoices = db.relationship(
+        'BillingInvoice', backref='project', lazy=True)
