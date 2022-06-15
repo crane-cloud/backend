@@ -1240,7 +1240,9 @@ class AppRevertView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             app_sub_domain = get_app_subdomain(app.alias)
-            custom_domain = app.url.split("//", 1)[-1]
+            custom_domain = None
+            if type(app.url) is str:
+                custom_domain = app.url.split("//", 1)[-1]
 
             if custom_domain == app_sub_domain:
                 return dict(
