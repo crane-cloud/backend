@@ -7,6 +7,7 @@ from app.helpers.admin import is_owner_or_admin
 from app.helpers.cost_modal import get_namespace_cost
 from app.helpers.decorators import admin_required
 from app.helpers.invoice_notification import send_invoice
+from app.models import billing_invoice
 from app.models.billing_invoice import BillingInvoice
 from app.models.transaction_record import TransactionRecord
 from app.models.user import User
@@ -145,6 +146,37 @@ class BillingInvoiceView(Resource):
 
         billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
 
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(
+            transaction=json.loads(billing_invoice_data))), 200
+
+
+class BillingInvoiceDetailView(Resource):
+    
+    @jwt_required
+    def get(self,project_id ,invoice_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        transaction_schema = BillingInvoiceSchema()
+        project = Project.get_by_id(project_id)
+
+        billing_invoice = BillingInvoice.get_by_id(invoice_id)
+
+        if not billing_invoice:
+            return dict(
+                status='fail',
+                message=f'billing invoice with invoice id {invoice_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+        billing_invoice_data, errors = transaction_schema.dumps(billing_invoice)
+        
         if errors:
             return dict(status='fail', message=errors), 500
 
