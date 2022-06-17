@@ -1,7 +1,9 @@
+import json
 from flask import current_app
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
+from app.helpers.admin import is_owner_or_admin
 from app.helpers.cost_modal import get_namespace_cost
 from app.helpers.decorators import admin_required
 from app.helpers.invoice_notification import send_invoice
@@ -118,3 +120,33 @@ class BillingInvoiceView(Resource):
             message=f'Invoice for user with email {user.email} and project_id {project_id} sent successfully',
             data=dict(invoice=new_invoice_data)
         ), 200
+
+
+    @jwt_required
+    def get(self, project_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        billing_invoice_schema = BillingInvoiceSchema(many=True)
+        project = Project.get_by_id(project_id)
+
+        billing_invoice = BillingInvoice.find_all(project_id=project_id)
+
+        if not billing_invoice:
+            return dict(
+                status='fail',
+                message=f'billing invoice records not found'
+            ), 404
+        
+        
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+        billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+
+        return dict(status='success', data=dict(
+            transaction=json.loads(billing_invoice_data))), 200
