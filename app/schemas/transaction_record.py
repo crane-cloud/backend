@@ -27,6 +27,7 @@ class TransactionRecordSchema(Schema):
     status = fields.String()
     tx_ref = fields.String()
     transaction_id = fields.Int()
+    date_created = fields.Date(dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
