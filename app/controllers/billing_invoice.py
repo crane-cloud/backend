@@ -1,3 +1,4 @@
+from email import message
 import json
 from flask import current_app
 from flask_restful import Resource, request
@@ -132,6 +133,13 @@ class BillingInvoiceView(Resource):
         billing_invoice_schema = BillingInvoiceSchema(many=True)
         project = Project.get_by_id(project_id)
 
+        if not project:
+            return dict(status='fail', message='Project with project id {project_id} not found'), 404
+
+        
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
         billing_invoice = BillingInvoice.find_all(project_id=project_id)
 
         if not billing_invoice:
@@ -139,10 +147,6 @@ class BillingInvoiceView(Resource):
                 status='fail',
                 message=f'billing invoice records not found'
             ), 404
-        
-        
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
 
         billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
 
@@ -150,7 +154,7 @@ class BillingInvoiceView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            transaction=json.loads(billing_invoice_data))), 200
+            billing_invoice=json.loads(billing_invoice_data))), 200
 
 
 class BillingInvoiceDetailView(Resource):
@@ -161,8 +165,14 @@ class BillingInvoiceDetailView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
-        transaction_schema = BillingInvoiceSchema()
+        billing_invoice_schema = BillingInvoiceSchema()
         project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message='Project with project id not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
 
         billing_invoice = BillingInvoice.get_by_id(invoice_id)
 
@@ -172,13 +182,11 @@ class BillingInvoiceDetailView(Resource):
                 message=f'billing invoice with invoice id {invoice_id} not found'
             ), 404
 
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
 
-        billing_invoice_data, errors = transaction_schema.dumps(billing_invoice)
+        billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
         
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            transaction=json.loads(billing_invoice_data))), 200
+            billing_invoice=json.loads(billing_invoice_data))), 200
