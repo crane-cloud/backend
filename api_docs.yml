@@ -1590,6 +1590,67 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+        get:
+            tags:
+                - invoices
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A list of user's billing invoices"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    
+    "/projects/{project_id}/invoices/{invoice_id}":
+        get:
+            tags:
+                - invoices
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: invoice_id
+                  required: true
+                  type: string
+
+
+            responses:
+                200:
+                    description: "A single invoice record"
+                404:
+                    description: "Invoice record not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
 
     "/projects":
 

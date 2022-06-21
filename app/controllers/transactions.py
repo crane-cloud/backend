@@ -1,5 +1,4 @@
 import datetime
-import pdb
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
