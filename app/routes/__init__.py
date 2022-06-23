@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView, SystemStatusView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.transactions import TransactionRecordDetailView
 
@@ -92,7 +92,8 @@ api.add_resource(TransactionRecordDetailView,
                  '/projects/<string:project_id>/transactions/<string:record_id>')
 
 # Invoice routes
-api.add_resource(BillingInvoiceView, '/projects/<string:project_id>/invoices', endpoint='invoices')
+api.add_resource(BillingInvoiceView,
+                 '/projects/<string:project_id>/invoices', endpoint='invoices')
 api.add_resource(BillingInvoiceDetailView,
                  '/projects/<string:project_id>/invoices/<string:invoice_id>')
 
@@ -154,3 +155,6 @@ api.add_resource(ProjectDatabaseRetrievePasswordView,
 api.add_resource(ProjectDatabaseAdminRetrievePasswordView,
                  '/databases/<string:database_id>/password')
 api.add_resource(DatabaseStatsView, '/databases/stats')
+
+# system status
+api.add_resource(SystemStatusView, '/system_status')

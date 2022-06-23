@@ -87,3 +87,56 @@ def delete_cluster_app(kube_client, namespace, app):
     #         name=pvc_name,
     #         namespace=namespace
     #     )
+
+
+def get_status(success, failed):
+    if failed == 0:
+        return 'success'
+    elif success == 0:
+        return 'failed'
+    else:
+        return 'partial'
+
+
+def get_kube_cluster_status(kube_client):
+    # get cluster status
+    try:
+        cluster_status_list = kube_client.kube.list_component_status()
+        cluster_status = []
+        success = 0
+        failed = 0
+        for cluster_status_list_item in cluster_status_list.items:
+            kubelet_status = cluster_status_list_item.conditions[0]
+            cluster_status.append({
+                'name': cluster_status_list_item.metadata.name,
+                'status': kubelet_status.status,
+                'type': kubelet_status.type,
+                'error': kubelet_status.error
+            })
+            success += 1 if kubelet_status.status == 'True' else 0
+            failed += 1 if kubelet_status.status == 'False' else 0
+
+    # cluster_status = kube_client.kube.read_component_status()
+        return {'status': get_status(success, failed),
+                'data': cluster_status}
+    except Exception:
+        return {
+            'status': 'failed',
+            'data': []
+        }
+
+
+def get_cluster_status_info(clusters):
+    clusters_status = []
+    for cluster in clusters:
+        kube_host = cluster.host
+        kube_token = cluster.token
+
+        kube_client = create_kube_clients(kube_host, kube_token)
+        status = get_kube_cluster_status(kube_client)
+        clusters_status.append({
+            'cluster_name': cluster.name,
+            'status': status['status'],
+            'cluster_status': status['data']
+        })
+    return clusters_status

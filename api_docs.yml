@@ -2995,6 +2995,32 @@ paths:
                     description: "Bad request"
                 500:
                     description: "Internal Server Error"
+    
+    "/system_status":
+        get:
+            tags:
+                - system
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+
+            responses:
+                200:
+                    description: "Returns status of the system"
+                404:
+                    description: "System status not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
                 
 
 components:
