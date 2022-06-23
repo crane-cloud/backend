@@ -89,8 +89,11 @@ def delete_cluster_app(kube_client, namespace, app):
     #     )
 
 
-def get_status(success, failed):
-    if failed == 0:
+def get_status(success, failed, partial=0):
+
+    if partial > 0:
+        return 'partial'
+    elif failed == 0:
         return 'success'
     elif success == 0:
         return 'failed'
@@ -128,6 +131,9 @@ def get_kube_cluster_status(kube_client):
 
 def get_cluster_status_info(clusters):
     clusters_status = []
+    success = 0
+    failed = 0
+    partial = 0
     for cluster in clusters:
         kube_host = cluster.host
         kube_token = cluster.token
@@ -139,4 +145,9 @@ def get_cluster_status_info(clusters):
             'status': status['status'],
             'cluster_status': status['data']
         })
-    return clusters_status
+        success += 1 if status['status'] == 'success' else 0
+        failed += 1 if status['status'] == 'failed' else 0
+        partial += 1 if status['status'] == 'partial' else 0
+
+    return {'status': get_status(success, failed, partial),
+            'data': clusters_status}
