@@ -336,6 +336,32 @@ class MysqlDbService(DatabaseService):
                 cursor.close()
                 connection.close()
 
+    def get_server_status(self):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute("SHOW GLOBAL STATUS")
+            # cursor.fetchall()
+            return {
+                'status': 'success',
+                'data': 'online'
+            }
+        except self.Error:
+            return {
+                'status': 'error',
+                'message': 'Error has occured'}
+
+        finally:
+            if not connection:
+                return {
+                    'status': 'error',
+                    'message': 'Unable to connect to database'}
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
 
 class PostgresqlDbService(DatabaseService):
 
@@ -434,7 +460,6 @@ class PostgresqlDbService(DatabaseService):
             print(e)
             if e.pgcode == '42710':
                 return True
-            print('gssd')
             return False
         finally:
             if not connection:
@@ -582,5 +607,35 @@ class PostgresqlDbService(DatabaseService):
         finally:
             if not connection:
                 return False
+            cursor.close()
+            connection.close()
+
+    def get_server_status(self):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute("SELECT pg_is_in_recovery()")
+
+            for db in cursor:
+                if db[0]:
+                    return {
+                        'status': 'failed',
+                        'message': 'in recovery'}
+                else:
+                    return {
+                        'status': 'success',
+                        'message': 'online'}
+        except self.Error:
+            return {
+                'status': 'error',
+                'message': 'Error has occured'}
+        finally:
+            if not connection:
+                return {
+                    'status': 'error',
+                    'message': 'Unable to connect to database'}
+
             cursor.close()
             connection.close()

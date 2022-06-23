@@ -3,6 +3,7 @@ from imp import reload
 from time import clock_settime
 
 import requests
+from app.helpers.db_flavor import get_all_db_flavours
 from app.helpers.kube import create_kube_clients
 
 
@@ -131,3 +132,38 @@ def get_prometheus_status_info(clusters):
 
     return {'status': get_status(success, failed, partial),
             'data': prometheus_status}
+
+
+def get_database_status_infor():
+    # get database status
+    database_status = []
+    success = 0
+    failed = 0
+    partial = 0
+    databases = get_all_db_flavours()
+    for db_flavour in databases:
+        database_service = db_flavour['class']
+        database_connection = database_service.check_db_connection()
+        if not database_connection:
+            database_status.append({
+                'database_name': db_flavour['name'],
+                'status': 'failed',
+                'database_status': {
+                    'error': "Failed to connect to the database service"
+                }
+            })
+            failed += 1
+            continue
+        status = database_service.get_server_status()
+        database_status.append({
+            'database_name': db_flavour['name'],
+            'status': 'success' if status['status'] is 'success' else 'failed',
+            'database_status': status
+        })
+
+        success += 1 if status['status'] == 'success' else 0
+        failed += 1 if status['status'] == 'failed' else 0
+        partial += 1 if status['status'] == 'partial' else 0
+
+    return {'status': get_status(success, failed, partial),
+            'data': database_status}
