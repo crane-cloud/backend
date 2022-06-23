@@ -32,9 +32,9 @@ class SystemStatusView(Resource):
         # get MIRA status
         mira_apps_list = [
             {'name': 'mira-frontend',
-             'url': 'http://mira.cranecloud.io:3000'},
+             'url': os.getenv('MIRA_FRONTEND_URL', None)},
             {'name': 'mira-backend',
-             'url': 'http://mira.cranecloud.io:3000'},
+             'url': os.getenv('MIRA_BACKEND_URL', None)},
         ]
         mira_status = get_client_status_infor(mira_apps_list)
         return dict(status='success', data={
