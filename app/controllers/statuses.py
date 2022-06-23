@@ -1,10 +1,13 @@
 
 from imp import reload
+import os
 from time import clock_settime
 
 import requests
+from yaml import scan
 from app.helpers.db_flavor import get_all_db_flavours
 from app.helpers.kube import create_kube_clients
+from flask import request
 
 
 def get_status(success, failed, partial=0):
@@ -157,7 +160,7 @@ def get_database_status_infor():
         status = database_service.get_server_status()
         database_status.append({
             'database_name': db_flavour['name'],
-            'status': 'success' if status['status'] is 'success' else 'failed',
+            'status': 'success' if status['status'] == 'success' else 'failed',
             'database_status': status
         })
 
@@ -167,3 +170,58 @@ def get_database_status_infor():
 
     return {'status': get_status(success, failed, partial),
             'data': database_status}
+
+
+def check_url_status(url):
+    try:
+        response = requests.get(url)
+        if response.status_code != 200 and response.status_code != 201:
+            return {
+                'status': 'failed',
+                'data': {'status_code': response.status_code,
+                         'error': response.reason}
+            }
+
+        return {'status': 'success',
+                'message': 'Connection successful'}
+    except Exception as e:
+        return {
+            'status': 'error',
+            'data': str(e)
+        }
+
+
+def get_client_status_infor():
+    client_status = []
+    success = 0
+    failed = 0
+    partial = 0
+    front_end_url = os.getenv('CLIENT_BASE_URL', None)
+    apps_list = [
+        {'name': 'crane-frontend', 'url': front_end_url},
+        {'name': 'crane-backend', 'url': request.url_root},
+    ]
+    for app in apps_list:
+        if not app['url']:
+            client_status.append({
+                'app_name': app['name'],
+                'app_url': app['url'],
+                'status': 'failed',
+                'data': {'error': 'Url is not available'}
+            })
+            failed += 1
+            continue
+        status = check_url_status(app['url'])
+        status_info = {
+            'app_name': app['name'],
+            'app_url': app['url'],
+            'status': 'success' if status['status'] == 'success' else 'failed',
+            'data': status
+        }
+        client_status.append(status_info)
+        success += 1 if status_info['status'] == 'success' else 0
+        failed += 1 if status_info['status'] == 'failed' else 0
+        partial += 1 if status_info['status'] == 'partial' else 0
+
+    return {'status': get_status(success, failed, partial),
+            'data': client_status}
