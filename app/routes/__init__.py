@@ -96,14 +96,11 @@ api.add_resource(TransactionRecordDetailView,
 api.add_resource(BillingInvoiceView, '/projects/<string:project_id>/invoices', endpoint='invoices')
 api.add_resource(BillingInvoiceDetailView,
                  '/projects/<string:project_id>/invoices/<string:invoice_id>')
-<<<<<<< HEAD
 
 # receipt routes
 api.add_resource(BillingReceiptsView, '/projects/<string:project_id>/receipts', endpoint='receipts')
 api.add_resource(BillingReceiptsDetailView,
                  '/projects/<string:project_id>/receipts/<string:record_id>')
-=======
->>>>>>> develop-new
 
 # Project route
 api.add_resource(ProjectsView, '/projects', endpoint='projects')

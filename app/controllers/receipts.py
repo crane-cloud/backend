@@ -1,7 +1,6 @@
 
 
 import json
-import pdb
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_owner_or_admin
