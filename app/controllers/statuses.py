@@ -7,7 +7,6 @@ import requests
 from yaml import scan
 from app.helpers.db_flavor import get_all_db_flavours
 from app.helpers.kube import create_kube_clients
-from flask import request
 
 
 def get_status(success, failed, partial=0):
@@ -15,7 +14,10 @@ def get_status(success, failed, partial=0):
     if partial > 0:
         return 'partial'
     elif failed == 0:
-        return 'success'
+        if success == 0:
+            return 'failed'
+        else:
+            return 'success'
     elif success == 0:
         return 'failed'
     else:
@@ -191,16 +193,12 @@ def check_url_status(url):
         }
 
 
-def get_client_status_infor():
+def get_client_status_infor(apps_list=[]):
     client_status = []
     success = 0
     failed = 0
     partial = 0
-    front_end_url = os.getenv('CLIENT_BASE_URL', None)
-    apps_list = [
-        {'name': 'crane-frontend', 'url': front_end_url},
-        {'name': 'crane-backend', 'url': request.url_root},
-    ]
+
     for app in apps_list:
         if not app['url']:
             client_status.append({
