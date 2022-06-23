@@ -1651,6 +1651,69 @@ paths:
                 500:
                     description: "Internal Server Error"
 
+    "/projects/{project_id}/receipts":
+
+        get:
+            tags:
+                - receipts
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+
+            responses:
+                200:
+                    description: "A list of user's billing receipts"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
+    
+    "/projects/{project_id}/receipts/{receipt_id}":
+        get:
+            tags:
+                - receipts
+            consumes:
+                - application/json
+            produces:
+                - application/json
+            parameters:
+                - in: header
+                  name: Authorization
+                  required: true
+                  description: "Bearer [token]"
+                  type: string
+                - in: path
+                  name: project_id
+                  required: true
+                  type: string
+                - in: path
+                  name: receipt_id
+                  required: true
+                  type: string
+
+
+            responses:
+                200:
+                    description: "A single receipt record"
+                404:
+                    description: "receipt record not found"
+                400:
+                    description: "Bad request"
+                500:
+                    description: "Internal Server Error"
+
 
     "/projects":
 
