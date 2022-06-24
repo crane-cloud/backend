@@ -100,7 +100,7 @@ api.add_resource(BillingInvoiceDetailView,
 # receipt routes
 api.add_resource(BillingReceiptsView, '/projects/<string:project_id>/receipts', endpoint='receipts')
 api.add_resource(BillingReceiptsDetailView,
-                 '/projects/<string:project_id>/receipts/<string:record_id>')
+                 '/projects/<string:project_id>/receipts/<string:receipt_id>')
 
 # Project route
 api.add_resource(ProjectsView, '/projects', endpoint='projects')
