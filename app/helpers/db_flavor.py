@@ -43,3 +43,6 @@ def get_db_flavour(flavour_name=None):
         return database_flavours[1]
     else:
         return False
+
+def get_all_db_flavours():
+    return database_flavours

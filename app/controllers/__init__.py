@@ -29,3 +29,4 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
 from .billing_invoice import (BillingInvoiceView)
+from .system_status import SystemStatusView
