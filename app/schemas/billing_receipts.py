@@ -28,6 +28,7 @@ class BillingReceiptSchema(Schema):
     ])
     email = fields.Email(required=False)
     transaction_id = fields.Int()
+    date_created = fields.Date(dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
