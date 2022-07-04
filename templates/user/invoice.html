@@ -138,11 +138,11 @@
                                     </tr>
                                     <tr>
                                         <td>Amount due</td>
-                                        <td>{{ total_amount}}</td>
+                                        <td>UGX {{ total_amount}}</td>
                                     </tr>
                                     <tr>
                                         <td>Date</td>
-                                        <td>{{ invoice_date}}</td>
+                                        <td>{{ invoice_date.strftime("%d %b, %Y %I:%M %p") }}</td>
                                     </tr>
                                     </table>
                         </td>
