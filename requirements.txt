@@ -16,7 +16,7 @@ Click==7.0
 click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
-codecov==2.0.15
+codecov==2.0.16
 coverage==4.5.3
 cryptography==2.7
 enum34==1.1.6
