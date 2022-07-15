@@ -5,10 +5,6 @@ import requests
 # Using kubecost allocation API
 # https://guide.kubecost.com/hc/en-us/articles/4407595916823-Allocation-API
 
-# TODO: Remove this url and add it to cluster
-# base_url = 'https://netlabs-test.dev.cranecloud.io'
-# base_url = 'http://staging-prom.cranecloud.io'
-
 
 class CostModal:
     def __init__(self, base_url):
