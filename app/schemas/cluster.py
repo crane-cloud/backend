@@ -39,4 +39,11 @@ class ClusterSchema(Schema):
             ),
         ]
     )
+    cost_modal_url = fields.String(
+        validate=[
+            validate.Regexp(
+                regex=r'^(?!\s*$)', error='host should be a valid string'
+            ),
+        ]
+    )
     date_created = fields.Date(dump_only=True)

@@ -5,7 +5,6 @@ from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
-from app.helpers.cost_modal import get_namespace_cost
 from app.helpers.decorators import admin_required
 from app.helpers.invoice_notification import send_invoice
 from app.models import billing_invoice
@@ -16,13 +15,14 @@ from app.models.project import Project
 from app.schemas import ProjectSchema, UserSchema
 from app.schemas.billing_invoice import BillingInvoiceSchema
 
+
 class BillingInvoiceView(Resource):
     """
     - Billing Invoice view
     """
 
     @admin_required
-    def post(self, project_id):        
+    def post(self, project_id):
         """
         Required information info:
         - invoice_id, total_amount, project_id(FK), date_cashed
@@ -39,14 +39,13 @@ class BillingInvoiceView(Resource):
             ), 404
 
         user = User.get_by_id(project.owner_id)
-        
+
         if not user:
             return dict(
                 status='fail',
                 message=f'user {project.owner_id} not found'
             ), 404
 
-        
         existing_invoice = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=False).order_by(
             sqlalchemy.desc(BillingInvoice.date_created)).first()
 
@@ -62,9 +61,8 @@ class BillingInvoiceView(Resource):
 
             # cost_data = get_namespace_cost(
             #     window, project.alias, series=False, show_deployments=False)
-            
-            
-            #date_cashed # - comes from transaction record
+
+            # date_cashed # - comes from transaction record
             # date_cashed = TransactionRecord.date_created
 
             new_invoice_data = dict(
@@ -85,14 +83,13 @@ class BillingInvoiceView(Resource):
             saved_invoice = invoice.save()
 
             if not saved_invoice:
-                    return dict(
-                                status='fail',
-                                message='An error occured during saving of the invoice'), 400
-
+                return dict(
+                    status='fail',
+                    message='An error occured during saving of the invoice'), 400
 
         new_invoice_data, errors = billing_invoice_schema.dump(invoice)
 
-        #Invoice Email details
+        # Invoice Email details
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
         template = "user/invoice.html"
         subject = "Invoice from Crane Cloud Project"
@@ -123,7 +120,6 @@ class BillingInvoiceView(Resource):
             data=dict(invoice=new_invoice_data)
         ), 200
 
-
     @jwt_required
     def get(self, project_id):
 
@@ -136,9 +132,8 @@ class BillingInvoiceView(Resource):
         if not project:
             return dict(status='fail', message='Project with project id {project_id} not found'), 404
 
-        
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+            return dict(status='fail', message='Unauthorised'), 403
 
         billing_invoice = BillingInvoice.find_all(project_id=project_id)
 
@@ -148,7 +143,8 @@ class BillingInvoiceView(Resource):
                 message=f'billing invoice records not found'
             ), 404
 
-        billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
+        billing_invoice_data, errors = billing_invoice_schema.dumps(
+            billing_invoice)
 
         if errors:
             return dict(status='fail', message=errors), 500
@@ -158,9 +154,9 @@ class BillingInvoiceView(Resource):
 
 
 class BillingInvoiceDetailView(Resource):
-    
+
     @jwt_required
-    def get(self,project_id ,invoice_id):
+    def get(self, project_id, invoice_id):
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
@@ -172,7 +168,7 @@ class BillingInvoiceDetailView(Resource):
             return dict(status='fail', message='Project with project id not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+            return dict(status='fail', message='Unauthorised'), 403
 
         billing_invoice = BillingInvoice.get_by_id(invoice_id)
 
@@ -182,9 +178,9 @@ class BillingInvoiceDetailView(Resource):
                 message=f'billing invoice with invoice id {invoice_id} not found'
             ), 404
 
+        billing_invoice_data, errors = billing_invoice_schema.dumps(
+            billing_invoice)
 
-        billing_invoice_data, errors = billing_invoice_schema.dumps(billing_invoice)
-        
         if errors:
             return dict(status='fail', message=errors), 500
 
