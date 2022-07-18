@@ -98,7 +98,7 @@ class BillingInvoiceView(Resource):
         subject = "Invoice from Crane Cloud Project"
         email = user.email
         name = user.name
-        project_id = project.id
+        invoice_id = invoice.id
         project_name = project.name
         invoice_date = invoice.date_created
         total_amount = invoice.total_amount
@@ -107,7 +107,7 @@ class BillingInvoiceView(Resource):
         send_invoice(
             email,
             name,
-            project_id,
+            invoice_id,
             project_name,
             total_amount,
             invoice_date,
