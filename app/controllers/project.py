@@ -1,5 +1,5 @@
 import os
-from app.helpers.cost_modal import get_namespace_cost
+from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
@@ -125,7 +125,7 @@ class ProjectsView(Resource):
                     return dict(
                         status='fail',
                         message='Internal Server Error'), 500
-            
+
             # create a billing invoice on project creation
             new_invoice = BillingInvoice(project_id=project.id)
 
@@ -133,8 +133,8 @@ class ProjectsView(Resource):
 
             if not saved_new_invoice:
                 return dict(
-                            status='fail',
-                            message='An error occured during creation of a new invoice record'), 400
+                    status='fail',
+                    message='An error occured during creation of a new invoice record'), 400
 
             new_project_data, errors = project_schema.dump(project)
 
@@ -677,6 +677,9 @@ class ProjectGetCostsView(Resource):
             'end', int(datetime.datetime.now().timestamp()))
         series = validated_query_data.get('series', False)
         show_deployments = validated_query_data.get('show_deployments', False)
+
+        if show_deployments:
+            series = False
         window = validated_query_data.get('window', None)
 
         if not window:
@@ -684,7 +687,14 @@ class ProjectGetCostsView(Resource):
 
         namespace = project.alias
         # namespace = 'liqo'
-        cost_data = get_namespace_cost(
+        cost_url = project.cluster.cost_modal_url
+
+        if not cost_url:
+            return dict(status='fail', message='No cost modal url provided, please contact your administrator'), 404
+
+        cost_modal = CostModal(cost_url)
+
+        cost_data = cost_modal.get_namespace_cost(
             window, namespace, series=series, show_deployments=show_deployments)
         if not cost_data:
             return dict(status='fail', message='Error occurred'), 500

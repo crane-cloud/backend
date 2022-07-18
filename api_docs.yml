@@ -455,6 +455,8 @@ paths:
                             type: string
                         prometheus_url:
                             type: string
+                        cost_modal_url:
+                            type: string
             produces:
                 - application/json
             responses:
@@ -545,6 +547,8 @@ paths:
                         token:
                             type: string
                         prometheus_url:
+                            type: string
+                        cost_modal_url:
                             type: string
             responses:
                 200:
