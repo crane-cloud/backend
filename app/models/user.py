@@ -27,8 +27,8 @@ class User(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
     is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
-    credits = db.relationship('Credit', backref='user_id', lazy=True)
-    credit_assignments = db.relationship('CreditAssignment', backref='user_id', lazy=True)
+    credits = db.relationship('Credit', backref='user', lazy=True)
+    credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
 
     def __init__(self, email, name, password):
         """ initialize with email, username and password """
