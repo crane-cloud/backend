@@ -3,6 +3,7 @@ from sqlalchemy import text as sa_text
 from app.models import db
 from app.models.model_mixin import ModelMixin
 
+
 class Credit(ModelMixin):
     __tablename__ = 'credits'
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
