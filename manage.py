@@ -18,6 +18,8 @@ from app.models.billing_invoice import BillingInvoice
 from app.models.user_payment import UserPaymentDetails
 from app.models.billing_metrics import BillingMetrics
 from app.models.transaction_record import TransactionRecord
+from app.models.credits import Credit
+from app.models.credit_assignments import CreditAssignment
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)

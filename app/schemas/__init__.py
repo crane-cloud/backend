@@ -10,3 +10,5 @@ from .monitoring_metrics import (MetricsSchema, UserGraphSchema, AppGraphSchema,
                                  BillingMetricsSchema)
 from .pod_logs import PodsLogsSchema
 from .project_database import ProjectDatabaseSchema
+from .credits import CreditSchema
+from .credit_assignments import CreditAssignmentSchema
