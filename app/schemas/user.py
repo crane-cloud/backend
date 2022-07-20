@@ -2,8 +2,7 @@ from marshmallow import Schema, fields, validate, pre_load
 
 from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
-
-
+from .credits import CreditSchema
 class UserSchema(Schema):
 
     id = fields.String(dump_only=True)
@@ -28,6 +27,7 @@ class UserSchema(Schema):
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     is_beta_user = fields.Boolean()
+    credits = fields.Nested(CreditSchema, many=True, dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
