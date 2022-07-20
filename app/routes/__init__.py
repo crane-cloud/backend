@@ -1,7 +1,7 @@
 from flask_restful import Api
 from app.controllers import (
     IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
-    RolesDetailView, UserRolesView, UserDataSummaryView, ClustersView,
+    RolesDetailView,CreditAssignmentView, CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
@@ -76,6 +76,12 @@ api.add_resource(ClusterStorageClassView,
                  '/clusters/<string:cluster_id>/storage_classes')
 api.add_resource(ClusterStorageClassDetailView,
                  '/clusters/<string:cluster_id>/storage_classes/<string:storage_class_name>')
+
+# Credit routes
+api.add_resource(CreditView, '/credit', endpoint='credit')
+
+# Credit Assignment routes
+api.add_resource(CreditAssignmentView, '/credit_assignment', endpoint='credit_assignment')
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
