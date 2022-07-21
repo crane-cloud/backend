@@ -200,7 +200,7 @@ class BillingInvoiceNotificationView(Resource):
             billing_invoices = db.session.query(BillingInvoice).filter(
                 BillingInvoice.is_cashed == False).filter(
                 BillingInvoice.date_created < one_month).filter(
-                BillingInvoice.total_amount >= 0).all()
+                BillingInvoice.total_amount > 0).all()
         except SQLAlchemyError as e:
             return dict(status='Fail',
                         message='Internal server error'), 500
@@ -224,18 +224,18 @@ class BillingInvoiceNotificationView(Resource):
             total_amount = invoice.total_amount
 
             # send invoice
-            send_invoice(
-                email,
-                name,
-                invoice_id,
-                project_name,
-                total_amount,
-                invoice_date,
-                sender,
-                current_app._get_current_object(),
-                template,
-                subject
-            )
+            # send_invoice(
+            #     email,
+            #     name,
+            #     invoice_id,
+            #     project_name,
+            #     total_amount,
+            #     invoice_date,
+            #     sender,
+            #     current_app._get_current_object(),
+            #     template,
+            #     subject
+            # )
 
         return dict(
             status='success',
