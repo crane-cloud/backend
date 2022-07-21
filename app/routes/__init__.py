@@ -16,7 +16,7 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
-    SystemStatusView)
+    SystemStatusView, CreditDetailView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView
@@ -80,6 +80,7 @@ api.add_resource(ClusterStorageClassDetailView,
 
 # Credit routes
 api.add_resource(CreditView, '/credit', endpoint='credit')
+api.add_resource(CreditDetailView, '/credit/<string:user_id>')
 
 # Credit Assignment routes
 api.add_resource(CreditAssignmentView, '/credit_assignment',
