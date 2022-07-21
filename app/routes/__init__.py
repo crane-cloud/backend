@@ -1,7 +1,7 @@
 from flask_restful import Api
 from app.controllers import (
     IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
-    RolesDetailView,CreditAssignmentView, CreditView, UserRolesView, UserDataSummaryView, ClustersView,
+    RolesDetailView, CreditAssignmentView, CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
@@ -15,7 +15,8 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView, SystemStatusView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
+    SystemStatusView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView
@@ -81,7 +82,8 @@ api.add_resource(ClusterStorageClassDetailView,
 api.add_resource(CreditView, '/credit', endpoint='credit')
 
 # Credit Assignment routes
-api.add_resource(CreditAssignmentView, '/credit_assignment', endpoint='credit_assignment')
+api.add_resource(CreditAssignmentView, '/credit_assignment',
+                 endpoint='credit_assignment')
 
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
@@ -101,11 +103,13 @@ api.add_resource(TransactionRecordDetailView,
 # Invoice routes
 api.add_resource(BillingInvoiceView,
                  '/projects/<string:project_id>/invoices', endpoint='invoices')
+api.add_resource(BillingInvoiceNotificationView, '/invoices/notify')
 api.add_resource(BillingInvoiceDetailView,
                  '/projects/<string:project_id>/invoices/<string:invoice_id>')
 
 # receipt routes
-api.add_resource(BillingReceiptsView, '/projects/<string:project_id>/receipts', endpoint='receipts')
+api.add_resource(BillingReceiptsView,
+                 '/projects/<string:project_id>/receipts', endpoint='receipts')
 api.add_resource(BillingReceiptsDetailView,
                  '/projects/<string:project_id>/receipts/<string:receipt_id>')
 

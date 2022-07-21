@@ -1687,6 +1687,29 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
+  "/invoices/notify":
+    get:
+      tags:
+        - invoices
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+
+      responses:
+        200:
+          description: "Notify users with pending invoices"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
 
   "/projects/{project_id}/receipts":
     get:
