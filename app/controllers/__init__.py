@@ -16,7 +16,7 @@ from .clusters import (
     ClusterStorageClassView, ClusterStorageClassDetailView)
 from .roles import RolesView, RolesDetailView
 from .credit_assignments import CreditAssignmentView, CreditAssignmentDetailView
-from .credits import CreditView
+from .credits import CreditView, CreditDetailView
 from .user_role import UserRolesView
 from .transactions import TransactionRecordView, TransactionRecordDetailView
 from .project import (
