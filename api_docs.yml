@@ -1220,6 +1220,33 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/credit_assignment/{user_id}":
+    get:
+      tags:
+        - credit_assignment
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/roles":
     post:
       tags:
