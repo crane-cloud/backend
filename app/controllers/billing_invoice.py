@@ -223,19 +223,19 @@ class BillingInvoiceNotificationView(Resource):
             invoice_date = invoice.date_created
             total_amount = invoice.total_amount
 
-            # send invoice
-            # send_invoice(
-            #     email,
-            #     name,
-            #     invoice_id,
-            #     project_name,
-            #     total_amount,
-            #     invoice_date,
-            #     sender,
-            #     current_app._get_current_object(),
-            #     template,
-            #     subject
-            # )
+            # send message
+            send_invoice(
+                email,
+                name,
+                invoice_id,
+                project_name,
+                total_amount,
+                invoice_date,
+                sender,
+                current_app._get_current_object(),
+                template,
+                subject
+            )
 
         return dict(
             status='success',
