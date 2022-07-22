@@ -704,7 +704,6 @@ class UserDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_users = len(User.find_all())
-        print(set_by)
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')

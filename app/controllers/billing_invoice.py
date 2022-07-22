@@ -1,19 +1,18 @@
-from email import message
+import datetime
 import json
 from flask import current_app
-from flask_restful import Resource, request
+from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.invoice_notification import send_invoice
-from app.models import billing_invoice
 from app.models.billing_invoice import BillingInvoice
-from app.models.transaction_record import TransactionRecord
 from app.models.user import User
 from app.models.project import Project
-from app.schemas import ProjectSchema, UserSchema
 from app.schemas.billing_invoice import BillingInvoiceSchema
+from app.models import db
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class BillingInvoiceView(Resource):
@@ -186,3 +185,59 @@ class BillingInvoiceDetailView(Resource):
 
         return dict(status='success', data=dict(
             billing_invoice=json.loads(billing_invoice_data))), 200
+
+
+class BillingInvoiceNotificationView(Resource):
+
+    @admin_required
+    def get(self):
+
+        billing_invoice_schema = BillingInvoiceSchema()
+
+        current_time = datetime.datetime.utcnow()
+        one_month = current_time - datetime.timedelta(days=30)
+        try:
+            billing_invoices = db.session.query(BillingInvoice).filter(
+                BillingInvoice.is_cashed == False).filter(
+                BillingInvoice.date_created < one_month).filter(
+                BillingInvoice.total_amount > 0).all()
+        except SQLAlchemyError as e:
+            return dict(status='Fail',
+                        message='Internal server error'), 500
+
+        if not billing_invoices:
+            return dict(
+                status='fail',
+                message=f'No billing invoices available'
+            ), 404
+
+        for invoice in billing_invoices:
+            # Notify users
+            sender = current_app.config["MAIL_DEFAULT_SENDER"]
+            template = "user/invoice_reminder.html"
+            subject = "Invoice from a Crane Cloud Project"
+            email = invoice.project.owner.email
+            name = invoice.project.owner.name
+            invoice_id = invoice.id
+            project_name = invoice.project.name
+            invoice_date = invoice.date_created
+            total_amount = invoice.total_amount
+
+            # send message
+            send_invoice(
+                email,
+                name,
+                invoice_id,
+                project_name,
+                total_amount,
+                invoice_date,
+                sender,
+                current_app._get_current_object(),
+                template,
+                subject
+            )
+
+        return dict(
+            status='success',
+            message=f'{len(billing_invoices)} billing invoices found, and owners notified'
+        ), 404
