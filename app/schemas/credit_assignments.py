@@ -9,4 +9,4 @@ class CreditAssignmentSchema(Schema):
     amount = fields.Int(required=True, error_message={
     "required": "amount is required"})
     description = fields.String(required=False)
-    date = fields.Date(dump_only=True)
+    date_created = fields.Date(dump_only=True)
