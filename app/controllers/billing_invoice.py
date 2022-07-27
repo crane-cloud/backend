@@ -5,6 +5,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
+from app.helpers.cost_modal import CostModal
 from app.helpers.decorators import admin_required
 from app.helpers.invoice_notification import send_invoice
 from app.models.billing_invoice import BillingInvoice
@@ -51,18 +52,34 @@ class BillingInvoiceView(Resource):
         if existing_invoice:
             invoice = existing_invoice
         else:
-            # Update invoice table
-            total_amount = 50000
-            # TODO:- Update to use cluster data for cost_data
-            # start = project.date_created.timestamp()
-            # end = int(datetime.datetime.now().timestamp())
-            # window = f'{start},{end}'
+            # Get cost modal value
+            namespace = project.alias
+            cost_url = project.cluster.cost_modal_url
 
-            # cost_data = get_namespace_cost(
-            #     window, project.alias, series=False, show_deployments=False)
+            if not cost_url:
+                return dict(status='fail', message='No cost modal url provided, please contact your administrator'), 404
+            
 
-            # date_cashed # - comes from transaction record
-            # date_cashed = TransactionRecord.date_created
+            start = project.date_created.timestamp()
+            date_created=None
+            
+            existing_invoice_cashed = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=True).order_by(
+                sqlalchemy.desc(BillingInvoice.date_created)).first()
+
+            if existing_invoice_cashed:
+                start = existing_invoice_cashed.date_cashed
+                date_created = existing_invoice_cashed.date_cashed
+
+            end = int(datetime.datetime.now().timestamp())
+            window = f'{start},{end}'
+
+            cost_modal = CostModal(cost_url)
+
+            cost_data = cost_modal.get_namespace_cost(
+                window, namespace, series=False, show_deployments=False)
+            
+            total_amount = cost_data.totalCost
+
 
             new_invoice_data = dict(
                 total_amount=total_amount,
@@ -76,7 +93,10 @@ class BillingInvoiceView(Resource):
             if errors:
                 print('errors', errors)
 
-            invoice = BillingInvoice(**validated_invoice_data)
+            if date_created:
+                invoice = BillingInvoice(date_created=date_created, **validated_invoice_data)
+            else:
+                invoice = BillingInvoice(**validated_invoice_data)
 
             invoice.project = project
             saved_invoice = invoice.save()
@@ -176,9 +196,31 @@ class BillingInvoiceDetailView(Resource):
                 status='fail',
                 message=f'billing invoice with invoice id {invoice_id} not found'
             ), 404
+        
+        # Update total cost value
+        namespace = project.alias
+        cost_url = project.cluster.cost_modal_url
 
         billing_invoice_data, errors = billing_invoice_schema.dumps(
-            billing_invoice)
+                billing_invoice)
+        if cost_url:
+            start = project.date_created.timestamp()
+            end = int(datetime.datetime.now().timestamp())
+            window = f'{start},{end}'
+
+            cost_modal = CostModal(cost_url)
+
+            cost_data = cost_modal.get_namespace_cost(
+                window, namespace, series=False, show_deployments=False)
+            
+            billing_invoice.total_amount = cost_data.totalCost
+            new_billing_invoice = billing_invoice.save()
+
+            if not new_billing_invoice:
+                return dict(status='fail', message="Internal server error"), 500
+
+            billing_invoice_data, errors = billing_invoice_schema.dumps(
+                new_billing_invoice)
 
         if errors:
             return dict(status='fail', message=errors), 500
