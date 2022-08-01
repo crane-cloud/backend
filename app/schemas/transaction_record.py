@@ -12,7 +12,7 @@ class TransactionRecordSchema(Schema):
                 regex=r'^(?!\s*$)', error='project_id should be a valid string'
             ),
     ])
-    amount = fields.Int()
+    amount = fields.Int(validate=lambda x: x > 0)
     currency = fields.String()
     name = fields.String(required=False, error_message={
         "required": "name is required"},
@@ -28,6 +28,7 @@ class TransactionRecordSchema(Schema):
     tx_ref = fields.String()
     transaction_id = fields.Int()
     date_created = fields.Date(dump_only=True)
+    transaction_type = fields.String()
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
