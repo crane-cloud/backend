@@ -25,6 +25,15 @@ class TransactionRecordView(Resource):
 
         transaction_schema = TransactionRecordSchema()
 
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'project {project_id} not found'), 404
+        
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='Unauthorised'), 403
+
+
+
         try:
             transaction_data = request.get_json()
 
@@ -47,10 +56,6 @@ class TransactionRecordView(Resource):
             # get the latest invoice for a project by date
             invoice = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=False).order_by(
                 sqlalchemy.desc(BillingInvoice.date_created)).first()
-
-            project = Project.get_by_id(project_id)
-            if not project:
-                return dict(status='fail', message=f'project {project_id} not found'), 404
 
             new_transaction_record_info = dict(
                 owner_id=str(project.owner_id),
@@ -81,8 +86,6 @@ class TransactionRecordView(Resource):
                 message=f"Transaction with id {transaction_id} Already Exists."
                 ), 400
             
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
 
             transaction = TransactionRecord(**validated_transaction_data)
 
@@ -98,6 +101,7 @@ class TransactionRecordView(Resource):
                             status='fail',
                             message='An error occured during saving of the record'), 400
 
+            # Creating new invoice
             new_invoice = BillingInvoice(project_id=project_id)
 
             saved_new_invoice = new_invoice.save()

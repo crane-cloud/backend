@@ -74,6 +74,7 @@ class ProjectsView(Resource):
                 client.V1Namespace(
                     metadata=client.V1ObjectMeta(name=namespace_name)
                 ))
+                
             # create project in database
             if cluster_namespace:
 
