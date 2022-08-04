@@ -1,3 +1,5 @@
+import time
+import uuid
 import datetime
 import json
 from flask import current_app
@@ -82,6 +84,7 @@ class BillingInvoiceView(Resource):
 
 
             new_invoice_data = dict(
+                id="CC"+str(time.strftime("%y", time.localtime()))+"-"+str(uuid.uuid4())[:8],
                 total_amount=total_amount,
                 project_id=project.id,
             )

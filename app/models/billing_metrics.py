@@ -15,7 +15,7 @@ class BillingMetrics(ModelMixin):
                    server_default=sa_text("uuid_generate_v4()"))
     app_id = db.Column(UUID(as_uuid=True),
                        db.ForeignKey('app.id'), nullable=False)
-    invoice_id = db.Column(UUID(as_uuid=True), db.ForeignKey(
+    invoice_id = db.Column(db.String, db.ForeignKey(
         'billing_invoices.id'), nullable=False)
     memory = db.Column(db.Integer, nullable=True)
     cpu = db.Column(db.Integer, nullable=True)

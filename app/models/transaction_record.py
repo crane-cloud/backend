@@ -15,7 +15,7 @@ class TransactionRecord(ModelMixin):
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
-    billing_invoice_id = db.Column(UUID(as_uuid=True), db.ForeignKey('billing_invoices.id'), nullable=True)
+    billing_invoice_id = db.Column(db.String, db.ForeignKey('billing_invoices.id'), nullable=True)
     amount = db.Column(db.Integer, nullable=True, default=0.00)
     currency = db.Column(db.String(256), nullable=True)
     name = db.Column(db.String(256), nullable=True)
