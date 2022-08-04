@@ -197,6 +197,7 @@ class UserLoginView(Resource):
                     verified=user.verified,
                     id=str(user.id),
                     is_beta_user=user.is_beta_user,
+                    name= user.name,
                 )), 200
 
         return dict(status='fail', message="login failed"), 401
