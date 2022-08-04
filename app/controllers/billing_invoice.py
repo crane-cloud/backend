@@ -1,6 +1,7 @@
 import datetime
 import json
-from flask import current_app
+from threading import currentThread
+from flask import current_app, flash
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
@@ -13,6 +14,10 @@ from app.models.project import Project
 from app.schemas.billing_invoice import BillingInvoiceSchema
 from app.models import db
 from sqlalchemy.exc import SQLAlchemyError
+from app.tasks import celery
+from app.tasks.invoices import send_invoice_notification
+
+# from app.tasks.invoices import send_all_invoice_notifications
 
 
 class BillingInvoiceView(Resource):
@@ -192,26 +197,34 @@ class BillingInvoiceNotificationView(Resource):
     @admin_required
     def get(self):
 
-        billing_invoice_schema = BillingInvoiceSchema()
-
+        billing_invoice_schema = BillingInvoiceSchema(many=True)
         current_time = datetime.datetime.utcnow()
         one_month = current_time - datetime.timedelta(days=30)
-        try:
-            billing_invoices = db.session.query(BillingInvoice).filter(
-                BillingInvoice.is_cashed == False).filter(
-                BillingInvoice.date_created < one_month).filter(
-                BillingInvoice.total_amount > 0).all()
-        except SQLAlchemyError as e:
-            return dict(status='Fail',
-                        message='Internal server error'), 500
+        invoices_all = BillingInvoice.find_all()
+        # print(invoices_all)
+        # try:
+        #     billing_invoices = db.session.query(BillingInvoice).filter(
+        #         BillingInvoice.is_cashed == False).filter(
+        #         BillingInvoice.date_created < one_month).filter(
+        #         BillingInvoice.total_amount > 0).all()
+        # except SQLAlchemyError as e:
+        #     return dict(status='Fail',
+        #                 message='Internal server error'), 500
 
-        if not billing_invoices:
-            return dict(
-                status='fail',
-                message=f'No billing invoices available'
-            ), 404
+        # if not billing_invoices:
+        #     return dict(
+        #         status='fail',
+        #         message=f'No billing invoices available'
+        #     ), 404
 
-        for invoice in billing_invoices:
+        billing_invoice_data, errors = billing_invoice_schema.dumps(
+            invoices_all)
+
+        if errors:
+            return dict(status='fail', message=errors), 500
+        new_invs = json.loads(billing_invoice_data)
+        invoices = invoices_all
+        for invoice in invoices:
             # Notify users
             sender = current_app.config["MAIL_DEFAULT_SENDER"]
             template = "user/invoice_reminder.html"
@@ -222,22 +235,10 @@ class BillingInvoiceNotificationView(Resource):
             project_name = invoice.project.name
             invoice_date = invoice.date_created
             total_amount = invoice.total_amount
-
-            # send message
-            send_invoice(
-                email,
-                name,
-                invoice_id,
-                project_name,
-                total_amount,
-                invoice_date,
-                sender,
-                current_app._get_current_object(),
-                template,
-                subject
-            )
-
-        return dict(
-            status='success',
-            message=f'{len(billing_invoices)} billing invoices found, and owners notified'
-        ), 404
+            send_invoice_notification.delay(email, name, invoice_id, project_name, total_amount,
+                                            invoice_date, sender, template, subject)
+        return dict(status='success', message='Notification sent'), 200
+        # return dict(
+        #     status='success',
+        #     message=f'{len(billing_invoices)} billing invoices found, and owners notified'
+        # ), 404

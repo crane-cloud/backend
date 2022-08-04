@@ -18,3 +18,13 @@ def send_email(to, subject, template, sender, app):
         sender=sender,
     )
     Thread(target=async_mail, args=(app, msg)).start()
+
+
+def send_sync_email(to, subject, template, sender):
+    message = Message(
+        f'[Crane Cloud] {subject}',
+        recipients=[to],
+        html=template,
+        sender=sender,
+    )
+    mail.send(message)

@@ -6,7 +6,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
-from celery import Celery
+# from celery import Celery
+from app.tasks import celery
 
 # import ORM
 
@@ -46,6 +47,8 @@ def create_app(config_name):
 
     # initialize mail
     mail.init_app(app)
+    
+    celery.config_from_object(app.config)
 
     # swagger
     app.config['SWAGGER'] = {
@@ -93,7 +96,8 @@ def create_app(config_name):
 # create app instance using running config
 redis_url = os.getenv("REDIS_URL")
 app = create_app(os.getenv('FLASK_ENV'))
-celery = Celery(app.name, broker=redis_url, backend=redis_url, include=['celery_tasks'])
+# celery = Celery(app.name, broker=redis_url,
+#                 backend=redis_url, include=['celery_tasks'])
 
 if __name__ == '__main__':
     app.run()
