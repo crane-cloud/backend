@@ -6,6 +6,14 @@ import requests
 # https://guide.kubecost.com/hc/en-us/articles/4407595916823-Allocation-API
 
 
+def get_ug_currency(usd_amount):
+    """
+    Get UGX from of USD
+    """
+    rate = 3600
+    return round(rate * usd_amount, -2)
+
+
 class CostModal:
     def __init__(self, base_url):
         self.base_url = base_url
@@ -33,6 +41,7 @@ class CostModal:
                         "totalCost": items_list[deployment].get("totalCost", None),
                         "start": items_list[deployment].get("start", None),
                         "end": items_list[deployment].get("end", None),
+                        "ugxCost": get_ug_currency(items_list[deployment].get("totalCost", None))
                     })
                 pricing_data = {
                     "namespace": namespace,
@@ -50,6 +59,7 @@ class CostModal:
                         "totalCost": bill.get("totalCost", None),
                         "start": bill.get("start", None),
                         "end": bill.get("end", None),
+                        "ugxCost": get_ug_currency(bill.get("totalCost", None))
                     }
         else:
             for value in res['data'][0]:
@@ -66,10 +76,13 @@ class CostModal:
                     "totalCost": bill.get("totalCost", None),
                     "start": bill.get("start", None),
                     "end": bill.get("end", None),
+                    "ugxCost": get_ug_currency(bill.get("totalCost", None))
                 })
         return pricing_data
 
     def get_namespace_cost(self, window, namespace, show_deployments=False, series=False):
+        if show_deployments:
+            series = False
         not_series = not series
         try:
             query = f"""{self.base_url}/model/allocation?

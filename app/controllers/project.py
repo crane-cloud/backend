@@ -74,7 +74,7 @@ class ProjectsView(Resource):
                 client.V1Namespace(
                     metadata=client.V1ObjectMeta(name=namespace_name)
                 ))
-                
+
             # create project in database
             if cluster_namespace:
 
@@ -697,7 +697,8 @@ class ProjectGetCostsView(Resource):
 
         cost_data = cost_modal.get_namespace_cost(
             window, namespace, series=series, show_deployments=show_deployments)
-        if not cost_data:
+
+        if cost_data is False:
             return dict(status='fail', message='Error occurred'), 500
 
         return dict(status='success', data=dict(cost_data=cost_data)), 200
