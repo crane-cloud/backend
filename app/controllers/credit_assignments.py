@@ -8,7 +8,8 @@ from app.models.credits import Credit
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
 from app.models.user import User
-
+from app.helpers.credit_assignment_notification import send_credit_assignment
+from datetime import date
 
 class CreditAssignmentView(Resource):
 
@@ -34,6 +35,19 @@ class CreditAssignmentView(Resource):
 
         # check if user has already been assigned credits
 
+
+
+        # send email variable
+        user = User.get_by_id(user_id)
+        sender = user.email
+        name = user.name
+        template = "user/credit.html"
+        subject = "Credit Assignment from Crane Cloud Project"
+        email =user.email
+        amount = amount
+        today = date.today()
+        success = False
+
         if user_id_existant:
             if 'amount' in validated_credit_assignment_data:
                 user_id_existant.amount = user_id_existant.amount + validated_credit_assignment_data['amount']
@@ -49,6 +63,21 @@ class CreditAssignmentView(Resource):
 
             if not saved_credit_assignment:
                 return dict(status='fail', message=f'Internal Server Error'), 500
+
+            # send email
+            success = True
+            send_credit_assignment(
+            email,
+            name,
+            sender,
+            current_app._get_current_object(),
+            template,
+            subject,
+            amount,
+            today.strftime("%m/%d/%Y"), 
+            success
+            
+            )
 
             return dict(
                 status="success",
@@ -68,6 +97,21 @@ class CreditAssignmentView(Resource):
 
         if not saved_credit_assignment:
             return dict(status='fail', message=f'Internal Server Error'), 500
+
+        # send email
+            success = True
+            send_credit_assignment(
+            email,
+            name,
+            sender,
+            current_app._get_current_object(),
+            template,
+            subject,
+            amount,
+            today.strftime("%m/%d/%Y"), 
+            success
+            
+            )
 
         return dict(
             status="success",
