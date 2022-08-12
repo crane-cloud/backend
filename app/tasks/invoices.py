@@ -9,13 +9,12 @@ from app.tasks import celery
 # current_app = "celery.app.app_context()"
 
 
-@celery.task(name='celery_tasks.send_all_invoice_notifications')
+@celery.task(name='celery_tasks.send_invoice_notifications')
 def send_invoice_notification(email, name, invoice_id, project_name, total_amount,
-                              invoice_date, sender, template,
+                              invoice_date, sender, app, template,
                               subject):
-
     # send message
-    send_sync_invoice(
+    send_invoice(
         email,
         name,
         invoice_id,
@@ -23,6 +22,18 @@ def send_invoice_notification(email, name, invoice_id, project_name, total_amoun
         total_amount,
         invoice_date,
         sender,
+        app,
         template,
         subject,
     )
+    # send_sync_invoice(
+    #     email,
+    #     name,
+    #     invoice_id,
+    #     project_name,
+    #     total_amount,
+    #     invoice_date,
+    #     sender,
+    #     template,
+    #     subject,
+    # )

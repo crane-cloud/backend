@@ -17,8 +17,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.tasks import celery
 from app.tasks.invoices import send_invoice_notification
 
-# from app.tasks.invoices import send_all_invoice_notifications
-
 
 class BillingInvoiceView(Resource):
     """
@@ -201,7 +199,7 @@ class BillingInvoiceNotificationView(Resource):
         current_time = datetime.datetime.utcnow()
         one_month = current_time - datetime.timedelta(days=30)
         invoices_all = BillingInvoice.find_all()
-        # print(invoices_all)
+        """This is the actual logic git get 30 day old invoices"""
         # try:
         #     billing_invoices = db.session.query(BillingInvoice).filter(
         #         BillingInvoice.is_cashed == False).filter(
@@ -217,6 +215,7 @@ class BillingInvoiceNotificationView(Resource):
         #         message=f'No billing invoices available'
         #     ), 404
 
+        # This tests for all invoices, just for testing purposes
         billing_invoice_data, errors = billing_invoice_schema.dumps(
             invoices_all)
 
@@ -236,7 +235,7 @@ class BillingInvoiceNotificationView(Resource):
             invoice_date = invoice.date_created
             total_amount = invoice.total_amount
             send_invoice_notification.delay(email, name, invoice_id, project_name, total_amount,
-                                            invoice_date, sender, template, subject)
+                                            invoice_date, sender, "current_app.app_context()", template, subject)
         return dict(status='success', message='Notification sent'), 200
         # return dict(
         #     status='success',
