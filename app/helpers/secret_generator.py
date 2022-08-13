@@ -1,6 +1,6 @@
 import secrets
 import string
-
+import uuid
 
 def generate_password(password_length):
 
@@ -18,3 +18,6 @@ def generate_password(password_length):
 def generate_db_uri(hostname, username, password, databasename):
 
     return f'postgresql+psycopg2://{username}:{password}@{hostname}:5432/{databasename}'
+
+def generate_transaction_id():
+    return int(str(uuid.uuid4().int)[:9])

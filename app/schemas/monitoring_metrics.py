@@ -22,6 +22,7 @@ class UserGraphSchema(Schema):
                            ),
         ])
 
+
 class AppGraphSchema(Schema):
     start = fields.Date()
     end = fields.Date()
@@ -31,3 +32,15 @@ class AppGraphSchema(Schema):
                            error='set_by should be year or month'
                            ),
         ])
+
+
+class BillingMetricsSchema(Schema):
+    start = fields.Integer()
+    end = fields.Integer()
+    series = fields.Boolean()
+    show_deployments = fields.Boolean()
+    window = fields.String(validate=[
+        validate.OneOf(["lastmonth", "lastweek"],
+                       error='show from a certain period either pass "lastmonth" or "lastweek"'
+                       ),
+    ])

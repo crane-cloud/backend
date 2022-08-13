@@ -15,9 +15,12 @@ from .clusters import (
     ClusterServiceDetailView, ClusterJobsView, ClusterJobDetailView,
     ClusterStorageClassView, ClusterStorageClassDetailView)
 from .roles import RolesView, RolesDetailView
+from .credit_assignments import CreditAssignmentView, CreditAssignmentDetailView
+from .credits import CreditView, CreditDetailView
 from .user_role import UserRolesView
+from .transactions import TransactionRecordView, TransactionRecordDetailView, CreditTransactionRecordView
 from .project import (
-    ProjectsView, ProjectDetailView, UserProjectsView,
+    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
@@ -27,3 +30,5 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
                                ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
+from .billing_invoice import (BillingInvoiceView,BillingInvoiceNotificationView)
+from .system_status import SystemStatusView

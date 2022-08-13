@@ -106,8 +106,9 @@ class UsersView(Resource):
             data=dict(users=json.loads(users_data))
         ), 200
 
+
 class UserAdminUpdateView(Resource):
-    
+
     @admin_required
     def patch(self):
         try:
@@ -115,13 +116,12 @@ class UserAdminUpdateView(Resource):
 
             user_data = request.get_json()
             user_id = user_data["user_id"]
-            
+
             validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
 
-            
             user = User.get_by_id(user_id)
             if not user:
                 return dict(
@@ -144,7 +144,6 @@ class UserAdminUpdateView(Resource):
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
-
 
 
 class UserLoginView(Resource):
@@ -179,7 +178,6 @@ class UserLoginView(Resource):
             ), 401
 
         user_dict, errors = token_schema.dump(user)
-
         if user and user.password_is_valid(password):
 
             access_token = user.generate_token(user_dict)
@@ -199,6 +197,7 @@ class UserLoginView(Resource):
                     verified=user.verified,
                     id=str(user.id),
                     is_beta_user=user.is_beta_user,
+                    name= user.name,
                 )), 200
 
         return dict(status='fail', message="login failed"), 401
@@ -706,7 +705,6 @@ class UserDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_users = len(User.find_all())
-        print(set_by)
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')

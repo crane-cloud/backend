@@ -1,8 +1,10 @@
-from app.helpers.prometheus import prometheus
+import os
+from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
 from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.models.billing_invoice import BillingInvoice
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -14,6 +16,7 @@ from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
+from app.schemas.monitoring_metrics import BillingMetricsSchema
 
 
 class ProjectsView(Resource):
@@ -71,6 +74,7 @@ class ProjectsView(Resource):
                 client.V1Namespace(
                     metadata=client.V1ObjectMeta(name=namespace_name)
                 ))
+
             # create project in database
             if cluster_namespace:
 
@@ -80,29 +84,34 @@ class ProjectsView(Resource):
                     name=ingress_name
                 )
 
-                ingress_default_rule = client.ExtensionsV1beta1IngressRule(
+                ingress_default_rule = client.V1IngressRule(
                     host="traefik-ui.cranecloud.io",
-                    http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                        paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
                             path="/*",
-                            backend=client.ExtensionsV1beta1IngressBackend(
-                                service_name="traefik-web-ui-ext",
-                                service_port=80
+                            path_type="ImplementationSpecific",
+                            backend=client.V1IngressBackend(
+                                service=client.V1IngressServiceBackend(
+                                    name="traefik-web-ui-ext",
+                                    port=client.V1ServiceBackendPort(
+                                        number=80
+                                    )
+                                )
                             )
                         )]
                     )
                 )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                ingress_spec = client.V1IngressSpec(
                     rules=[ingress_default_rule]
                 )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
+                ingress_body = client.V1Ingress(
                     metadata=ingress_meta,
                     spec=ingress_spec
                 )
 
-                kube_client.extension_api.create_namespaced_ingress(
+                kube_client.networking_api.create_namespaced_ingress(
                     namespace=namespace_name,
                     body=ingress_body
                 )
@@ -118,12 +127,22 @@ class ProjectsView(Resource):
                         status='fail',
                         message='Internal Server Error'), 500
 
+            # create a billing invoice on project creation
+            new_invoice = BillingInvoice(project_id=project.id)
+
+            saved_new_invoice = new_invoice.save()
+
+            if not saved_new_invoice:
+                return dict(
+                    status='fail',
+                    message='An error occured during creation of a new invoice record'), 400
+
             new_project_data, errors = project_schema.dump(project)
 
             return dict(status='success', data=dict(project=new_project_data)), 201
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=json.loads(e.body)), e.status
+            return dict(status='fail', message=str(e.body)), e.status
 
         except Exception as err:
             return dict(status='fail', message=str(err)), 500
@@ -430,6 +449,11 @@ class ProjectMemoryUsageView(Resource):
             return dict(status='fail', message='unauthorised'), 403
 
         namespace = project.alias
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
 
         prom_memory_data = prometheus.query_rang(
             start=start,
@@ -482,6 +506,10 @@ class ProjectCPUView(Resource):
         yesterday = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -495,7 +523,8 @@ class ProjectCPUView(Resource):
             metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
             namespace+'"}[5m]))'
         )
-        #  chenge array values to json"values"
+
+        #  change array values to json"values"
         new_data = json.loads(prom_data)
         cpu_data_list = []
 
@@ -540,6 +569,10 @@ class ProjectNetworkRequestView(Resource):
         yesterday = current_time + datetime.timedelta(days=-1)
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -587,6 +620,10 @@ class ProjectStorageUsageView(Resource):
 
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         try:
@@ -608,3 +645,60 @@ class ProjectStorageUsageView(Resource):
             return dict(status='fail', message='No values found'), 404
 
         return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+
+
+class ProjectGetCostsView(Resource):
+    @jwt_required
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project_billing_schema = BillingMetricsSchema()
+        project_billing_data = request.get_json()
+
+        validated_query_data, errors = project_billing_schema.load(
+            project_billing_data)
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='unauthorised'), 403
+
+        creation_timestamp = int(project.date_created.timestamp())
+
+        # TODO: Have start date begin from last bill payment date
+        start = validated_query_data.get('start', creation_timestamp)
+        end = validated_query_data.get(
+            'end', int(datetime.datetime.now().timestamp()))
+        series = validated_query_data.get('series', False)
+        show_deployments = validated_query_data.get('show_deployments', False)
+
+        if show_deployments:
+            series = False
+        window = validated_query_data.get('window', None)
+
+        if not window:
+            window = f'{start},{end}'
+
+        namespace = project.alias
+        # namespace = 'liqo'
+        cost_url = project.cluster.cost_modal_url
+
+        if not cost_url:
+            return dict(status='fail', message='No cost modal url provided, please contact your administrator'), 404
+
+        cost_modal = CostModal(cost_url)
+
+        cost_data = cost_modal.get_namespace_cost(
+            window, namespace, series=series, show_deployments=show_deployments)
+
+        if cost_data is False:
+            return dict(status='fail', message='Error occurred'), 500
+
+        return dict(status='success', data=dict(cost_data=cost_data)), 200

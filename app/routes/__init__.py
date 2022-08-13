@@ -1,7 +1,7 @@
 from flask_restful import Api
 from app.controllers import (
     IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
-    RolesDetailView, UserRolesView, UserDataSummaryView, ClustersView,
+    RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
     ClusterDeploymentsView, ClusterDeploymentDetailView, ClusterPvcsView, ClusterPvcDetailView,
@@ -15,7 +15,11 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
+    SystemStatusView, CreditDetailView)
+from app.controllers.billing_invoice import BillingInvoiceDetailView
+from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
+from app.controllers.transactions import TransactionRecordDetailView
 
 
 api = Api()
@@ -74,13 +78,47 @@ api.add_resource(ClusterStorageClassView,
 api.add_resource(ClusterStorageClassDetailView,
                  '/clusters/<string:cluster_id>/storage_classes/<string:storage_class_name>')
 
+# Credit routes
+api.add_resource(CreditView, '/credit', endpoint='credit')
+api.add_resource(CreditDetailView, '/credit/<string:user_id>')
+
+# Credit Assignment routes
+api.add_resource(CreditAssignmentView, '/credit_assignment',
+                 endpoint='credit_assignment')
+api.add_resource(CreditAssignmentDetailView,
+                 '/credit_assignment/<string:user_id>', endpoint='credit_assignment_detail')
+
 # Roles routes
 api.add_resource(RolesView, '/roles', endpoint='roles')
-api.add_resource(RolesDetailView, '/roles/<string:role_id>', endpoint='roles_detail')
+api.add_resource(RolesDetailView, '/roles/<string:role_id>',
+                 endpoint='roles_detail')
 
 # User_Roles routes
 api.add_resource(UserRolesView, '/user/<string:user_id>/roles',
                  endpoint='user_roles')
+
+# Transaction routes
+api.add_resource(TransactionRecordView,
+                 '/projects/<string:project_id>/transactions', endpoint='transactions')
+api.add_resource(TransactionRecordDetailView,
+                 '/projects/<string:project_id>/transactions/<string:record_id>')
+
+#Credit Transaction route
+api.add_resource(CreditTransactionRecordView,
+                 '/projects/<string:project_id>/credit_transactions', endpoint='credit_transactions')             
+
+# Invoice routes
+api.add_resource(BillingInvoiceView,
+                 '/projects/<string:project_id>/invoices', endpoint='invoices')
+api.add_resource(BillingInvoiceNotificationView, '/invoices/notify')
+api.add_resource(BillingInvoiceDetailView,
+                 '/projects/<string:project_id>/invoices/<string:invoice_id>')
+
+# receipt routes
+api.add_resource(BillingReceiptsView,
+                 '/projects/<string:project_id>/receipts', endpoint='receipts')
+api.add_resource(BillingReceiptsDetailView,
+                 '/projects/<string:project_id>/receipts/<string:receipt_id>')
 
 # Project route
 api.add_resource(ProjectsView, '/projects', endpoint='projects')
@@ -94,6 +132,8 @@ api.add_resource(ProjectNetworkRequestView,
                  '/projects/<string:project_id>/metrics/network')
 api.add_resource(ProjectStorageUsageView,
                  '/projects/<string:project_id>/metrics/storage')
+api.add_resource(ProjectGetCostsView,
+                 '/projects/<string:project_id>/billing/info')
 
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
@@ -101,7 +141,7 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 # App routes
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
-api.add_resource(AppRevertView, '/apps/<string:app_id>/custom_domains')
+api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
@@ -138,3 +178,6 @@ api.add_resource(ProjectDatabaseRetrievePasswordView,
 api.add_resource(ProjectDatabaseAdminRetrievePasswordView,
                  '/databases/<string:database_id>/password')
 api.add_resource(DatabaseStatsView, '/databases/stats')
+
+# system status
+api.add_resource(SystemStatusView, '/system_status')

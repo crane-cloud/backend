@@ -14,6 +14,12 @@ from app.models.clusters import Cluster
 from app.models.project import Project
 from app.models.app import App
 from app.models.project_database import ProjectDatabase
+from app.models.billing_invoice import BillingInvoice
+from app.models.user_payment import UserPaymentDetails
+from app.models.billing_metrics import BillingMetrics
+from app.models.transaction_record import TransactionRecord
+from app.models.credits import Credit
+from app.models.credit_assignments import CreditAssignment
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
