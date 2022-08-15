@@ -104,3 +104,6 @@ To add image repositories to the database run
 
 `python manage.py create_registries`
 
+##### Run celery worker with
+
+`celery -A server.celery worker --loglevel=info`
