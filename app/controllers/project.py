@@ -12,8 +12,6 @@ from app.schemas import ProjectSchema, MetricsSchema
 import datetime
 from prometheus_http_client import Prometheus
 import json
-import uuid
-import time
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -130,7 +128,7 @@ class ProjectsView(Resource):
                         message='Internal Server Error'), 500
 
             # create a billing invoice on project creation
-            new_invoice = BillingInvoice(id="CC"+str(time.strftime("%y", time.localtime()))+"-"+str(uuid.uuid4())[:8], project_id=project.id)
+            new_invoice = BillingInvoice(project_id=project.id)
 
             saved_new_invoice = new_invoice.save()
 

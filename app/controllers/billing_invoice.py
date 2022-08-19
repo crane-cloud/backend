@@ -1,5 +1,3 @@
-import time
-import uuid
 import datetime
 import json
 from flask import current_app
@@ -84,7 +82,6 @@ class BillingInvoiceView(Resource):
 
 
             new_invoice_data = dict(
-                id="CC"+str(time.strftime("%y", time.localtime()))+"-"+str(uuid.uuid4())[:8],
                 total_amount=total_amount,
                 project_id=project.id,
             )
@@ -117,7 +114,7 @@ class BillingInvoiceView(Resource):
         subject = "Invoice from Crane Cloud Project"
         email = user.email
         name = user.name
-        invoice_id = invoice.id
+        invoice_id = invoice.display_id
         project_name = project.name
         invoice_date = invoice.date_created
         total_amount = invoice.total_amount

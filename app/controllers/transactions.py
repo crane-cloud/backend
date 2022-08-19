@@ -5,8 +5,6 @@ import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.role_search import has_role
 import json
-import time
-import uuid
 from app.models import billing_invoice
 from app.models.billing_invoice import BillingInvoice
 from app.models.project import Project
@@ -56,7 +54,7 @@ class TransactionRecordView(Resource):
             tx_ref = validated_transaction_data['tx_ref']
             # comments for implementation flow
             # get the latest invoice for a project by date
-            invoice = BillingInvoice.query.filter_by(id="CC"+str(time.strftime("%y", time.localtime()))+"-"+str(uuid.uuid4())[:8], project_id=project_id, is_cashed=False).order_by(
+            invoice = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=False).order_by(
                 sqlalchemy.desc(BillingInvoice.date_created)).first()
 
             new_transaction_record_info = dict(
