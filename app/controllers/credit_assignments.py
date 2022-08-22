@@ -73,6 +73,7 @@ class CreditAssignmentView(Resource):
             current_app._get_current_object(),
             template,
             subject,
+            user_id_existant.amount if user_id_existant.amount else validated_credit_assignment_data['amount'],
             amount,
             today.strftime("%m/%d/%Y"), 
             success
@@ -107,6 +108,7 @@ class CreditAssignmentView(Resource):
             current_app._get_current_object(),
             template,
             subject,
+            user_id_existant.amount if user_id_existant.amount else validated_credit_assignment_data['amount'],
             amount,
             today.strftime("%m/%d/%Y"), 
             success

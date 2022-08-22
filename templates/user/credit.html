@@ -141,7 +141,7 @@
                   line-height: 25px;
                 "
               >
-                <p style="margin: 0">Hi {{name}}</p>
+                <p style="margin: 0">Hi {{name}},</p>
               </td>
             </tr>
             <tr>
@@ -159,11 +159,11 @@
                   line-height: 25px;
                 "
               >
-                <p style="margin: 0">Your credit assigment for Amount {{amount}} has been assigned on {{date}}</p>
+                <p style="margin: 0">Your {{amount}} credits worth USD {{amount}} have been assigned on {{date}}</p>
                 <center>
                   <span style="font-weight: bold"
-                    >Your credit amount<br />
-                    {{amount}}</span
+                    >Your current total credits <br />
+                    {{creditAmount}}</span
                   >
                 </center>
               </td>
@@ -183,6 +183,56 @@
                 <p style="margin: 0">Unfortunately, you credit assignement failed.</p>
               </td>
               {% endif %}
+            </tr>
+            <tr>
+              <td bgcolor="#ffffff" align="left">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td bgcolor="#ffffff" align="center" style="padding: 5px 15px 30px 15px">
+                      <table border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="center" style="border-radius: 3px" bgcolor="#008AC1">
+                            <a
+                              href="https://cranecloud.io/login"
+                              target="_blank"
+                              style="
+                                font-size: 20px;
+                                font-family: 'Roboto', Arial, sans-serif;
+                                color: #ffffff;
+                                text-decoration: none;
+                                color: #ffffff;
+                                text-decoration: none;
+                                padding: 15px 25px;
+                                border-radius: 2px;
+                                border: 1px solid #008ac1;
+                                display: inline-block;
+                              "
+                              >Visit Dashboard</a
+                            >
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                bgcolor="#ffffff"
+                align="left"
+                style="
+                  padding: 0px 30px 40px 30px;
+                  border-radius: 0px 0px 4px 4px;
+                  color: #666666;
+                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
+                  font-size: 18px;
+                  font-weight: 400;
+                  line-height: 25px;
+                "
+              >
+                <p>Visit your dashboard to view your credits</p>
+              </td>
             </tr>
             <tr>
               <td
