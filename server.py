@@ -7,6 +7,13 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
 
+#import scheduler
+from sched import scheduler
+from flask import Flask
+import logging
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.helpers.scheduler_update import UpdateCredit
+
 # import ORM
 from app.routes import api
 
@@ -18,7 +25,7 @@ from app.tasks import update_celery
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
-
+scheduler = BackgroundScheduler()
 
 def create_app(config_name):
     """ app factory """
@@ -27,6 +34,9 @@ def create_app(config_name):
     from config.config import app_config
 
     app = Flask(__name__)
+
+    # start background process every 24 hour
+    scheduler.start()
 
     # allow cross-domain requests
     CORS(app)
@@ -96,6 +106,10 @@ app = create_app(os.getenv('FLASK_ENV'))
 # Celery
 celery = update_celery(app)
 
+@scheduler.scheduled_job('interval', hours=24, misfire_grace_time=3600)
+def scheduleTask():
+    UpdateCredit(app)
+    logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == '__main__':
     app.run()

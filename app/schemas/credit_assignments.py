@@ -10,3 +10,4 @@ class CreditAssignmentSchema(Schema):
     "required": "amount is required"})
     description = fields.String(required=False)
     date_created = fields.Date(dump_only=True)
+    expiry_date= fields.Date(dump_only=True)

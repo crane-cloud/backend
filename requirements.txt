@@ -85,3 +85,4 @@ wcwidth==0.2.5
 websocket-client==0.56.0
 Werkzeug==0.15.5
 celery
+Flask-APScheduler
