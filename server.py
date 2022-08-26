@@ -25,7 +25,7 @@ from app.tasks import update_celery
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(daemon=True)
 
 def create_app(config_name):
     """ app factory """
@@ -106,7 +106,7 @@ app = create_app(os.getenv('FLASK_ENV'))
 # Celery
 celery = update_celery(app)
 
-@scheduler.scheduled_job('interval', hours=24, misfire_grace_time=3600)
+@scheduler.scheduled_job('interval', hours=1, misfire_grace_time=3600)
 def scheduleTask():
     UpdateCredit(app)
     logging.basicConfig(level=logging.DEBUG)

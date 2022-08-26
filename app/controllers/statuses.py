@@ -1,7 +1,7 @@
 
 from imp import reload
 import os
-from time import clock_settime
+#from time import clock_settime
 
 import requests
 from yaml import scan
