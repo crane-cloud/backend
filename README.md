@@ -1,4 +1,3 @@
-
 # Crane Cloud
 
 [![CircleCI](https://circleci.com/gh/crane-cloud/backend/tree/develop.svg?style=svg)](https://circleci.com/gh/crane-cloud/backend/tree/develop)
@@ -52,7 +51,6 @@ export FLASK_RUN_PORT=5000
 export FLASK_APP_SECRET=<app_secret>
 ```
 
-
 Run the application.
 
 `flask run`
@@ -79,7 +77,6 @@ To create the default roles
 
 `python manage.py create_roles`
 
-
 ##### Creating default admin account
 
 To create an admin account run
@@ -90,12 +87,7 @@ To create an admin account run
 
 Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/#/clusters/post_clusters`
 
-`{
-  "description": "string",
-  "host": "string",
-  "name": "string",
-  "token": "string"
-}`
+`{ "description": "string", "host": "string", "name": "string", "token": "string" }`
 Reach out to backend team to get token and host values
 
 ##### Add image repositories
@@ -104,6 +96,12 @@ To add image repositories to the database run
 
 `python manage.py create_registries`
 
-##### Run celery worker with
+##### Run celery worker and beat on linux with
 
 `celery -A server.celery worker --loglevel=info`
+`celery -A server.celery beat --loglevel=info`
+
+##### Run celery worker and beat on windows with
+
+`celery -A server.celery worker --pool=solo --loglevel=info`
+`celery -A server.celery beat --loglevel=info`
