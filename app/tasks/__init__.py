@@ -77,13 +77,7 @@ def updateScheduler():
     credit_assignment_schema = CreditAssignmentSchema(many = True)
 
     todays_datetime = datetime(datetime.today().year, datetime.today().month, datetime.today().day)
-    #         SELECT c.user_id, c.amount,  u.expiry_date
-    # FROM   credits c
-    #    left join(
-    #     SELECT  user_id, max(expiry_date) as expiry_date
-    #     FROM   credit_assignments 
-    #     GROUP  BY user_id
-    #     ) u ON u.user_id  = c.user_id  where u.expiry_date = current_timestamp;
+    
     try:
         sq = db.session.query(CreditAssignment.user_id, func.max(CreditAssignment.expiry_date).label('expiry_date')).group_by(CreditAssignment.user_id).subquery()
         
