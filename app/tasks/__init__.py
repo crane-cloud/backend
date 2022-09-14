@@ -84,7 +84,7 @@ def updateScheduler():
     try:
         sq = db.session.query(CreditAssignment.user_id, func.max(CreditAssignment.expiry_date).label('expiry_date')).group_by(CreditAssignment.user_id).subquery()
         
-        
+        #Looks for expired credits
         credit_assignment_records= db.session.query(Credit.user_id, Credit.amount_promotion_credits, sq.c.expiry_date).join(sq,and_(Credit.user_id == sq.c.user_id)).filter(extract('month', sq.c.expiry_date) == datetime.today().month,extract('year', sq.c.expiry_date) == datetime.today().year,extract('day', sq.c.expiry_date) == datetime.today().day,
                             Credit.amount_promotion_credits!= 0)
             
@@ -96,7 +96,7 @@ def updateScheduler():
        
         if len(arr)>0:
             for i in arr:
-                # update query
+                # update credits based on expiration
                 
                 credit= db.session.query(Credit).filter(Credit.user_id == i['user_id'])
                 user_credits_json, errors = credit_schema.dumps(credit)
