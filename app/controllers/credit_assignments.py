@@ -50,7 +50,8 @@ class CreditAssignmentView(Resource):
 
         if user_id_existant:
             if 'amount' in validated_credit_assignment_data:
-                user_id_existant.amount = user_id_existant.amount + validated_credit_assignment_data['amount']
+                user_id_existant.amount_promotion_credits += validated_credit_assignment_data['amount']
+                user_id_existant.amount += validated_credit_assignment_data['amount']
 
             updated_user_id_existant = user_id_existant.save()
 
@@ -87,7 +88,7 @@ class CreditAssignmentView(Resource):
 
         # if user has not been assigned credits
         
-        credit = Credit(user_id = user_id, amount = amount)
+        credit = Credit(user_id = user_id, amount = amount, amount_promotion_credits = amount, amount_purchased_credits = 0)
         saved_credit = credit.save()
 
         if not saved_credit:
