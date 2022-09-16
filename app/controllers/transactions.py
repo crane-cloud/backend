@@ -13,8 +13,10 @@ from app.models.credits import Credit
 from app.models.transaction_record import TransactionRecord
 from app.schemas.transaction_record import TransactionRecordSchema
 from app.helpers.secret_generator import generate_transaction_id
-
-
+from app.schemas import CreditAssignmentSchema
+from app.models.credit_assignments import CreditAssignment
+from sqlalchemy import desc
+from dateutil.relativedelta import *
 
 class TransactionRecordView(Resource):
 
@@ -321,15 +323,6 @@ class CreditTransactionRecordView(Resource):
                 return dict(
                             status='fail',
                             message='An error occured during saving of the record'), 400
-            
-            new_invoice = BillingInvoice(project_id=project_id)
-
-            saved_new_invoice = new_invoice.save()
-
-            if not saved_new_invoice:
-                return dict(
-                            status='fail',
-                            message='An error occured during updating of new invoice record'), 400
 
             new_invoice = BillingInvoice(project_id=project_id)
 
@@ -341,6 +334,25 @@ class CreditTransactionRecordView(Resource):
                             message='An error occured during updating of new invoice record'), 400
 
             new_transaction_data, errors = transaction_schema.dump(transaction)
+            user_credit_exp_date = CreditAssignment.query.filter_by(user_id = project.owner_id).order_by(desc('expiry_date')).first()
+            
+
+            user_credit_exp_date_json, errors = transaction_schema.dumps(user_credit_exp_date)
+        
+            arr= json.loads(user_credit_exp_date_json)
+
+            assignment_expire = CreditAssignment.get_by_id(arr["id"])
+            if not assignment_expire:
+                return dict(status='fail', message=f'assignment_expire {arr["id"]} not found'), 404
+
+            assignment_expire.expiry_date = datetime.datetime.utcnow()+relativedelta(months=+6)
+            saved_new_assignment= assignment_expire.save()
+
+            if not saved_new_assignment:
+                return dict(
+                            status='fail',
+                            message='An error occured during updating of new invoice record'), 400
+
             return dict(status='success', data=dict(
                         transaction={**new_transaction_data, 
                         "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
