@@ -41,7 +41,7 @@ keyring==10.6.0
 keyrings.alt==3.0
 kombu==5.1.0
 kubernetes==23.3.0
-Mako==1.0.10
+Mako==1.2.2
 MarkupSafe==1.1.1
 marshmallow==2.19.2
 mistune==0.8.4
