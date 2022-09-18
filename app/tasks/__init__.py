@@ -67,7 +67,7 @@ def send_async_email(email,
 def setup_periodic_tasks(**kwargs):
     # Calls updateScheduler everyday at midnight
     celery.add_periodic_task(crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
-    celery.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(), name='send credits expiry notifications')
+    celery.add_periodic_task(10.0, sendExpirationNotification.s(), name='send credits expiry notifications')
 
 @celery.task()
 def updateScheduler():
@@ -151,7 +151,7 @@ def sendExpirationNotification():
                 template = "user/credit_expiration_notification.html"
                 subject = "Promotional Credits Expiration from Crane Cloud Project"
                 email =user.email
-                amount = user_credit.amount
+                amount = user_credit.amount_promotion_credits
                 today = notification_datetime
                 success = False
 
