@@ -14,3 +14,4 @@ class App(ModelMixin):
     alias = db.Column(db.String(256), nullable=True, unique=True)
     port = db.Column(db.Integer, nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    has_custom_domain = db.Column(db.Boolean, nullable=False, default=False)

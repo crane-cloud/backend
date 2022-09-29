@@ -564,35 +564,6 @@ class ProjectDatabaseAdminView(Resource):
 
         database_data_list = json.loads(database_data)
 
-        # Check the database status on host
-        for database in database_data_list:
-            flavour_name = database['database_flavour_name']
-            if not flavour_name:
-                flavour_name = "mysql"
-
-            db_flavour = get_db_flavour(flavour_name)
-            database_service = db_flavour['class']
-
-            try:
-                database_connection = database_service.create_db_connection(
-                    user=database['user'], password=database['password'], db_name=database['name'])
-
-                if not database_connection:
-                    db_status = False
-                else:
-                    db_status = True
-            except:
-                db_status = False
-            finally:
-                if database_connection:
-                    if database_service == MysqlDbService():
-                        if database_connection.is_connected():
-                            database_connection.close()
-                        else:
-                            database_connection.close()
-
-            database['db_status'] = db_status
-
         return dict(status='success', data=dict(databases=database_data_list)), 200
 
 
@@ -909,15 +880,17 @@ class DatabaseStatsView(Resource):
 
         # get databases count per flavour
         dbs_per_flavour = {}
-        tot_database_count=0
+        tot_database_count = 0
         for flavour in database_flavours:
-            databases = ProjectDatabase.find_all(database_flavour_name=flavour['name'])
+            databases = ProjectDatabase.find_all(
+                database_flavour_name=flavour['name'])
             database_count = len(databases)
-            dbs_per_flavour[f"{flavour['name']}_db_count"]= database_count
+            dbs_per_flavour[f"{flavour['name']}_db_count"] = database_count
 
             tot_database_count = tot_database_count + database_count
 
-        data = dict(total_database_count=tot_database_count,dbs_stats_per_flavour=dbs_per_flavour)
+        data = dict(total_database_count=tot_database_count,
+                    dbs_stats_per_flavour=dbs_per_flavour)
 
         return dict(status='Success',
                     data=dict(databases=data)), 200

@@ -1,11 +1,12 @@
-import json
-from urllib.parse import urlsplit
 import base64
 import datetime
+import json
+import os
+from urllib.parse import urlsplit
+
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-import datetime
 from prometheus_http_client import Prometheus
 from app.models.app import App
 from app.models.project import Project
@@ -14,10 +15,15 @@ from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
-from app.models.clusters import Cluster
 from app.helpers.clean_up import resource_clean_up
-from app.helpers.prometheus import prometheus
+from app.helpers.decorators import admin_required
+from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.helpers.url import get_app_subdomain
+from app.models.app import App
+from app.models.user import User
+from app.models.clusters import Cluster
+from app.models.project import Project
+from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 
 
 class AppsView(Resource):
@@ -271,16 +277,21 @@ class AppsView(Resource):
             sub_domain = get_app_subdomain(app_alias)
 
             # create new ingress rule for the application
-            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                service_name=service_name,
-                service_port=3000
+            new_ingress_backend = client.V1IngressBackend(
+                service=client.V1IngressServiceBackend(
+                    name=service_name,
+                    port=client.V1ServiceBackendPort(
+                        number=3000
+                    )
+                )
             )
 
-            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+            new_ingress_rule = client.V1IngressRule(
                 host=sub_domain,
-                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                http=client.V1HTTPIngressRuleValue(
+                    paths=[client.V1HTTPIngressPath(
                         path="",
+                        path_type="ImplementationSpecific",
                         backend=new_ingress_backend
                     )]
                 )
@@ -289,44 +300,47 @@ class AppsView(Resource):
             ingress_name = f'{project.alias}-ingress'
 
             # Check if there is an ingress resource in the namespace, create if not
+            # TODO: Remove the try and handle the error
+            try:
+                ingress_list = kube_client.networking_api.list_namespaced_ingress(
+                    namespace=namespace).items
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
-                namespace=namespace).items
+                if not ingress_list:
 
-            if not ingress_list:
+                    ingress_meta = client.V1ObjectMeta(
+                        name=ingress_name
+                    )
 
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
+                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
+                        # backend=ingress_backend,
+                        rules=[new_ingress_rule]
+                    )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                    ingress_body = client.ExtensionsV1beta1Ingress(
+                        metadata=ingress_meta,
+                        spec=ingress_spec
+                    )
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                    kube_client.networking_api.create_namespaced_ingress(
+                        namespace=namespace,
+                        body=ingress_body
+                    )
 
-                kube_client.extension_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
+                    # update registry
+                    resource_registry['ingress_entry'] = True
+                else:
+                    # Update ingress with new entry
+                    ingress = ingress_list[0]
 
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
+                    ingress.spec.rules.append(new_ingress_rule)
 
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.extension_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
+                    kube_client.networking_api.patch_namespaced_ingress(
+                        name=ingress_name,
+                        namespace=namespace,
+                        body=ingress
+                    )
+            except client.rest.ApiException as e:
+                print(e)
 
             service_url = f'https://{sub_domain}'
 
@@ -414,6 +428,7 @@ class ProjectAppsView(Resource):
         docker_email = validated_app_data.get('docker_email', None)
         replicas = validated_app_data.get('replicas', 1)
         app_port = validated_app_data.get('port', None)
+        custom_domain = validated_app_data.get('custom_domain', None)
         image_pull_secret = None
 
         command = command.split() if command else None
@@ -617,21 +632,31 @@ class ProjectAppsView(Resource):
             # update resource registry
             resource_registry['app_service'] = True
 
-            # subdomain for the app
-            # sub_domain = f'{app_alias}.cranecloud.io'
-            sub_domain = get_app_subdomain(app_alias)
+            user = User.get_by_id(current_user_id)
+
+            if custom_domain and user.is_beta_user:
+                sub_domain = custom_domain
+                validated_app_data['has_custom_domain'] = True
+
+            else:
+                sub_domain = get_app_subdomain(app_alias)
 
             # create new ingres rule for the application
-            new_ingress_backend = client.ExtensionsV1beta1IngressBackend(
-                service_name=service_name,
-                service_port=3000
+            new_ingress_backend = client.V1IngressBackend(
+                service=client.V1IngressServiceBackend(
+                    name=service_name,
+                    port=client.V1ServiceBackendPort(
+                        number=3000
+                    )
+                )
             )
 
-            new_ingress_rule = client.ExtensionsV1beta1IngressRule(
+            new_ingress_rule = client.V1IngressRule(
                 host=sub_domain,
-                http=client.ExtensionsV1beta1HTTPIngressRuleValue(
-                    paths=[client.ExtensionsV1beta1HTTPIngressPath(
+                http=client.V1HTTPIngressRuleValue(
+                    paths=[client.V1HTTPIngressPath(
                         path="",
+                        path_type="ImplementationSpecific",
                         backend=new_ingress_backend
                     )]
                 )
@@ -641,7 +666,7 @@ class ProjectAppsView(Resource):
 
             # Check if there is an ingress resource in the namespace, create if not
 
-            ingress_list = kube_client.extension_api.list_namespaced_ingress(
+            ingress_list = kube_client.networking_api.list_namespaced_ingress(
                 namespace=namespace).items
 
             if not ingress_list:
@@ -660,7 +685,7 @@ class ProjectAppsView(Resource):
                     spec=ingress_spec
                 )
 
-                kube_client.extension_api.create_namespaced_ingress(
+                kube_client.networking_api.create_namespaced_ingress(
                     namespace=namespace,
                     body=ingress_body
                 )
@@ -673,7 +698,7 @@ class ProjectAppsView(Resource):
 
                 ingress.spec.rules.append(new_ingress_rule)
 
-                kube_client.extension_api.patch_namespaced_ingress(
+                kube_client.networking_api.patch_namespaced_ingress(
                     name=ingress_name,
                     namespace=namespace,
                     body=ingress
@@ -745,15 +770,15 @@ class ProjectAppsView(Resource):
 
             apps_data, errors = app_schema.dumps(apps)
 
-            if errors:
-                return dict(status='fail', message=errors), 500
+            # if errors:
+            #     return dict(status='fail', message=errors), 500
 
             apps_data_list = json.loads(apps_data)
             for app in apps_data_list:
                 try:
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias']+"-deployment", project.alias)
+                            app['alias'] + "-deployment", project.alias)
 
                     app_deployment_status_conditions = app_status_object.status.conditions
 
@@ -767,7 +792,7 @@ class ProjectAppsView(Resource):
                 try:
                     app_db_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias']+"-postgres-db", project.alias)
+                            app['alias'] + "-postgres-db", project.alias)
 
                     app_db_state_conditions = app_db_status_object.status.conditions
 
@@ -790,7 +815,8 @@ class ProjectAppsView(Resource):
                         app['app_running_status'] = "failed"
                 else:
                     app['app_running_status'] = "unknown"
-
+            if errors:
+                return dict(status='error', error=errors, data=dict(apps=apps_data_list)), 409
             return dict(status='success', data=dict(apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
@@ -828,8 +854,8 @@ class AppDetailView(Resource):
 
             app_data, errors = app_schema.dumps(app)
 
-            if errors:
-                return dict(status='fail', message=errors), 500
+            # if errors:
+            #     return dict(status='fail', message=errors), 500
 
             app_list = json.loads(app_data)
 
@@ -846,7 +872,7 @@ class AppDetailView(Resource):
 
             app_status_object = \
                 kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias']+"-deployment", project.alias)
+                    app_list['alias'] + "-deployment", project.alias)
 
             app_deployment_status_conditions = app_status_object.status.conditions
 
@@ -877,7 +903,7 @@ class AppDetailView(Resource):
             try:
                 app_db_status_object = \
                     kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app_list['alias']+"-postgres-db", project.alias)
+                        app_list['alias'] + "-postgres-db", project.alias)
 
                 app_db_state_conditions = app_db_status_object.status.conditions
 
@@ -900,7 +926,8 @@ class AppDetailView(Resource):
                     app_list['app_running_status'] = "failed"
             else:
                 app_list['app_running_status'] = "unknown"
-
+            if errors:
+                return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success', data=dict(apps=app_list)), 200
 
         except client.rest.ApiException as exc:
@@ -941,7 +968,6 @@ class AppDetailView(Resource):
 
             kube_host = cluster.host
             kube_token = cluster.token
-
             kube_client = create_kube_clients(kube_host, kube_token)
 
             # delete deployment and service for the app
@@ -984,6 +1010,7 @@ class AppDetailView(Resource):
         docker_username = validated_update_data.get('docker_username', None)
         docker_password = validated_update_data.get('docker_password', None)
         docker_email = validated_update_data.get('docker_email', None)
+        custom_domain = validated_update_data.get('custom_domain', None)
         image_pull_secret = None
 
         try:
@@ -1080,6 +1107,47 @@ class AppDetailView(Resource):
 
                 cluster_deployment.spec.template.spec.containers[0].image = app_image
 
+            user = User.get_by_id(current_user_id)
+
+            if custom_domain and user.is_beta_user:
+
+                service_name = f'{app.alias}-service'
+                ingress_name = f'{project.alias}-ingress'
+
+                new_ingress_backend = client.V1IngressBackend(
+                    service=client.V1IngressServiceBackend(
+                        name=service_name,
+                        port=client.V1ServiceBackendPort(
+                            number=3000
+                        )
+                    )
+                )
+
+                new_ingress_rule = client.V1IngressRule(
+                    host=custom_domain,
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
+                            path="",
+                            path_type="ImplementationSpecific",
+                            backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+                ingress_list = kube_client.networking_api.list_namespaced_ingress(
+                    namespace=namespace).items
+                ingress = ingress_list[0]
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+                kube_client.networking_api.patch_namespaced_ingress(
+                    name=ingress_name,
+                    namespace=namespace,
+                    body=ingress
+                )
+                validated_update_data['url'] = f'https://{custom_domain}'
+                validated_update_data['has_custom_domain'] = True
+
             if replicas:
                 cluster_deployment.spec.replicas = replicas
 
@@ -1100,7 +1168,8 @@ class AppDetailView(Resource):
                         body=service
                     )
             if command:
-                cluster_deployment.spec.template.spec.containers[0].command = command.split()
+                cluster_deployment.spec.template.spec.containers[0].command = command.split(
+                )
 
             if env_vars:
                 env = []
@@ -1140,6 +1209,125 @@ class AppDetailView(Resource):
             return dict(
                 status='success',
                 message=f'App updated successfully'
+            ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
+
+
+class AppRevertView(Resource):
+    @jwt_required
+    def patch(self, app_id):
+        """
+        revert app custom domain back to crane cloud domain
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            app_sub_domain = get_app_subdomain(app.alias)
+            custom_domain = None
+            if type(app.url) is str:
+                custom_domain = app.url.split("//", 1)[-1]
+
+            if custom_domain == app_sub_domain:
+                return dict(
+                    status='fail',
+                    message='App already has the crane cloud domain'
+                ), 409
+
+            # Create kube client
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            ingress_list = kube_client.networking_api.list_namespaced_ingress(
+                namespace=namespace).items
+
+            service_name = f'{app.alias}-service'
+            ingress_name = f'{project.alias}-ingress'
+            newUrl = None
+            ingress = ingress_list[0]
+            routes_list = ingress.spec.rules
+
+            # Check if app subdomain is present in ingress list
+            for item in routes_list:
+                if item.host == app_sub_domain:
+                    newUrl = app_sub_domain
+
+            if not newUrl:
+                # Create a new ingress rule with app Alias
+                new_ingress_backend = client.V1IngressBackend(
+                    service=client.V1IngressServiceBackend(
+                        name=service_name,
+                        port=client.V1ServiceBackendPort(
+                            number=3000
+                        )
+                    )
+                )
+
+                new_ingress_rule = client.V1IngressRule(
+                    host=app_sub_domain,
+                    http=client.V1HTTPIngressRuleValue(
+                        paths=[client.V1HTTPIngressPath(
+                            path="",
+                            path_type="ImplementationSpecific",
+                            backend=new_ingress_backend
+                        )]
+                    )
+                )
+
+                ingress.spec.rules.append(new_ingress_rule)
+
+            # Remove custom domain from ingress list
+            for item in routes_list:
+                if item.host == custom_domain:
+                    ingress.spec.rules.remove(item)
+
+            kube_client.networking_api.patch_namespaced_ingress(
+                name=ingress_name,
+                namespace=namespace,
+                body=ingress
+            )
+
+            # Update the database with new url
+            updated_app = App.update(
+                app, url=f'https://{app_sub_domain}', has_custom_domain=False)
+
+            if not updated_app:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error'
+                ), 500
+
+            return dict(
+                status='success',
+                message=f'App url reverted successfully'
             ), 200
 
         except client.rest.ApiException as exc:
@@ -1195,11 +1383,17 @@ class AppMemoryUsageView(Resource):
         app_alias = app.alias
         namespace = project.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
+
         prom_memory_data = prometheus.query_rang(
             start=start,
             end=end,
             step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"'+app_alias+'.*", namespace="'+namespace+'"}[5m]))')
+            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"' + app_alias + '.*", namespace="' + namespace + '"}[5m]))')
 
         new_data = json.loads(prom_memory_data)
         final_data_list = []
@@ -1236,7 +1430,6 @@ class AppCpuUsageView(Resource):
                 status='fail',
                 message=f'project {project_id} not found'
             ), 404
-
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id ,'member'):
                 return dict(status='fail', message='unauthorised'), 403
@@ -1256,6 +1449,10 @@ class AppCpuUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1267,7 +1464,7 @@ class AppCpuUsageView(Resource):
             end=end,
             step=step,
             metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="", namespace="' +
-            namespace+'", pod=~"'+app_alias+'.*"}[5m]))'
+                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
         )
         #  change array values to json"values"
         new_data = json.loads(prom_data)
@@ -1325,6 +1522,10 @@ class AppNetworkUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         start = validated_query_data.get('start', yesterday.timestamp())
@@ -1336,7 +1537,7 @@ class AppNetworkUsageView(Resource):
             end=end,
             step=step,
             metric='sum(rate(container_network_receive_bytes_total{namespace="' +
-            namespace+'", pod=~"'+app_alias+'.*"}[5m]))'
+                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
         )
         #  change array values to json "values"
         new_data = json.loads(prom_data)
@@ -1508,19 +1709,24 @@ class AppStorageUsageView(Resource):
         namespace = project.alias
         app_alias = app.alias
 
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
         prometheus = Prometheus()
 
         try:
-            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                                         namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
-                                         )
+            prom_data = prometheus.query(
+                metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                       namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
+            )
             #  change array values to json
             new_data = json.loads(prom_data)
             values = new_data["data"]
 
             percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                               namespace+'", persistentvolumeclaim=~"'+app_alias+'.*"})'
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
                                                )
 
             data = json.loads(percentage_data)
@@ -1528,7 +1734,8 @@ class AppStorageUsageView(Resource):
         except:
             return dict(status='fail', message='No values found'), 404
 
-        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+        return dict(status='success',
+                    data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
 
 
 class AppDataSummaryView(Resource):
@@ -1550,7 +1757,7 @@ class AppDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_apps = len(App.find_all())
-        
+
         app_info = App.graph_data(start=start, end=end, set_by=set_by)
 
         return dict(

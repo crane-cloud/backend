@@ -1,5 +1,6 @@
 import os
 
+
 class Base:
     """ base config """
 
@@ -21,13 +22,15 @@ class Base:
     # mail accounts
     MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
 
-    # EXCEPTIONS 
+    # EXCEPTIONS
     PROPAGATE_EXCEPTIONS = True
 
     # Github auth
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
+    # celery
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 
 class Development(Base):
@@ -45,14 +48,15 @@ class Testing(Base):
     DEBUG = True
     # use a separate db
 
-    SQLALCHEMY_DATABASE_URI = "postgresql:///cranecloud_test_db"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
+
 
 class Staging(Base):
     """ Staging config """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-
 
 
 class Production(Base):
@@ -62,4 +66,5 @@ class Production(Base):
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
 
 
-app_config = {"development": Development, "testing": Testing, "staging": Staging, "production": Production}
+app_config = {"development": Development, "testing": Testing,
+              "staging": Staging, "production": Production}

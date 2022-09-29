@@ -1,47 +1,34 @@
-import unittest
+def test_create_user_with_fixture(new_user):
+    """
+    GIVEN a User Model
+    WHEN a new User is created
+    THEN check the email, password and name fields are defined correctly
+    """
 
-from server import create_app
-from app.models import db
+    assert new_user.email == 'test_email@testdomain.com'
+    assert new_user.password != 'test_password'
+    assert new_user.name == 'test_name'
+    assert not new_user.verified
+    assert not new_user.is_beta_user
 
-class UserTestCase(unittest.TestCase):
-    """ user test case """
 
-    def setUp(self):
-        """ executed before each test """
+def test_index_page_with_fixture(test_client):
+    """
+    GIVEN  a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    response = test_client.get('/')
+    assert response.status_code == 200
+    assert b"Welcome to Crane Cloud API" in response.data
 
-        # define test variables and initialize app
-        self.app = create_app('testing')
-        self.client = self.app.test_client()
-        
-        self.test_user = {
-            'email': 'test_email@testdomain.com',
-            'name': 'test_name',
-            'password': 'test_password'
-        }
 
-        with self.app.app_context():
-            """ bind app to current context """
-
-            # create all tables
-            db.engine.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
-            db.create_all()
-
-    def tearDown(self):
-        """ executed after each test """
-
-        # destroy created data
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-    def test_sign_up(self):
-        """ test user creation """
-
-        response = self.client.post('/users', json=self.test_user)
-
-        self.assertEqual(response.status_code, 201)
-        self.assertIn('test_email@testdomain.com', str(response.data))
-        self.assertIn('test_name', str(response.data))
-
-if __name__ == 'main':
-    unittest.main()
+def test_index_page_post_with_fixture(test_client):
+    """
+    GIVEN  a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    response = test_client.post('/')
+    assert response.status_code == 405
+    assert b"Welcome to Crane Cloud API" not in response.data

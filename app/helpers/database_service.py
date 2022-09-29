@@ -9,13 +9,14 @@ from types import SimpleNamespace
 
 
 def generate_db_credentials():
-    punctuation = r"""!#%&()+,-:;<=>?@[]^_{|}~"""
+    punctuation = r"""#%+,-<=>^_"""
     name = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(24)))
     user = ''.join((secrets.choice(string.ascii_letters)
                     for i in range(16)))
     password = ''.join((secrets.choice(
         string.ascii_letters + string.digits + punctuation) for i in range(32)))
+
     return SimpleNamespace(
         user=user.lower(),
         name=name.lower(),
@@ -258,7 +259,7 @@ class MysqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(f"DROP DATABASE {db_name}")
-            # todo: Need to delete users too
+            # TODO: Need to delete users too
             return True
         except self.Error:
             return False
@@ -335,6 +336,32 @@ class MysqlDbService(DatabaseService):
                 cursor.close()
                 connection.close()
 
+    def get_server_status(self):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute("SHOW GLOBAL STATUS")
+            # cursor.fetchall()
+            return {
+                'status': 'success',
+                'data': 'online'
+            }
+        except self.Error:
+            return {
+                'status': 'error',
+                'message': 'Error has occured'}
+
+        finally:
+            if not connection:
+                return {
+                    'status': 'error',
+                    'message': 'Unable to connect to database'}
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
 
 class PostgresqlDbService(DatabaseService):
 
@@ -384,7 +411,7 @@ class PostgresqlDbService(DatabaseService):
             return False
 
     def check_user_db_rights(self, user=None, password=None, db_name=None):
-        # todo: Restrict users from accessing databases they dont own
+        # TODO: Restrict users from accessing databases they dont own
         try:
             user_connection = self.create_db_connection(
                 user=user, password=password, db_name=db_name)
@@ -433,7 +460,6 @@ class PostgresqlDbService(DatabaseService):
             print(e)
             if e.pgcode == '42710':
                 return True
-            print('gssd')
             return False
         finally:
             if not connection:
@@ -469,7 +495,7 @@ class PostgresqlDbService(DatabaseService):
                 return False
             cursor = connection.cursor()
             cursor.execute(f"DROP DATABASE {db_name}")
-            # todo: Need to delete users too
+            # TODO: Need to delete users too
             return True
         except self.Error as e:
             print(e)
@@ -581,5 +607,35 @@ class PostgresqlDbService(DatabaseService):
         finally:
             if not connection:
                 return False
+            cursor.close()
+            connection.close()
+
+    def get_server_status(self):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute("SELECT pg_is_in_recovery()")
+
+            for db in cursor:
+                if db[0]:
+                    return {
+                        'status': 'failed',
+                        'message': 'in recovery'}
+                else:
+                    return {
+                        'status': 'success',
+                        'message': 'online'}
+        except self.Error:
+            return {
+                'status': 'error',
+                'message': 'Error has occured'}
+        finally:
+            if not connection:
+                return {
+                    'status': 'error',
+                    'message': 'Unable to connect to database'}
+
             cursor.close()
             connection.close()
