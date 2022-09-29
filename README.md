@@ -80,4 +80,3 @@ To create an admin account run
 To add image repositories to the database run
 
 `python manage.py create_registries`
-

@@ -9,3 +9,4 @@ from .registry import RegistrySchema
 from .monitoring_metrics import (MetricsSchema, UserGraphSchema, AppGraphSchema)
 from .pod_logs import PodsLogsSchema
 from .project_database import ProjectDatabaseSchema
+from .project_users import ProjectUserSchema

@@ -4,7 +4,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.orm import relationship, backref
 from app.models import db
 from app.models.model_mixin import ModelMixin
-
+from app.models.project_users import ProjectUser
 
 class Project(ModelMixin):
     __tablename__ = 'project'
@@ -18,5 +18,6 @@ class Project(ModelMixin):
     organisation = db.Column(db.String)
     project_type = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    users = relationship('ProjectUser', back_populates='other_project')
     project_databases = db.relationship(
         'ProjectDatabase', backref='project', lazy=True)

@@ -22,7 +22,6 @@ class ProjectsView(Resource):
     def post(self):
         """
         """
-
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
@@ -31,7 +30,6 @@ class ProjectsView(Resource):
         project_data = request.get_json()
 
         validated_project_data, errors = project_schema.load(project_data)
-
         if errors:
             return dict(status='fail', message=errors), 400
 
@@ -48,7 +46,6 @@ class ProjectsView(Resource):
                 status='fail',
                 message=f'project with name {validated_project_data["name"]} already exists'
             ), 409
-
         try:
             validated_project_data['alias'] =\
                 create_alias(validated_project_data['name'])
@@ -138,7 +135,7 @@ class ProjectsView(Resource):
         current_user_roles = get_jwt_claims()['roles']
 
         project_schema = ProjectSchema(many=True)
-
+        
         if has_role(current_user_roles, 'administrator'):
             projects = Project.find_all()
         else:

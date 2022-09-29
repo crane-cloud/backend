@@ -1,3 +1,4 @@
+import os
 from os.path import join, dirname
 from dotenv import load_dotenv
 from flask_script import Manager
@@ -14,6 +15,7 @@ from app.models.clusters import Cluster
 from app.models.project import Project
 from app.models.app import App
 from app.models.project_database import ProjectDatabase
+from app.models.project_users import ProjectUser
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
