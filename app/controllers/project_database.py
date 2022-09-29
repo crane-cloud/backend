@@ -6,9 +6,10 @@ from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService, generate_db_credentials
 from app.models.project import Project
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
 from app.helpers.db_flavor import get_db_flavour,database_flavours
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 
 
 class ProjectDatabaseView(Resource):
@@ -17,6 +18,9 @@ class ProjectDatabaseView(Resource):
     def post(self, project_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         databases_data = request.get_json()
@@ -24,9 +28,19 @@ class ProjectDatabaseView(Resource):
         credentials = generate_db_credentials()
 
         validated_database_data, errors = database_schema.load(databases_data)
-
         if errors:
             return dict(status="fail", message=errors), 400
+
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
+
 
         database_flavour_name = validated_database_data.get(
             'database_flavour_name', None)
@@ -60,9 +74,6 @@ class ProjectDatabaseView(Resource):
         if errors:
             return dict(status="fail", message=errors), 400
 
-        project = Project.get_by_id(project_id)
-        if not project:
-            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
         validated_database_data['project_id'] = project_id
 
@@ -124,11 +135,18 @@ class ProjectDatabaseView(Resource):
     def get(self, project_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema(many=True)
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         databases = ProjectDatabase.find_all(project_id=project_id)
 
@@ -177,11 +195,17 @@ class ProjectDatabaseDetailView(Resource):
     def delete(self, project_id, database_id):
         """
         """
-        database_schema = ProjectDatabaseSchema()
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+        
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -234,12 +258,18 @@ class ProjectDatabaseDetailView(Resource):
     def get(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         project = Project.get_by_id(project_id)
-
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -301,6 +331,10 @@ class ProjectDatabasePasswordResetView(Resource):
     def post(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
@@ -316,6 +350,12 @@ class ProjectDatabasePasswordResetView(Resource):
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
 
         database_existant = ProjectDatabase.get_by_id(database_id)
         if not database_existant:
@@ -367,12 +407,19 @@ class ProjectDatabaseRetrievePasswordView(Resource):
     def get(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         project = Project.get_by_id(project_id)
 
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -664,11 +711,16 @@ class ProjectDatabaseResetView(Resource):
         """
         Reset Database
         """
-        database_schema = ProjectDatabaseSchema()
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id ,'admin'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 

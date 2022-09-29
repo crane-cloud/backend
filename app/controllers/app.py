@@ -11,7 +11,7 @@ from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
-from app.helpers.admin import is_owner_or_admin
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
 from app.models.clusters import Cluster
@@ -424,7 +424,8 @@ class ProjectAppsView(Resource):
             return dict(status='fail', message=f'project {project_id} not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='Unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='Unauthorised'), 403
 
         cluster = project.cluster
         namespace = project.alias
@@ -728,7 +729,8 @@ class ProjectAppsView(Resource):
                 return dict(status='fail', message=f'project {project_id} not found'), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'member'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             cluster = Cluster.get_by_id(project.cluster_id)
 
@@ -821,7 +823,8 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'member'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             app_data, errors = app_schema.dumps(app)
 
@@ -927,7 +930,8 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
@@ -999,7 +1003,8 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'member'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
@@ -1184,7 +1189,8 @@ class AppMemoryUsageView(Resource):
             return dict(status='fail', message=f'App {app_id} not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='Unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='Unauthorised'), 403
 
         app_alias = app.alias
         namespace = project.alias
@@ -1232,7 +1238,8 @@ class AppCpuUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
         app = App.get_by_id(app_id)
@@ -1300,7 +1307,8 @@ class AppNetworkUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
         app = App.get_by_id(app_id)
@@ -1367,7 +1375,8 @@ class AppLogsView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
         app = App.get_by_id(app_id)
@@ -1484,7 +1493,8 @@ class AppStorageUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
         app = App.get_by_id(app_id)

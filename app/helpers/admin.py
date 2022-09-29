@@ -73,6 +73,22 @@ def is_owner_or_admin(resource, user_id, user_roles):
 
     return is_admin or is_owner
 
+def is_authorised_project_user(project, user_id, highest_role):
+    is_member = False
+    user_role = None
+    for user_role_item in project.users:
+        if str(user_role_item.user_id) == str(user_id):
+            is_member = True
+            user_role = user_role_item
+    if not is_member: 
+        return False
+    elif highest_role == 'admin' and user_role.role == 'admin':
+        return True
+    elif highest_role == 'member':
+        return True
+    else:
+        return False
+
 
 def is_current_or_admin(route_user_id, auth_user_id, user_roles):
     is_admin = has_role(user_roles, 'administrator')
