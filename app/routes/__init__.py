@@ -15,7 +15,7 @@ from app.controllers import (
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, 
-    ProjectUsersView)
+    ProjectUsersView, ProjectUsersTransferView)
 
 api = Api()
 
@@ -136,3 +136,4 @@ api.add_resource(DatabaseStatsView, '/databases/stats')
 
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
+api.add_resource(ProjectUsersTransferView, '/projects/<string:project_id>/users/transfer')

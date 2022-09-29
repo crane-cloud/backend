@@ -26,4 +26,4 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
                                ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
-from .project_users import ProjectUsersView
+from .project_users import ProjectUsersView, ProjectUsersTransferView
