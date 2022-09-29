@@ -82,7 +82,7 @@ def is_authorised_project_user(project, user_id, highest_role):
             user_role = user_role_item
     if not is_member: 
         return False
-    elif highest_role == 'admin' and user_role.role == 'admin':
+    elif highest_role == 'admin' and str(user_role.role) == 'RolesList.admin':
         return True
     elif highest_role == 'member':
         return True

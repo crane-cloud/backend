@@ -52,7 +52,7 @@ class ProjectUsersView(Resource):
         # adding user to project users
         role = validated_project_user_data.get('role', None)
         if role == 'owner':
-            return dict(status='fail', message='User role cannot be updated to owner'), 400
+            return dict(status='fail', message='User cannot be added as owner'), 400
             
         new_role = ProjectUser(role=role, user_id=user.id)
         project.users.append(new_role)
