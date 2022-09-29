@@ -31,7 +31,7 @@ class ProjectUsersView(Resource):
             return dict(status='fail', message='Project not found'), 404
 
         # Get user
-        user = User.get_by_id(validated_project_user_data.get('user_id', None))
+        user = User.find_first(email=validated_project_user_data.get('email', None))
 
         if not user:
             return dict(status='fail', message='User not found'), 404
@@ -41,7 +41,8 @@ class ProjectUsersView(Resource):
             return dict(status='fail', message='User already exists'), 409
 
         # adding user to project users
-        new_role = ProjectUser(**validated_project_user_data)
+        role = validated_project_user_data.get('role', None)
+        new_role = ProjectUser(role=role, user_id=user.id)
         project.users.append(new_role)
 
         saved_project_user = project.save()
@@ -49,7 +50,7 @@ class ProjectUsersView(Resource):
         if not saved_project_user:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        user_schema = UserSchema()
+        user_schema = ProjectUserSchema()
         new_project_user_data, errors = user_schema.dumps(user)
 
         return dict(
@@ -118,7 +119,7 @@ class ProjectUsersView(Resource):
             return dict(status='fail', message='Project not found'), 404
 
         # Get user
-        user = User.get_by_id(validated_project_user_data.get('user_id', None))
+        user = User.find_first(email=validated_project_user_data.get('email', None))
 
         if not user:
             return dict(status='fail', message='User not found'), 404

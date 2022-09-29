@@ -1988,10 +1988,10 @@ paths:
                   schema:
                     type: object
                     required:
-                        - user_id
+                        - email
                         - role
                     properties:
-                        user_id:
+                        email:
                             type: string
                         role:
                             type: string
@@ -2054,9 +2054,9 @@ paths:
                   schema:
                     type: object
                     required:
-                        - user_id
+                        - email
                     properties:
-                        user_id:
+                        email:
                             type: string
             produces:
                 - application/json

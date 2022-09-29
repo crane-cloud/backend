@@ -140,6 +140,11 @@ class ProjectsView(Resource):
             projects = Project.find_all()
         else:
             projects = Project.find_all(owner_id=current_user_id)
+            user = User.get_by_id(current_user_id)
+
+            for project_role in user.other_projects:
+                if project_role.other_project not in projects:
+                    projects.append(project_role.other_project)
 
         project_data, errors = project_schema.dumps(projects)
 
