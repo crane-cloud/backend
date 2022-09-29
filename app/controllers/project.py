@@ -5,6 +5,7 @@ from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_
 from app.helpers.role_search import has_role
 from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.models.billing_invoice import BillingInvoice
+from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -115,6 +116,17 @@ class ProjectsView(Resource):
                 )
 
                 project = Project(**validated_project_data)
+
+                # Add user as owner of project
+                new_role = ProjectUser(
+                    role="owner",
+                    user_id=project.owner_id
+                )
+                project.users.append(new_role)
+
+            saved = project.save()
+            if not saved:
+                return dict(status="fail", message="Internal Server Error"), 500
 
                 saved = project.save()
 
