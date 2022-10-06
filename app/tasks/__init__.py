@@ -151,7 +151,7 @@ def sendExpirationNotification():
                 template = "user/credit_expiration_notification.html"
                 subject = "Promotional Credits Expiration from Crane Cloud Project"
                 email =user.email
-                amount = user_credit.amount
+                amount = user_credit.amount_promotion_credits
                 today = notification_datetime
                 success = False
 
