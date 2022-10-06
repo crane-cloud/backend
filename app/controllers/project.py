@@ -1,10 +1,11 @@
 import os
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
-from app.helpers.admin import is_owner_or_admin, is_current_or_admin
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
 from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.models.billing_invoice import BillingInvoice
+from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
@@ -33,7 +34,6 @@ class ProjectsView(Resource):
         project_data = request.get_json()
 
         validated_project_data, errors = project_schema.load(project_data)
-
         if errors:
             return dict(status='fail', message=errors), 400
 
@@ -50,7 +50,6 @@ class ProjectsView(Resource):
                 status='fail',
                 message=f'project with name {validated_project_data["name"]} already exists'
             ), 409
-
         try:
             validated_project_data['alias'] =\
                 create_alias(validated_project_data['name'])
@@ -118,6 +117,17 @@ class ProjectsView(Resource):
 
                 project = Project(**validated_project_data)
 
+                # Add user as owner of project
+                new_role = ProjectUser(
+                    role="owner",
+                    user_id=project.owner_id
+                )
+                project.users.append(new_role)
+
+            saved = project.save()
+            if not saved:
+                return dict(status="fail", message="Internal Server Error"), 500
+
                 saved = project.save()
 
                 if not saved:
@@ -156,11 +166,16 @@ class ProjectsView(Resource):
         current_user_roles = get_jwt_claims()['roles']
 
         project_schema = ProjectSchema(many=True)
-
+        
         if has_role(current_user_roles, 'administrator'):
             projects = Project.find_all()
         else:
             projects = Project.find_all(owner_id=current_user_id)
+            user = User.get_by_id(current_user_id)
+
+            for project_role in user.other_projects:
+                if project_role.other_project not in projects:
+                    projects.append(project_role.other_project)
 
         project_data, errors = project_schema.dumps(projects)
 
@@ -190,7 +205,8 @@ class ProjectDetailView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project,current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         project_data, errors = project_schema.dumps(project)
 
@@ -366,7 +382,8 @@ class ProjectDetailView(Resource):
                 return dict(status='fail', message=f'Project {project_id} not found'), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'admin'):
+                    return dict(status='fail', message='unauthorised'), 403
 
             updated = Project.update(project, **validate_project_data)
 
@@ -446,7 +463,8 @@ class ProjectMemoryUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         namespace = project.alias
         if not project.cluster.prometheus_url:
@@ -499,7 +517,8 @@ class ProjectCPUView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Get current time
         current_time = datetime.datetime.now()
@@ -562,7 +581,8 @@ class ProjectNetworkRequestView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         # Get current time
         current_time = datetime.datetime.now()
@@ -616,7 +636,8 @@ class ProjectStorageUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+            if not is_authorised_project_user(project, current_user_id ,'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         namespace = project.alias
 

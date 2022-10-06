@@ -37,9 +37,8 @@ class Development(Base):
     """ development config """
 
     DEBUG = True
-
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "LOCAL_DATABASE_URI") or "postgresql:///cranecloud"
+    # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
 
 
 class Testing(Base):
