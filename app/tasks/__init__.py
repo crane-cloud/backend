@@ -67,7 +67,7 @@ def send_async_email(email,
 def setup_periodic_tasks(**kwargs):
     # Calls updateScheduler everyday at midnight
     celery.add_periodic_task(crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
-    celery.add_periodic_task(10.0, sendExpirationNotification.s(), name='send credits expiry notifications')
+    celery.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(), name='send credits expiry notifications')
 
 @celery.task()
 def updateScheduler():
