@@ -256,12 +256,23 @@ class CreditTransactionRecordView(Resource):
             owner_id=project.owner_id
             user_credit = Credit.find_first(user_id=owner_id)
             user_credit_amount = user_credit.amount
-
+            user_credit_amount_promotion = user_credit.amount_promotion_credits
+            user_credit_amount_purchased = user_credit.amount_purchased_credits
             
             if amount > user_credit_amount:
                 return dict(status='fail', message='not enough credits'), 400
 
             user_credit.amount = user_credit.amount - amount
+
+            # calculate new promotional and purchased credits
+            if user_credit_amount_promotion > amount:
+                user_credit.amount_promotion_credits -= amount
+            elif user_credit_amount_purchased > amount:
+                user_credit.amount_purchased_credits -=amount
+            else: 
+                user_credit.amount_purchased_credits -= (amount - user_credit.amount_promotion_credits)
+                user_credit.amount_promotion_credits = 0
+
             updated_user_credit = user_credit.save()
 
             if not updated_user_credit:
