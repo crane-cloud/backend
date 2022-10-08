@@ -8,6 +8,4 @@ class Credit(ModelMixin):
     __tablename__ = 'credits'
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     amount = db.Column(db.Integer, nullable=False)
-    amount_promotion_credits= db.Column(db.Integer, nullable=False)
-    amount_purchased_credits= db.Column(db.Integer, nullable=False)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False)
