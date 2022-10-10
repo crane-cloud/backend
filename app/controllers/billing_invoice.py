@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import datetime
 import json
 from flask import current_app
