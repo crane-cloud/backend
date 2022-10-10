@@ -1,4 +1,3 @@
-# from __future__ import absolute_import
 import os
 import json
 from celery import Celery , shared_task, states
