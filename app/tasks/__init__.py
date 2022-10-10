@@ -1,5 +1,6 @@
 import os
 import json
+from __future__ import absolute_import
 from celery import Celery , shared_task, states
 from flask import current_app
 from app.schemas.credit_assignments import CreditAssignmentSchema
