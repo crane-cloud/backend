@@ -200,7 +200,7 @@ class ProjectUsersView(Resource):
          # send email variable
         name = user.name
         template = "user/user_role_update.html"
-        subject = "Update User ROle from Crane Cloud"
+        subject = "Update User Role from Crane Cloud"
         email =user.email
         today = date.today()
         project_name = project.name
