@@ -20,23 +20,23 @@ from ..helpers.invoice_notification import send_invoice
 from ..helpers.credit_expiration_notification import send_credit_expiration_notification
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-celery = Celery(__name__, broker=redis_url,
+celery_app = Celery(__name__, broker=redis_url,
                 backend=redis_url, include=['app.tasks'])
 
 
 def update_celery(app):
-    celery.conf.update(app.config)
+    celery_app.conf.update(app.config)
 
-    class ContextTask(celery.Task):
+    class ContextTask(celery_app.Task):
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return self.run(*args, **kwargs)
 
-    celery.Task = ContextTask
-    return celery
+    celery_app.Task = ContextTask
+    return celery_app
 
 
-@celery.task(name="send_async_remainder_email")
+@celery_app.task(name="send_async_remainder_email")
 def send_async_email(email,
                      name,
                      invoice_id,
@@ -63,13 +63,13 @@ def send_async_email(email,
 
 
 
-@celery.on_after_configure.connect
+@celery_app.on_after_configure.connect
 def setup_periodic_tasks(**kwargs):
     # Calls updateScheduler everyday at midnight
-    celery.add_periodic_task(crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
-    celery.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(), name='send credits expiry notifications')
+    celery_app.add_periodic_task(crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
+    celery_app.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(), name='send credits expiry notifications')
 
-@celery.task()
+@celery_app.task()
 def updateScheduler():
     
     app = current_app
@@ -110,10 +110,10 @@ def updateScheduler():
         return dict(status='Fail',
                     message='Internal server error'), 500
 
-# celery.update_state(state=states.SUCCESS)
-# celery -A server.celery worker -B -l info
+# celery_app.update_state(state=states.SUCCESS)
+# celery_app -A server.celery_app worker -B -l info
 
-@celery.task()
+@celery_app.task()
 def sendExpirationNotification():
 
     app = current_app
@@ -131,7 +131,9 @@ def sendExpirationNotification():
         sq = db.session.query(CreditAssignment.user_id, func.max(CreditAssignment.expiry_date).label('expiry_date')).group_by(CreditAssignment.user_id).subquery()
 
         # look for credits that expire from a month from now
-        credit_assignment_records= db.session.query(Credit.user_id, Credit.amount, sq.c.expiry_date).join(sq,and_(Credit.user_id == sq.c.user_id)).filter(extract('month', sq.c.expiry_date) == notification_datetime.month,extract('year', sq.c.expiry_date) == notification_datetime.year,extract('day', sq.c.expiry_date) == notification_datetime.day,
+        credit_assignment_records= db.session.query(
+            Credit.user_id, Credit.amount, sq.c.expiry_date).join(
+                sq,and_(Credit.user_id == sq.c.user_id)).filter(extract('month', sq.c.expiry_date) == notification_datetime.month,extract('year', sq.c.expiry_date) == notification_datetime.year,extract('day', sq.c.expiry_date) == notification_datetime.day,
                             Credit.amount!= 0)
        
 
@@ -151,7 +153,7 @@ def sendExpirationNotification():
                 template = "user/credit_expiration_notification.html"
                 subject = "Promotional Credits Expiration from Crane Cloud Project"
                 email =user.email
-                amount = user_credit.amount_promotion_credits
+                amount = user_credit.promotion_credits
                 today = notification_datetime
                 success = False
 
@@ -176,7 +178,7 @@ def sendExpirationNotification():
 
     
 
-@celery.task
+@celery_app.task
 def hello():
     print('hello')
     return 'hello'

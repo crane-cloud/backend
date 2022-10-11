@@ -84,4 +84,5 @@ virtualenv==16.6.0
 wcwidth==0.2.5
 websocket-client==0.56.0
 Werkzeug==0.15.5
-celery
+celery==5.1.2
+importlib-metadata<5.0
