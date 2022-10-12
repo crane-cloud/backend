@@ -162,7 +162,7 @@ class UserLoginView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-
+        
         email = validated_user_data.get('email', None)
         password = validated_user_data.get('password', None)
 
