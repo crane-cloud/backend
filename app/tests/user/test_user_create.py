@@ -3,18 +3,18 @@ from app.tests.user import UserBaseTestCase
 
 
 # test user creation for success
-def test_user_creation_success(test_client):
-    """
-    GIVEN  right user creation request object
-    WHEN the '/users' page is requested (POST)
-    THEN check that the response is valid
-    """
-    user_client = UserBaseTestCase()
-    response = test_client.post(
-        '/users',
-        content_type='application/json',
-        data=json.dumps(user_client.user_data),)
-    assert response.status_code == 201
+# def test_user_creation_success(test_client):
+#     """
+#     GIVEN  right user creation request object
+#     WHEN the '/users' page is requested (POST)
+#     THEN check that the response is valid
+#     """
+#     user_client = UserBaseTestCase()
+#     response = test_client.post(
+#         '/users',
+#         content_type='application/json',
+#         data=json.dumps(user_client.user_data),)
+#     assert response.status_code == 201
 
 def test_user_creation_invalid_info(test_client):
     """

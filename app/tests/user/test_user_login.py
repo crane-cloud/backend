@@ -39,23 +39,23 @@ def test_index_page_post_with_fixture(test_client):
     assert b"Welcome to Crane Cloud API" not in response.data
 
 # test login success, failure and logout
-def test_user_login_success(test_client):
-    """
-    GIVEN  right login credentials
-    WHEN the '/users/login' page is requested (POST)
-    THEN check that the response is valid
-    """
+# def test_user_login_success(test_client):
+#     """
+#     GIVEN  right login credentials
+#     WHEN the '/users/login' page is requested (POST)
+#     THEN check that the response is valid
+#     """
     
-    user_client = UserBaseTestCase()
-    # create a user
-    user_client.create_user(user_client.user_data)
+#     user_client = UserBaseTestCase()
+#     # create a user
+#     user_client.create_user(user_client.user_data)
     
-    response = test_client.post(
-        '/users/login',
-        content_type='application/json',
-        data=json.dumps(user_client.user_data),)
+#     response = test_client.post(
+#         '/users/login',
+#         content_type='application/json',
+#         data=json.dumps(user_client.user_data),)
     
-    assert response.status_code == 200
+#     assert response.status_code == 200
 
 def test_user_login_invalid_info(test_client):
     """
