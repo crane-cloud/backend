@@ -19,8 +19,8 @@ jobs:
         image: postgres:12
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: cranecloud_test
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DATABASE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.TEST_DATABASE_NAME }}
         options:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
