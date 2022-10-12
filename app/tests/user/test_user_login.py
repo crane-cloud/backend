@@ -1,4 +1,3 @@
-import email
 import json
 
 from app.tests.user import UserBaseTestCase

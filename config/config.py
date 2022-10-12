@@ -8,6 +8,7 @@ class Base:
     SECRET_KEY = os.getenv("FLASK_APP_SECRET")
     PASSWORD_SALT = os.getenv("FLASK_APP_SALT")
     VERIFICATION_SALT = os.getenv("FLASK_VERIFY_SALT")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
     # mail settings
     MAIL_SERVER = "smtp.gmail.com"

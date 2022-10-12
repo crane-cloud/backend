@@ -41,6 +41,10 @@ def create_app(config_name):
     # initialize api resources
     api.init_app(app)
 
+    #setup the Flask-JWT-extended extension
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ALGORITHM"] = "HS256"
+    
     # initialize jwt with app
     jwt = JWTManager(app)
 
