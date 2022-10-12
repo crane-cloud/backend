@@ -43,6 +43,6 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test with pytest
       env:
-        TEST_DATABASE_URI: --set environment.TEST_DATABASE_URI="${{ secrets.TEST_DATABASE_URI }}"
+        TEST_DATABASE_URI: ${{ secrets.TEST_DATABASE_URI }}
       run: |
         python -m pytest
