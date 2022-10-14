@@ -8,6 +8,10 @@ from app.models.role import User
 from app.models.project import Project
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from flask import current_app
+from app.helpers.user_to_project_notification import send_user_to_project_notification
+from app.helpers.user_role_update_notification import send_user_role_update_notification
+from datetime import date
 
 
 class ProjectUsersView(Resource):
@@ -61,6 +65,29 @@ class ProjectUsersView(Resource):
 
         if not saved_project_user:
             return dict(status='fail', message='Internal Server Error'), 500
+
+         # send email variable
+        name = user.name
+        template = "user/user_to_project.html"
+        subject = "Assignment to Project from Crane Cloud"
+        email =user.email
+        today = date.today()
+        project_name = project.name
+        email_role = role
+        success = False
+
+        # send email
+        success = True
+        send_user_to_project_notification(
+        email,
+        name,
+        current_app._get_current_object(),
+        template,
+        subject,
+        today.strftime("%m/%d/%Y"),
+        project_name,
+        email_role, 
+        success)
 
         user_schema = ProjectUserSchema()
         new_project_user_data, errors = user_schema.dumps(user)
@@ -169,6 +196,30 @@ class ProjectUsersView(Resource):
 
         if not updated:
             return dict(status='fail', message='Internal Server Error'), 500
+
+         # send email variable
+        name = user.name
+        template = "user/user_role_update.html"
+        subject = "Update User Role from Crane Cloud"
+        email =user.email
+        today = date.today()
+        project_name = project.name
+        success = False
+        email_role = role
+
+        # send email
+        success = True
+        send_user_role_update_notification(
+        email,
+        name,
+        current_app._get_current_object(),
+        template,
+        subject,
+        today.strftime("%m/%d/%Y"),
+        project_name,
+        email_role, 
+        success)
+
 
         user_schema = ProjectUserSchema()
         updated_project_user_data, errors = user_schema.dumps(existing_user)
