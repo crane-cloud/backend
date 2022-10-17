@@ -347,6 +347,10 @@ class CreditTransactionRecordView(Resource):
             new_transaction_data, errors = transaction_schema.dump(transaction)
             user_credit_exp_date = CreditAssignment.query.filter_by(user_id = project.owner_id).order_by(desc('expiry_date')).first()
             
+            if not user_credit_exp_date:
+                return dict(status='success', data=dict(
+                        transaction={**new_transaction_data, 
+                        "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
 
             user_credit_exp_date_json, errors = transaction_schema.dumps(user_credit_exp_date)
         
@@ -372,3 +376,150 @@ class CreditTransactionRecordView(Resource):
             return dict(status='fail', message=str(err)), 500
 
         
+class CreditPurchaseTransactionRecordView(Resource):
+    
+    @jwt_required
+    def post(self, project_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        transaction_schema = TransactionRecordSchema()
+
+        try:
+            transaction_data = request.get_json()
+
+            validated_transaction_data, errors = transaction_schema.load(
+                transaction_data, partial=True)
+            
+            if errors:
+                return dict(status='fail', message=errors), 400
+            
+            amount = validated_transaction_data['amount']
+            
+            # get current owner credits
+            project = Project.get_by_id(project_id)
+            if not project:
+                return dict(status='fail', message=f'project {project_id} not found'), 404
+            
+            owner_id=project.owner_id
+            user_credit = Credit.find_first(user_id=owner_id)
+            
+
+            if user_credit:
+                
+                user_credit_amount = user_credit.amount
+                user_credit_amount_purchased = user_credit.purchased_credits
+
+                user_credit.purchased_credits = user_credit.purchased_credits + amount
+                user_credit.amount = user_credit.amount + amount
+
+                updated_user_credit = user_credit.save()
+
+                if not updated_user_credit:
+                    return dict(status='fail', message='Internal Server Error'), 500
+            else:
+                 # if user has not been assigned credits
+                credit = Credit(user_id = owner_id, amount = amount, promotion_credits = 0, purchased_credits = amount)
+                saved_credit = credit.save()
+                
+                if not saved_credit:
+                    return dict(status='fail', message=f'Internal Server Error'), 500
+            
+            # comments for implementation flow
+            # get the latest invoice for a project by date
+            invoice = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=False).order_by(
+                sqlalchemy.desc(BillingInvoice.date_created)).first()
+
+            
+            
+            user = User.get_by_id(owner_id)
+            transaction_id = generate_transaction_id()
+
+            new_transaction_record_info = dict(
+                owner_id=str(project.owner_id),
+                amount=amount,
+                currency='USD',
+                email=user.email,
+                project_id=project_id,
+                name=user.name,
+                status='success',
+                transaction_id=transaction_id,
+                transaction_type='purchased_credits'
+            )
+
+            validated_transaction_data, errors = transaction_schema.load(
+            new_transaction_record_info)
+            
+
+            validated_transaction_data['project_id'] = project_id
+
+            transaction_record_existent = TransactionRecord.find_first(
+                transaction_id=transaction_id
+            )
+            
+            if transaction_record_existent:
+                return dict(
+                status="fail",
+                message=f"Transaction with id {transaction_id} Already Exists."
+                ), 400
+            
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            transaction = TransactionRecord(**validated_transaction_data)
+            
+            transaction.invoice = invoice
+            transaction.billing_invoice_id = invoice.id
+            transaction.invoice.is_cashed = True
+            transaction.invoice.date_cashed = datetime.datetime.now()
+            
+            saved_transaction = transaction.save()
+
+            if not saved_transaction:
+                return dict(
+                            status='fail',
+                            message='An error occured during saving of the record'), 400
+
+            new_invoice = BillingInvoice(project_id=project_id)
+
+            saved_new_invoice = new_invoice.save()
+
+            if not saved_new_invoice:
+                return dict(
+                            status='fail',
+                            message='An error occured during updating of new invoice record'), 400
+
+            new_transaction_data, errors = transaction_schema.dump(transaction)
+            user_credit_exp_date = CreditAssignment.query.filter_by(user_id = project.owner_id).order_by(desc('expiry_date')).first()
+            
+            # if no credit assignments
+            if not user_credit_exp_date:
+                return dict(status='success', data=dict(
+                        transaction={**new_transaction_data, 
+                        "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
+            
+            user_credit_exp_date_json, errors = transaction_schema.dumps(user_credit_exp_date)
+            
+            arr= json.loads(user_credit_exp_date_json)
+            
+            assignment_expire = CreditAssignment.get_by_id(arr["id"])
+            
+            if not assignment_expire:
+                return dict(status='fail', message=f'assignment_expire {arr["id"]} not found'), 404
+            
+            assignment_expire.expiry_date = datetime.datetime.utcnow()+relativedelta(months=+6)
+            saved_new_assignment= assignment_expire.save()
+
+            if not saved_new_assignment:
+                return dict(
+                            status='fail',
+                            message='An error occured during updating of new invoice record'), 400
+
+            return dict(status='success', data=dict(
+                        transaction={**new_transaction_data, 
+                        "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
+
+        except Exception as err:
+            return dict(status='fail', message=str(err)), 500
