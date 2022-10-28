@@ -1,7 +1,7 @@
 import json
 from wsgiref import headers
 from app.tests.credit_assignments import UserBaseTestCase, AdminUserBaseTestCase
-from app.helpers.admin import create_superuser
+
 
 def test_admin_login(test_client):
     """
