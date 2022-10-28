@@ -1,5 +1,4 @@
 import json
-from wsgiref import headers
 from app.tests.credit_assignments import UserBaseTestCase, AdminUserBaseTestCase
 
 
