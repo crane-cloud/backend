@@ -3,7 +3,7 @@ import pytest
 
 from app.models.user import User
 from server import create_app, db
-
+import os
 
 @pytest.fixture(scope='function')
 def new_user(test_client):
@@ -41,3 +41,7 @@ def login_default_user(test_client):
                      )
 
     yield  # testing happens
+
+@pytest.fixture(scope="function")
+def configured_env(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET_KEY", os.getenv("FLASK_APP_SECRET"))
