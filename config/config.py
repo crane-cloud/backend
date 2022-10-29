@@ -48,6 +48,9 @@ class Testing(Base):
     DEBUG = True
     # use a separate db
 
+    #set secret_key
+    SECRET_KEY = os.getenv("FLASK_APP_SECRET")
+
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
 
