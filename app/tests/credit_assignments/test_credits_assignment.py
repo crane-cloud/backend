@@ -41,7 +41,7 @@ def test_credits_assignment(test_client):
     admin_token = response_data["data"]["access_token"]
     
     #assign credits
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     assignment_data = {'amount':100, 'description': 'test', 'user_id':'{}'.format(user_id)}
     response = test_client.post(
         '/credit_assignment',
@@ -76,7 +76,7 @@ def test_initial_user_credit_assignment_amount(test_client):
     admin_token = response_data["data"]["access_token"]
     
     #assign credits
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     assignment_data = {'amount':100, 'description': 'test', 'user_id':'{}'.format(user_id)}
     response = test_client.post(
         '/credit_assignment',
@@ -86,7 +86,7 @@ def test_initial_user_credit_assignment_amount(test_client):
 
     #check user credit amount
     
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     response = test_client.get(
         '/credit/{}'.format(user_id),
         content_type ='application/json',
@@ -120,7 +120,7 @@ def test_user_credit_assignment_amount(test_client):
     admin_token = response_data["data"]["access_token"]
     
     #assign credits
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     assignment_data = {'amount':100, 'description': 'test', 'user_id':'{}'.format(user_id)}
     response = test_client.post(
         '/credit_assignment',
@@ -129,7 +129,7 @@ def test_user_credit_assignment_amount(test_client):
         json=assignment_data,)
 
     #assign credits again
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     assignment_data = {'amount':50, 'description': 'test', 'user_id':'{}'.format(user_id)}
     response = test_client.post(
         '/credit_assignment',
@@ -138,7 +138,7 @@ def test_user_credit_assignment_amount(test_client):
         json=assignment_data,)
 
     #check user credit amount
-    header = {'Authorization': 'Bearer ' + admin_token}
+    header = {'Authorization': 'Bearer {}'.format(admin_token)}
     response = test_client.get(
         '/credit/{}'.format(user_id),
         content_type ='application/json',
