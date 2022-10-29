@@ -43,5 +43,5 @@ def login_default_user(test_client):
     yield  # testing happens
 
 @pytest.fixture(scope="function")
-def configured_env(monkeypatch):
+def configured_env(monkeypatch, test_client):
     monkeypatch.setenv("JWT_SECRET_KEY", os.getenv("FLASK_APP_SECRET"))
