@@ -1,4 +1,9 @@
+import json
+from types import SimpleNamespace
 from app.helpers.admin import create_default_roles
+from app.schemas.user import UserSchema
+from app.tests.user import UserBaseTestCase
+from flask_jwt_extended import create_access_token
 import pytest
 
 from app.models.user import User
@@ -26,18 +31,27 @@ def test_client():
             db.engine.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
             db.create_all()
             create_default_roles()
-
             yield testing_client  # this is where the testing happens
             db.session.remove()
             db.drop_all()
 
 
 @pytest.fixture(scope='function')
-def login_default_user(test_client):
-    test_client.post('/users/login',
-                     data=dict(email='test_email@testdomain.com', password='test_password'),
-                     content_type='application/json',
-                     follow_redirects=True,
-                     )
+def login_user(test_client):
+    user_client = UserBaseTestCase()
+    user = user_client.create_user(user_client.user_data)
+    token_schema = UserSchema()
+    user_dict, errors = token_schema.dump(user)
+    access_token = user.generate_token(user_dict)
+    return SimpleNamespace(headers={'Authorization': 'Bearer {}'.format(access_token)},
+                             user=user)
 
-    yield  # testing happens
+@pytest.fixture(scope='function')
+def admin_login_user(test_client):
+    user_client = UserBaseTestCase()
+    admin = user_client.create_admin(user_client.admin_data)
+    token_schema = UserSchema()
+    user_dict, errors = token_schema.dump(admin)
+    access_token = admin.generate_token(user_dict)
+    return SimpleNamespace(headers={'Authorization': 'Bearer {}'.format(access_token)},
+                             admin=admin)
