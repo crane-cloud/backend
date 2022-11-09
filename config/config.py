@@ -51,6 +51,8 @@ class Testing(Base):
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
 
+    SECRET_KEY = os.getenv("FLASK_APP_TEST_SECRET")
+
 
 class Staging(Base):
     """ Staging config """
