@@ -33,7 +33,7 @@ class Base:
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
     # Mongo db
-    MONGO_URI = os.getenv("MONGO_URI")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
 
 
 class Development(Base):
