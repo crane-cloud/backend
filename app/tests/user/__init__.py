@@ -19,6 +19,7 @@ class UserBaseTestCase():
         'name': 'Test User',
         'passwords': 'wrong_password',
     }
+    
     admin_data = {
         'email': 'test_admin@testdomain.com',
         'name': 'Test Admin',

@@ -1533,6 +1533,41 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/projects/{project_id}/credit_purchase_transactions":
+    post:
+      tags:
+        - credit_transactions
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+
+        - in: body
+          name: credit_transaction
+          schema:
+            required:
+              - amount
+            properties:
+              amount:
+                type: integer
+      produces:
+        - application/json
+      responses:
+        201:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/projects/{project_id}/transactions":
     post:
       tags:

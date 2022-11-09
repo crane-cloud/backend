@@ -16,7 +16,7 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, 
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
     SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -106,7 +106,11 @@ api.add_resource(TransactionRecordDetailView,
 
 #Credit Transaction route
 api.add_resource(CreditTransactionRecordView,
-                 '/projects/<string:project_id>/credit_transactions', endpoint='credit_transactions')             
+                 '/projects/<string:project_id>/credit_transactions', endpoint='credit_transactions') 
+
+#Credit Purchase Transaction route
+api.add_resource(CreditPurchaseTransactionRecordView,
+                 '/projects/<string:project_id>/credit_purchase_transactions', endpoint='credit_purchase_transactions')             
 
 # Invoice routes
 api.add_resource(BillingInvoiceView,

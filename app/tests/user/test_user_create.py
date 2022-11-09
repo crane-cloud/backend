@@ -16,6 +16,7 @@ def test_user_creation_success(test_client):
         data=json.dumps(user_client.user_data),)
     assert response.status_code == 201
 
+
 def test_user_creation_invalid_info(test_client):
     """
     GIVEN  invalid user creation request object

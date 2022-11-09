@@ -57,6 +57,7 @@ def test_user_login_success(test_client):
     
     assert response.status_code == 200
 
+
 def test_user_login_invalid_info(test_client):
     """
     GIVEN  invalid login request object
@@ -89,9 +90,8 @@ def test_user_login_failure(test_client):
         '/users/login',
         content_type='application/json',
         data=json.dumps(user_client.user_data_2),)
-
+    
     assert response.status_code == 401
-
 
 # test admin login success
 def test_admin_login_success(test_client):
@@ -168,5 +168,5 @@ def test_admin_login_failure(test_client):
         '/users/admin_login',
         content_type='application/json',
         data=json.dumps(user_client.user_data_2),)
-
+    
     assert response.status_code == 401
