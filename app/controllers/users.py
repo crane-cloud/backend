@@ -209,7 +209,7 @@ class UserDetailView(Resource):
         """
         """
         user_schema = UserSchema()
-
+        
         user = User.get_by_id(user_id)
 
         if not user:
