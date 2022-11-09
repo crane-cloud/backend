@@ -97,9 +97,6 @@ jobs:
         with:
           project_id: crane-cloud-274413
 
-      - name: Install (Helm)
-        uses: azure/setup-helm@v1
-
       - name: Login (Kubernetes Cluster)
         run: |
           gcloud container clusters get-credentials staging-cluster --zone us-central1-a
