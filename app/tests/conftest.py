@@ -1,4 +1,4 @@
-import json
+import os
 from types import SimpleNamespace
 from app.helpers.admin import create_default_roles
 from app.schemas.user import UserSchema
@@ -22,6 +22,7 @@ def new_user(test_client):
 @pytest.fixture(scope='function')
 def test_client():
     flask_app = create_app(config_name='testing')
+    flask_app.config['SECRET_KEY'] = os.getenv("FLASK_APP_SECRET")
 
     # create a test client using the Flask application configured for testing
     with flask_app.test_client() as testing_client:
