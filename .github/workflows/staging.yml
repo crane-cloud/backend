@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - develop-new
-      - setup_logging_database
 
 jobs:
   build:
