@@ -8,6 +8,7 @@ bcrypt==3.1.7
 billiard==3.6.4.0
 blinker==1.4
 cachetools==3.1.1
+celery==5.1.2
 certifi==2019.6.16
 cffi==1.12.3
 chardet==3.0.4
@@ -18,6 +19,7 @@ click-repl==0.2.0
 codecov==2.0.15
 coverage==4.5.3
 cryptography==2.7
+dnspython==2.2.1
 enum34==1.1.6
 flasgger==0.9.3
 Flask==1.1.1
@@ -32,6 +34,7 @@ Flask-SQLAlchemy==2.4.0
 google-auth==1.6.3
 gunicorn==20.1.0
 idna==2.8
+importlib-metadata<5.0
 iniconfig==1.1.1
 ipaddress==1.0.22
 itsdangerous==1.1.0
@@ -85,5 +88,4 @@ virtualenv==16.6.0
 wcwidth==0.2.5
 websocket-client==0.56.0
 Werkzeug==0.15.5
-celery==5.1.2
-importlib-metadata<5.0
+zipp==3.9.0
