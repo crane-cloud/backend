@@ -10,7 +10,7 @@ from flasgger import Swagger
 # import ORM
 from app.routes import api
 
-from app.models import db
+from app.models import db, mongo
 
 from app.helpers.email import mail
 
@@ -37,6 +37,9 @@ def create_app(config_name):
 
     # register app with the db
     db.init_app(app)
+
+    # register app with the mongo db
+    mongo.init_app(app)
 
     # initialize api resources
     api.init_app(app)

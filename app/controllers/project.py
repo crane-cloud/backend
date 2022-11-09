@@ -3,6 +3,7 @@ from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin
 from app.helpers.role_search import has_role
+from app.helpers.activity_logger import log_activity
 from app.helpers.kube import create_kube_clients, delete_cluster_app
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
@@ -126,6 +127,10 @@ class ProjectsView(Resource):
 
             saved = project.save()
             if not saved:
+                log_activity('Project', status='Failed', 
+                        operation='Create', 
+                        description="Internal Server Error",
+                        a_cluster_id=cluster_id)
                 return dict(status="fail", message="Internal Server Error"), 500
 
                 saved = project.save()
@@ -148,13 +153,26 @@ class ProjectsView(Resource):
                     message='An error occured during creation of a new invoice record'), 400
 
             new_project_data, errors = project_schema.dump(project)
+            log_activity('Project', status='Success', 
+                        operation='Create', 
+                        description='Created project Successfully',
+                        a_project_id=project.id,
+                        a_cluster_id=cluster_id)
 
             return dict(status='success', data=dict(project=new_project_data)), 201
 
         except client.rest.ApiException as e:
+            log_activity('Project', status='Failed', 
+                        operation='Create', 
+                        description=e.body,
+                        a_cluster_id=cluster_id)
             return dict(status='fail', message=str(e.body)), e.status
 
         except Exception as err:
+            log_activity('Project', status='Failed', 
+                        operation='Create', 
+                        description=e.body,
+                        a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
     @jwt_required
@@ -178,10 +196,10 @@ class ProjectsView(Resource):
                     projects.append(project_role.other_project)
 
         project_data, errors = project_schema.dumps(projects)
-
+        
         if errors:
             return dict(status='fail', message=errors), 500
-
+        
         return dict(status='success', data=dict(projects=json.loads(project_data))), 200
 
 
@@ -248,9 +266,16 @@ class ProjectDetailView(Resource):
                     db_flavour = get_db_flavour(database_flavour_name)
 
                     if not db_flavour:
+                        message=f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
+                        log_activity('Project', status='Failed', 
+                                operation='Delete', 
+                                description=message,
+                                a_project_id=project_id,
+                                a_database_id=database.id,
+                                a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
-                            message=f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
+                            message=message
                         ), 409
 
                     # Delete the database
@@ -258,6 +283,12 @@ class ProjectDetailView(Resource):
                     database_connection = database_service.check_db_connection()
 
                     if not database_connection:
+                        log_activity('Project', status='Failed', 
+                                operation='Delete', 
+                                description='Failed to connect to database service',
+                                a_project_id=project_id,
+                                a_database_id=database.id,
+                                a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Failed to connect to the database service"
@@ -267,6 +298,12 @@ class ProjectDetailView(Resource):
                         database.name)
 
                     if not delete_database:
+                        log_activity('Project', status='Failed', 
+                                operation='Delete', 
+                                description='Unable to delete database',
+                                a_project_id=project_id,
+                                a_database_id=database.id,
+                                a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Unable to delete database"
@@ -276,6 +313,12 @@ class ProjectDetailView(Resource):
                     deleted_database = database.delete()
 
                     if not deleted_database:
+                        log_activity('Project', status='Failed', 
+                                operation='Delete', 
+                                description='Internal server error',
+                                a_project_id=project_id,
+                                a_database_id=database.id,
+                                a_cluster_id=project.cluster_id)
                         return dict(status='fail', message=f'Internal Server Error'), 500
 
             # get cluster for the project
@@ -307,12 +350,22 @@ class ProjectDetailView(Resource):
                 # if unable to get namespace, it means it is already deleted
                 pass
 
-            # To do; change delete to a soft delete
+            # Todo: change delete to a soft delete
             deleted = project.delete()
 
             if not deleted:
+                log_activity('Project', status='Failed', 
+                        operation='Delete', 
+                        description='Internal server error',
+                        a_project_id=project_id,
+                        a_cluster_id=project.cluster_id)
                 return dict(status='fail', message='deletion failed'), 500
 
+            log_activity('Project', status='Success', 
+                        operation='Delete', 
+                        description='Deleted project Successfully',
+                        a_project_id=project.id,
+                        a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
                 message=f'project {project_id} deleted successfully'
@@ -333,15 +386,28 @@ class ProjectDetailView(Resource):
 
                 if not deleted:
                     return dict(status='fail', message='deletion failed'), 500
-
+                log_activity('Project', status='Success', 
+                        operation='Delete', 
+                        description='Deleted project Successfully',
+                        a_project_id=project.id,
+                        a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
                     message=f'project {project_id} deleted successfully'
                 ), 200
-
+            log_activity('Project', status='Failed', 
+                        operation='Delete', 
+                        description=e.reason,
+                        a_project_id=project_id,
+                        a_cluster_id=project.cluster_id)
             return dict(status='fail', message=e.reason), e.status
 
         except Exception as e:
+            log_activity('Project', status='Failed', 
+                        operation='Delete', 
+                        description=str(e),
+                        a_project_id=project_id,
+                        a_cluster_id=project.cluster_id)
             return dict(status='fail', message=str(e)), 500
 
     @jwt_required

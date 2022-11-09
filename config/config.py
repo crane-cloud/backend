@@ -32,6 +32,9 @@ class Base:
     # celery
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
+    # Mongo db
+    MONGO_URI = os.getenv("MONGO_URI")
+
 
 class Development(Base):
     """ development config """
