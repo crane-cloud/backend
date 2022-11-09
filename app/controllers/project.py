@@ -18,6 +18,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
+from app.misc.mongo_ops import save_document, ACTION_LOG
 
 
 class ProjectsView(Resource):
@@ -25,21 +26,20 @@ class ProjectsView(Resource):
     @jwt_required
     def post(self):
         """
-        """
+        """      
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
         project_schema = ProjectSchema()
 
         project_data = request.get_json()
-
+        
         validated_project_data, errors = project_schema.load(project_data)
         if errors:
             return dict(status='fail', message=errors), 400
 
         if not has_role(current_user_roles, 'administrator'):
             validated_project_data['owner_id'] = current_user_id
-
         # check if project already exists
         existing_project = Project.find_first(
             name=validated_project_data['name'],
@@ -125,7 +125,31 @@ class ProjectsView(Resource):
                 project.users.append(new_role)
 
             saved = project.save()
+            if saved:
+                save_document(
+                ACTION_LOG,
+                {
+                    "description": "Project created and saved",
+                    "user_id": current_user_id,
+                    "status": "Success",
+                    "affected_model": "Project",
+                    "operation": "Create",
+                    "record_id": "",
+                    # ...
+                }
+                )
             if not saved:
+                save_document(
+                ACTION_LOG,
+                {
+                    "description": "Project creation failed",
+                    "user_id": current_user_id,
+                    "status": "Fail",
+                    "affected_model": "Project",
+                    "operation": "Create"
+                    # ...
+                }
+                )
                 return dict(status="fail", message="Internal Server Error"), 500
 
                 saved = project.save()
