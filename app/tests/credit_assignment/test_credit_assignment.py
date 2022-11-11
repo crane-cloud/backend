@@ -1,6 +1,3 @@
-import json
-from app.tests.credit_assignment import UserBaseTestCase, AdminUserBaseTestCase
-
 
 def test_credits_assignment(test_client, admin_login_user, login_user):
 
