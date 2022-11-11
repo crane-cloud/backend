@@ -877,7 +877,7 @@ class AppDetailView(Resource):
             app_deployment_status_conditions = app_status_object.status.conditions
 
             app_list["replicas"] = app_status_object.spec.replicas
-            app_list["revisions"] = app_status_object.metadata.annotations.get(
+            app_list["revision"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
             # Get app command
             app_command = app_status_object.spec.template.spec.containers[0].command
@@ -926,9 +926,27 @@ class AppDetailView(Resource):
                     app_list['app_running_status'] = "failed"
             else:
                 app_list['app_running_status'] = "unknown"
+            
+            # Get deployment version history
+            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
+                project.alias, label_selector=f"app={app_list['alias']}")
+            
+            
+            revisions = []
+            for item in version_history.items:
+                replica_set = {
+                    'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
+                    'replicas': item.spec.replicas,
+                    'created_at': str(item.metadata.creation_timestamp),
+                }
+                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
+                    replica_set["current"] = True
+                revisions.append(replica_set)
+
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=app_list)), 409
-            return dict(status='success', data=dict(apps=app_list)), 200
+            return dict(status='success', 
+                       data=dict(apps=app_list,revisions=revisions)), 200
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status
@@ -1336,7 +1354,109 @@ class AppRevertView(Resource):
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
+class AppReviseView(Resource):
+    @jwt_required
+    def post(self, app_id, revision_id):
+        """
+        Revise app to a previous revision
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
 
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            # Create kube client
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            # Get the app deployment
+            dep_name = f'{app.alias}-deployment'
+            deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace
+            )
+
+            if not deployment:
+                return dict(
+                    status='fail',
+                    message='Internal Server Error, No deployment found'
+                ), 500
+
+            associated_replica_sets = kube_client.appsv1_api.list_namespaced_replica_set(
+                namespace=namespace,
+                label_selector=f'app={deployment.spec.template.metadata.labels["app"]}'
+            )
+
+            template = None
+            
+            for item in associated_replica_sets.items:
+                item_revision = item.metadata.annotations['deployment.kubernetes.io/revision']
+                if item_revision == revision_id:
+                    template = item.spec.template
+
+            if not template:
+                return dict(
+                    status='fail',
+                    message=f'Revision with id {revision_id} not found'
+                ), 401
+
+            patch = [
+                {
+                    'op': 'replace',
+                    'path': '/spec/template',
+                    'value': template
+                },
+                {
+                    'op': 'replace',
+                    'path': '/metadata/annotations',
+                    'value': {
+                        'deployment.kubernetes.io/revision': revision_id,
+                        **deployment.metadata.annotations
+                    }
+                }
+            ]
+            print(revision_id)
+            print(patch)
+            kube_client.appsv1_api.patch_namespaced_deployment(
+                body=patch,
+                name=dep_name,
+                namespace=namespace
+            )
+
+
+            return dict(
+                status='success',
+                message=f'App revised successfully'
+            ), 200
+
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
 class AppMemoryUsageView(Resource):
 
     @jwt_required
