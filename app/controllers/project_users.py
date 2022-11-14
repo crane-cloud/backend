@@ -2,7 +2,7 @@ from functools import partial
 import json
 from app.models.project_users import ProjectUser
 from flask_restful import Resource, request
-from app.schemas import ProjectUserSchema, UserSchema
+from app.schemas import ProjectUserSchema, UserSchema, AnonymousUsersSchema
 from app.models.user import User
 from app.models.role import User
 from app.models.project import Project
@@ -12,7 +12,7 @@ from flask import current_app
 from app.helpers.user_to_project_notification import send_user_to_project_notification
 from app.helpers.user_role_update_notification import send_user_role_update_notification
 from datetime import date
-
+from app.models.anonymous_users import AnonymousUser
 
 class ProjectUsersView(Resource):
 
@@ -47,7 +47,48 @@ class ProjectUsersView(Resource):
         user = User.find_first(email=validated_project_user_data.get('email', None))
 
         if not user:
-            return dict(status='fail', message='User not found'), 404
+            # register anonymous user
+            anonymous_user_email = validated_project_user_data.get('email', None)
+            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email)
+
+            if anonymous_user_exists:
+                return dict(status='fail', message='Annoymous user already exists'), 500
+
+            
+            role = validated_project_user_data.get('role', None)
+            if role == 'owner':
+                return dict(status='fail', message='User cannot be added as owner'), 400
+
+            new_anonymous_user = AnonymousUser(email=anonymous_user_email, project_id=project.id, role=role)
+            saved_anonymous_user = new_anonymous_user.save()
+
+            if not saved_anonymous_user:
+                return dict(status='fail', message='Internal Server Error'), 500
+            
+            # send anonymous user an invite email.
+            name = anonymous_user_email
+            template = "user/anonymous_user_to_project.html"
+            subject = "Assignment to Project from Crane Cloud: Invite To Register"
+            email =anonymous_user_email
+            today = date.today()
+            project_name = project.name
+            email_role = role
+
+            # send email
+            success = True
+            send_user_to_project_notification(
+            email,
+            name,
+            current_app._get_current_object(),
+            template,
+            subject,
+            today.strftime("%m/%d/%Y"),
+            project_name,
+            email_role, 
+            success)           
+
+
+            return dict(status='success', message='Anymous user successfully added to project'), 201
 
         existing_user = ProjectUser.find_first(user_id=user.id, project_id=project.id)
         if existing_user:
@@ -106,6 +147,7 @@ class ProjectUsersView(Resource):
         current_user_roles = get_jwt_claims()['roles']
 
         project_user_schema = ProjectUserSchema(many=True)
+        anonymous_user_schema = AnonymousUsersSchema(many=True)
 
         project = Project.get_by_id(project_id)
         
@@ -136,10 +178,16 @@ class ProjectUsersView(Resource):
         project_user_data, errors = project_user_schema.dumps(project_users)
         if errors:
             return dict(status="fail", message="Internal Server Error"), 500
+        
+        project_anonymous_users = project.anonymoususers
+
+        project_anonymous_user_data, errors = anonymous_user_schema.dumps(project_anonymous_users)
+        if errors:
+            return dict(status="fail", message="Internal Server Error"), 500
 
         return dict(
             status="success",
-            data=dict(project_users=json.loads(project_user_data))
+            data=dict(project_users=json.loads(project_user_data),project_anonymous_users=json.loads(project_anonymous_user_data))
         ), 200
 
     @jwt_required

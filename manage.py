@@ -22,6 +22,7 @@ from app.models.billing_metrics import BillingMetrics
 from app.models.transaction_record import TransactionRecord
 from app.models.credits import Credit
 from app.models.credit_assignments import CreditAssignment
+from app.models.anonymous_users import AnonymousUser
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
