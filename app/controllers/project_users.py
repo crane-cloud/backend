@@ -66,10 +66,12 @@ class ProjectUsersView(Resource):
                 return dict(status='fail', message='Internal Server Error'), 500
             
             # send anonymous user an invite email.
+
             inviting_user = User.get_by_id(current_user_id)
             name = inviting_user.name
             template = "user/anonymous_user_to_project.html"
             subject = "Invitation to collaborate on Project in Cranecloud"
+
             email =anonymous_user_email
             today = date.today()
             project_name = project.name
