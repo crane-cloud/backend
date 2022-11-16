@@ -258,14 +258,13 @@ class TransactionVerificationView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='Unauthorised'), 403
         
-        txRef = tx_ref
-        verification_response = rave.Card.verify(txRef)
-        print(verification_response)
+        try:
+            txRef = tx_ref
+            verification_response = rave.Card.verify(txRef)
+            return dict(status='success', data=verification_response), 200
 
-        if not verification_response:
-            return dict(status='fail', message='Failed to fetch transaction details'), 400
-        
-        return dict(status='success', data=verification_response), 200
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 400
 
 
 class CreditTransactionRecordView(Resource):
