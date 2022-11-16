@@ -18,7 +18,7 @@ from app.schemas import CreditAssignmentSchema
 from app.models.credit_assignments import CreditAssignment
 from sqlalchemy import desc
 from dateutil.relativedelta import *
-from python_flutterwave import payment
+from rave_python import Rave
 
 class TransactionRecordView(Resource):
 
@@ -233,12 +233,17 @@ class TransactionRecordDetailView(Resource):
 class TransactionVerificationView(Resource):
     
     @jwt_required
-    def get(self, transaction_id):
+    def get(self, project_id, transaction_id, tx_ref):
 
-        payment.token = os.getenv('FLUTTERWAVE_SECRET_KEY')
+        rave = Rave(
+            os.getenv('FLUTTERWAVE_PUBLIC_KEY'), 
+            os.getenv('FLUTTERWAVE_SECRET_KEY'), 
+            usingEnv=False)
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
 
         transaction_existent = TransactionRecord.find_first(
             transaction_id=transaction_id
@@ -250,15 +255,17 @@ class TransactionVerificationView(Resource):
                 message=f"Transaction with id {transaction_id} does not Exists."
                 ), 400
 
-        if not is_owner_or_admin(current_user_id, current_user_roles):
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
             return dict(status='fail', message='Unauthorised'), 403
-
-        transaction_details = payment.get_payment_details(transaction_id)
-
-        if not transaction_details:
-            return dict(status='fail', message='Failed to fetch transactiion details'), 400
         
-        return dict(status='success', data=transaction_details), 200
+        txRef = tx_ref
+        verification_response = rave.Card.verify(txRef)
+        print(verification_response)
+
+        if not verification_response:
+            return dict(status='fail', message='Failed to fetch transaction details'), 400
+        
+        return dict(status='success', data=verification_response), 200
 
 
 class CreditTransactionRecordView(Resource):
