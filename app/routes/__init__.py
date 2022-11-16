@@ -104,7 +104,7 @@ api.add_resource(TransactionRecordView,
 api.add_resource(TransactionRecordDetailView,
                  '/projects/<string:project_id>/transactions/<string:record_id>')
 api.add_resource(TransactionVerificationView,
-                  '/transactions/<string:transaction_id>')
+                  '/projects/<string:project_id>/transactions/<string:transaction_id>/<string:tx_ref>')
 
 #Credit Transaction route
 api.add_resource(CreditTransactionRecordView,
