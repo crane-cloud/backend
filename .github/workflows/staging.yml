@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - develop-new
+      - validate-payment-status
 
 jobs:
   build:
