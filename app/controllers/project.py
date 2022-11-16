@@ -125,34 +125,17 @@ class ProjectsView(Resource):
                 project.users.append(new_role)
 
             saved = project.save()
-            if saved:
-                save_document(
-                ACTION_LOG,
-                {
-                    "description": "Project created and saved",
-                    "user_id": current_user_id,
-                    "status": "Success",
-                    "affected_model": "Project",
-                    "operation": "Create",
-                    "record_id": "",
-                    # ...
-                }
-                )
+      
             if not saved:
                 log_activity('Project', status='Failed', 
                         operation='Create', 
                         description="Internal Server Error",
                         a_cluster_id=cluster_id)
+
+                # delete the namespace
+                kube_client.kube.delete_namespace(namespace_name)
+                
                 return dict(status="fail", message="Internal Server Error"), 500
-
-                saved = project.save()
-
-                if not saved:
-                    # delete the namespace
-                    kube_client.kube.delete_namespace(namespace_name)
-                    return dict(
-                        status='fail',
-                        message='Internal Server Error'), 500
 
             # create a billing invoice on project creation
             new_invoice = BillingInvoice(project_id=project.id)
@@ -362,7 +345,7 @@ class ProjectDetailView(Resource):
                 # if unable to get namespace, it means it is already deleted
                 pass
 
-            # Todo: change delete to a soft delete
+            # TODO: change delete to a soft delete
             deleted = project.delete()
 
             if not deleted:
