@@ -33,3 +33,4 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
 from .billing_invoice import (BillingInvoiceView,BillingInvoiceNotificationView)
 from .system_status import SystemStatusView
 from .project_users import ProjectUsersView, ProjectUsersTransferView
+from .activity_logs import ActivityLogsDetailView
