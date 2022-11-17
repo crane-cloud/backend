@@ -48,3 +48,13 @@ jobs:
         TEST_DATABASE_URI: ${{ secrets.TEST_DATABASE_URI }}
       run: |
         python -m pytest
+    
+    - name: Generate Report
+      env:
+        TEST_DATABASE_URI: ${{ secrets.TEST_DATABASE_URI }}
+      run: |
+        pip install coverage
+        coverage run -m pytest
+
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v2
