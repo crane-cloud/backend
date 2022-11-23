@@ -92,7 +92,12 @@ class UsersView(Resource):
             new_role = ProjectUser(role=anonymous_user_exists.role, user_id=user_details.id)
             project.users.append(new_role)
             saved_project_user = project.save()
-            anonymous_user_exists.delete()
+            if not saved_project_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
+            deleted_anonymous_user = anonymous_user_exists.delete()
+
+            if not deleted_anonymous_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
 
         new_user_data, errors = user_schema.dumps(user)
 
