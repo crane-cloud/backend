@@ -3,7 +3,7 @@ import os
 from flask import current_app
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema, UserGraphSchema
+from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
@@ -14,8 +14,11 @@ import secrets
 import string
 from sqlalchemy import func, column
 from app.models import db
-from datetime import date, datetime
-
+from datetime import date, datetime, time
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from app.helpers.admin import is_admin
+from app.models import mongo
+from bson.json_util import dumps
 
 class UsersView(Resource):
 
@@ -741,3 +744,59 @@ class UserDataSummaryView(Resource):
                 metadata=dict(total_users=total_users),
                 graph_data=user_info)
         ), 200
+
+class UserActivitesView(Resource):
+
+    @jwt_required
+    def get(self):
+        
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            activity_schema = ActivityLogSchema()
+
+            #get query params
+            query_params = request.args
+
+            validated_data_query, errors = activity_schema.load(query_params)
+
+            if errors:
+                return {"message": "Validation errors", "errors": errors}, 400
+
+            #check if admin
+            if not is_admin(current_user_roles):
+                validated_data_query['user_id'] = current_user_id
+
+            #check for start and end query params
+            if validated_data_query.get('start') and validated_data_query.get('end'):
+
+                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
+                datetime.min.time()).isoformat(' '),
+                "$lte": datetime.combine(validated_data_query.get('end'),
+                datetime.max.time()).isoformat(' ')}
+                validated_data_query.pop('start',None)
+                validated_data_query.pop('end',None)
+            
+            elif validated_data_query.get('start') and not validated_data_query.get('end'):
+                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
+                datetime.min.time()).isoformat(' ')}
+                validated_data_query.pop('start',None)
+
+            elif not validated_data_query.get('start') and validated_data_query.get('end'):
+                validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
+                datetime.max.time()).isoformat(' ')}
+                validated_data_query.pop('end',None)
+
+            #get logs
+            activities = mongo.db['activities'].find(validated_data_query)
+            json_data = dumps(activities)
+
+            # TODO: Add pagination for these activities
+
+            return dict(
+                status='success',
+                data = dict(activity = json.loads(json_data))
+            ), 200
+        except Exception as err:
+            return dict(status='fail', message=str(err)), 400
