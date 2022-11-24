@@ -1720,6 +1720,43 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/projects/{project_id}/transactions/{transaction_id}/{tx_ref}":
+    get:
+      tags:
+        - transactions
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+        - in: path
+          name: transaction_id
+          required: true
+          type: string
+        - in: path
+          name: tx_ref
+          required: true
+          type: string
+
+      responses:
+        200:
+          description: "Get transaction payment details"
+        404:
+          description: "Transaction record not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/projects/{project_id}/transactions/{record_id}":
     get:
       tags:

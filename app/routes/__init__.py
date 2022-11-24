@@ -20,7 +20,7 @@ from app.controllers import (
     SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
-from app.controllers.transactions import TransactionRecordDetailView
+from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
 
 
 api = Api()
@@ -104,6 +104,8 @@ api.add_resource(TransactionRecordView,
                  '/projects/<string:project_id>/transactions', endpoint='transactions')
 api.add_resource(TransactionRecordDetailView,
                  '/projects/<string:project_id>/transactions/<string:record_id>')
+api.add_resource(TransactionVerificationView,
+                  '/projects/<string:project_id>/transactions/<string:transaction_id>/<string:tx_ref>')
 
 #Credit Transaction route
 api.add_resource(CreditTransactionRecordView,

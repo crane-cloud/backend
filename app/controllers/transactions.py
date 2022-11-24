@@ -1,4 +1,5 @@
 import datetime
+import os
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 import sqlalchemy
@@ -17,6 +18,7 @@ from app.schemas import CreditAssignmentSchema
 from app.models.credit_assignments import CreditAssignment
 from sqlalchemy import desc
 from dateutil.relativedelta import *
+from rave_python import Rave
 
 class TransactionRecordView(Resource):
 
@@ -226,6 +228,44 @@ class TransactionRecordDetailView(Resource):
             status="success",
             message=f"Transaction {transaction.id} updated successfully"
         ), 200
+
+
+class TransactionVerificationView(Resource):
+    
+    @jwt_required
+    def get(self, project_id, transaction_id, tx_ref):
+
+        rave = Rave(
+            os.getenv('FLUTTERWAVE_PUBLIC_KEY'), 
+            os.getenv('FLUTTERWAVE_SECRET_KEY'), 
+            usingEnv=False)
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
+
+        transaction_existent = TransactionRecord.find_first(
+            transaction_id=transaction_id
+        )
+
+        if not transaction_existent:
+                return dict(
+                status="fail",
+                message=f"Transaction with id {transaction_id} does not Exists."
+                ), 400
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            return dict(status='fail', message='Unauthorised'), 403
+        
+        try:
+            txRef = tx_ref
+            verification_response = rave.Card.verify(txRef)
+            return dict(status='success', data=verification_response), 200
+
+        except Exception as e:
+            return dict(status='fail', message=str(e)), 400
+
 
 class CreditTransactionRecordView(Resource):
     
