@@ -876,6 +876,7 @@ class AppDetailView(Resource):
 
             app_deployment_status_conditions = app_status_object.status.conditions
 
+            app_list["image"]= app_status_object.spec.template.spec.containers[0].image
             app_list["replicas"] = app_status_object.spec.replicas
             app_list["revision"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
@@ -885,7 +886,7 @@ class AppDetailView(Resource):
                 app_list["command"] = ' '.join(app_command)
             else:
                 app_list["command"] = app_command
-
+            app_list["working_dir"] = app_status_object.spec.template.spec.containers[0].working_dir
             # Get environment variables
             env_list = app_status_object.spec.template.spec.containers[0].env
             envs = {}
@@ -934,15 +935,29 @@ class AppDetailView(Resource):
             
             revisions = []
             for item in version_history.items:
+                replica_command = item.spec.template.spec.containers[0].command
+                if replica_command:
+                    replica_command = ' '.join(replica_command)
+                else:
+                    replica_command = replica_command
+                #TODO Add deployment status to replicas
                 replica_set = {
                     'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
+                    'revision_id': int(item.metadata.creation_timestamp.timestamp()),
                     'replicas': item.spec.replicas,
                     'created_at': str(item.metadata.creation_timestamp),
+                    'image': item.spec.template.spec.containers[0].image,
+                    'port': item.spec.template.spec.containers[0].ports[0].container_port,
+                    'command': replica_command
                 }
+
                 if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
                     replica_set["current"] = True
+                    app_list["revision_id"]=int(item.metadata.creation_timestamp.timestamp())
                 revisions.append(replica_set)
-
+            
+            #sort revisions
+            revisions.sort(key = lambda x:x['revision_id'], reverse=True)
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success', 
@@ -1413,8 +1428,8 @@ class AppReviseView(Resource):
             template = None
             
             for item in associated_replica_sets.items:
-                item_revision = item.metadata.annotations['deployment.kubernetes.io/revision']
-                if item_revision == revision_id:
+                revision = item.metadata.annotations['deployment.kubernetes.io/revision']
+                if int(item.metadata.creation_timestamp.timestamp()) == int(revision_id):
                     template = item.spec.template
 
             if not template:
@@ -1433,13 +1448,12 @@ class AppReviseView(Resource):
                     'op': 'replace',
                     'path': '/metadata/annotations',
                     'value': {
-                        'deployment.kubernetes.io/revision': revision_id,
+                        'deployment.kubernetes.io/revision': revision,
                         **deployment.metadata.annotations
                     }
                 }
             ]
-            print(revision_id)
-            print(patch)
+
             kube_client.appsv1_api.patch_namespaced_deployment(
                 body=patch,
                 name=dep_name,
