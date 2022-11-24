@@ -18,5 +18,6 @@ class ProjectUser(ModelMixin):
     user_id = db.Column('user_id', UUID(as_uuid=True), db.ForeignKey(User.id), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
     role = db.Column(db.Enum(RolesList), nullable=False)
+    accepted_collaboration_invite = db.Column(db.Boolean, nullable=True)
     user = db.relationship("User", back_populates="other_projects")
     other_project = db.relationship("Project", back_populates="users")

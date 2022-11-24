@@ -17,7 +17,7 @@ from app.controllers import (
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, 
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
-    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView)
+    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -190,5 +190,6 @@ api.add_resource(DatabaseStatsView, '/databases/stats')
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
 api.add_resource(ProjectUsersTransferView, '/projects/<string:project_id>/users/transfer')
+api.add_resource(ProjectUsersHandleInviteView, '/projects/<string:project_id>/users/handle_invite')
 # system status
 api.add_resource(SystemStatusView, '/system_status')

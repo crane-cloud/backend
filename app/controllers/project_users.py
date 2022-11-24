@@ -100,7 +100,7 @@ class ProjectUsersView(Resource):
         if role == 'owner':
             return dict(status='fail', message='User cannot be added as owner'), 400
             
-        new_role = ProjectUser(role=role, user_id=user.id)
+        new_role = ProjectUser(role=role, user_id=user.id, accepted_collaboration_invite=False)
         project.users.append(new_role)
 
         saved_project_user = project.save()
@@ -398,4 +398,63 @@ class ProjectUsersTransferView(Resource):
         return dict(
             status='success',
             message='Project has been transfered successfully',
+        ), 201
+
+class ProjectUsersHandleInviteView(Resource):
+
+    @jwt_required
+    def patch(self, project_id):
+        """
+        """
+        current_user_id = get_jwt_identity()
+
+        project_user_schema = ProjectUserSchema(partial=True, exclude=["email","role"])
+
+        project_user_data = request.get_json()
+
+        validated_project_user_data, errors = project_user_schema.load(
+            project_user_data, partial=True)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        # Get Project
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message='Project not found'), 404
+
+        # Get user
+        user = User.get_by_id(current_user_id)
+
+        if not user:
+            return dict(status='fail', message='User not found'), 404
+
+        if user.id == project.owner.id:
+            return dict(status='fail', message='User is the owner of project and cannot be invited'), 400
+
+        existing_user = ProjectUser.find_first(user_id=user.id, project_id=project.id)
+
+        if not existing_user:
+            return dict(status='fail', message='User is not part of project'), 404
+
+        # updating user project collaboration invite 
+        invite_status = validated_project_user_data.get('accepted_collaboration_invite', None)
+
+        if invite_status == False:
+            deleted_user = ProjectUser.delete(existing_user)
+
+            if not deleted_user:
+                return dict(status='fail', message='Internal Server Error'), 500
+            
+            return dict(status='success', message='User successfully removed from the project'), 201
+        
+        updated = ProjectUser.update(existing_user, accepted_collaboration_invite=invite_status)
+
+        if not updated:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message='Invite to project has successfully been accepted',
         ), 201
