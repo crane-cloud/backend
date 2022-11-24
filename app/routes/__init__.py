@@ -8,7 +8,7 @@ from app.controllers import (
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
     ClusterStorageClassView, ClusterStorageClassDetailView,
-    ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
+    ProjectsView, ProjectDetailView, UserProjectsView, UserActivitesView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
     ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
@@ -40,6 +40,7 @@ api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/summary')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
+api.add_resource(UserActivitesView, '/users/activities')
 
 
 # Deployments

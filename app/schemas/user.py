@@ -31,3 +31,20 @@ class UserSchema(Schema):
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
+
+class ActivityLogSchema(Schema):
+    id = fields.String(dump_only=True)
+    user_id = fields.String()
+    operation = fields.String()
+    status = fields.String()
+    description = fields.String()
+    model = fields.String()
+    a_project_id = fields.String()
+    a_cluster_id = fields.String()
+    a_db_id = fields.String()
+    a_user_id = fields.String()
+    a_app_id = fields.String()
+    creation_date = fields.Date()
+    start = fields.Date(load_only=True)
+    end = fields.Date(load_only=True)

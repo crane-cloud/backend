@@ -421,6 +421,69 @@ paths:
         401:
           description: "failed to authenticate user"
 
+  "/users/activities":
+    get:
+      tags:
+        - users
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: query
+          name: operation
+          required: false
+          type: string
+        - in: query
+          name: status
+          required: false
+          type: string
+        - in: query
+          name: model
+          required: false
+          type: string
+        - in: query
+          name: a_project_id
+          required: false
+          type: string
+        - in: query
+          name: a_cluster_id
+          required: false
+          type: string
+        - in: query
+          name: a_db_id
+          required: false
+          type: string
+        - in: query
+          name: a_user_id
+          required: false
+          type: string
+        - in: query
+          name: a_app_id
+          required: false
+          type: string
+        - in: query
+          name: start
+          required: false
+          type: string
+          format: date
+        - in: query
+          name: end
+          required: false
+          type: string
+          format: date
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters":
     post:
       tags:
