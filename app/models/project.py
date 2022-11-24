@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship, backref
 from app.models import billing_invoice, db
 from app.models.model_mixin import ModelMixin
 from app.models.project_users import ProjectUser
+from app.models.anonymous_users import AnonymousUser
 
 class Project(ModelMixin):
     __tablename__ = 'project'
@@ -25,3 +26,4 @@ class Project(ModelMixin):
         'TransactionRecord', backref='project', lazy=True)
     billing_invoices = db.relationship(
         'BillingInvoice', backref='project', lazy=True)
+    anonymoususers = db.relationship('AnonymousUser', backref='anonymous_project_users', lazy=True)
