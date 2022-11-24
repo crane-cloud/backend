@@ -1,7 +1,8 @@
 # Crane Cloud
 
-[![CircleCI](https://circleci.com/gh/crane-cloud/backend/tree/develop.svg?style=svg)](https://circleci.com/gh/crane-cloud/backend/tree/develop)
-[![codecov](https://codecov.io/gh/crane-cloud/backend/branch/develop/graph/badge.svg)](https://codecov.io/gh/crane-cloud/backend)
+![Test](https://github.com/crane-cloud/backend/actions/workflows/test.yml/badge.svg)
+![Build](https://github.com/crane-cloud/backend/actions/workflows/staging.yml/badge.svg)
+[![codecov](https://codecov.io/gh/crane-cloud/backend/branch/develop-new/graph/badge.svg?token=kkuF1X6MWx)](https://codecov.io/gh/crane-cloud/backend)
 
 Managed Kubernetes Platform
 

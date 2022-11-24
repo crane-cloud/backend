@@ -4,7 +4,7 @@ from .index import IndexView
 from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
-    UserDetailView, AdminLoginView, OAuthView, UserDataSummaryView, UserAdminUpdateView)
+    UserDetailView, AdminLoginView, OAuthView, UserDataSummaryView, UserAdminUpdateView, UserActivitesView)
 from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,
@@ -32,4 +32,4 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
 from .billing_invoice import (BillingInvoiceView,BillingInvoiceNotificationView)
 from .system_status import SystemStatusView
-from .project_users import ProjectUsersView, ProjectUsersTransferView
+from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView
