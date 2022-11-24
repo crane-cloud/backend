@@ -15,7 +15,9 @@ import string
 from sqlalchemy import func, column
 from app.models import db
 from datetime import date, datetime
-
+from app.models.anonymous_users import AnonymousUser
+from app.models.project import Project
+from app.models.project_users import ProjectUser
 
 class UsersView(Resource):
 
@@ -79,6 +81,23 @@ class UsersView(Resource):
             template,
             subject
         )
+        
+        # check if user exists in anonymous table and assign them to a project
+        anonymous_user_exists = AnonymousUser.find_first(email=email)
+
+        if anonymous_user_exists:
+            project = Project.get_by_id(anonymous_user_exists.project_id)
+            user_details = User.find_first(email=email)
+            
+            new_role = ProjectUser(role=anonymous_user_exists.role, user_id=user_details.id)
+            project.users.append(new_role)
+            saved_project_user = project.save()
+            if not saved_project_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
+            deleted_anonymous_user = anonymous_user_exists.delete()
+
+            if not deleted_anonymous_user:
+                return dict(status='fail', message=f'Internal Server Error'), 500
 
         new_user_data, errors = user_schema.dumps(user)
 
