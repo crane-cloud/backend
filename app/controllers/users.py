@@ -18,7 +18,10 @@ from datetime import date, datetime
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
-
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from app.helpers.admin import is_admin
+from app.models import mongo
+from bson.json_util import dumps
 
 class UsersView(Resource):
 
