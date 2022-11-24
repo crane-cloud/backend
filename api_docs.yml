@@ -2783,6 +2783,44 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/projects/{project_id}/users/handle_invite":
+    patch:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      description: "Accept or decline invite to project collaboration"
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          type: string
+
+        - in: path
+          name: project_id
+          required: true
+          type: string
+
+        - in: body
+          name: projectUsers
+          schema:
+            type: object
+            required:
+              - accepted_collaboration_invite
+            properties:
+              accepted_collaboration_invite:
+                type: boolean
+      produces:
+        - application/json
+      responses:
+        201:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+
   "/databases":
     post:
       tags:
