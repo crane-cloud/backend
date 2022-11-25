@@ -877,9 +877,11 @@ class AppDetailView(Resource):
             app_deployment_status_conditions = app_status_object.status.conditions
 
             app_list["image"]= app_status_object.spec.template.spec.containers[0].image
+            app_list["port"]=  app_status_object.spec.template.spec.containers[0].ports[0].container_port
             app_list["replicas"] = app_status_object.spec.replicas
             app_list["revision"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
+            
             # Get app command
             app_command = app_status_object.spec.template.spec.containers[0].command
             if app_command:
@@ -914,7 +916,6 @@ class AppDetailView(Resource):
 
             except client.rest.ApiException:
                 app_db_status = None
-
             if app_deployment_status and not app_db_status:
                 if app_deployment_status == "True":
                     app_list['app_running_status'] = "running"
@@ -944,7 +945,7 @@ class AppDetailView(Resource):
                 replica_set = {
                     'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
                     'revision_id': int(item.metadata.creation_timestamp.timestamp()),
-                    'replicas': item.spec.replicas,
+                    'replicas': item.status.ready_replicas,
                     'created_at': str(item.metadata.creation_timestamp),
                     'image': item.spec.template.spec.containers[0].image,
                     'port': item.spec.template.spec.containers[0].ports[0].container_port,
