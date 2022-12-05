@@ -21,7 +21,10 @@ from app.models.project_users import ProjectUser
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_admin
 from app.models import mongo
-from bson.json_util import dumps
+from bson.json_util import dumps, MaxKey
+from bson.objectid import ObjectId
+import pymongo
+import math
 
 class UsersView(Resource):
 
@@ -808,11 +811,59 @@ class UserActivitesView(Resource):
                 datetime.max.time()).isoformat(' ')}
                 validated_data_query.pop('end',None)
 
+            # pagination
+            if validated_data_query.get('page') and validated_data_query.get('size'):
+
+                #set start_id
+                start_id = MaxKey
+
+                #set offset
+                size = validated_data_query.get('size')
+                page = validated_data_query.get('page')
+                validated_data_query.pop('size',None)
+                validated_data_query.pop('page',None)
+                offset = (page-1) * size
+
+                validated_data_query['_id'] = { "$lt": start_id }
+
+                #get total logs and total pages
+                total_Logs = mongo.db['activities'].count_documents(validated_data_query)
+                total_pages = math.ceil(total_Logs/size)
+
+                #get page end_id
+                if page != 1:
+                    end_id = start_id
+                    activities1 = mongo.db['activities'].find(validated_data_query).sort('_id', pymongo.DESCENDING).limit(offset)
+                    
+                    end_id = activities1[offset]
+                    endobj = ObjectId(str(end_id["_id"]))
+                    #return str(end_id)
+                    
+                    validated_data_query['_id'] = { "$lte": ObjectId(endobj) }
+
+                activities = mongo.db['activities'].find(validated_data_query).sort('_id', pymongo.DESCENDING).limit(size)
+
+                json_data = dumps(activities)
+
+                return dict(
+                status='success',
+                data = dict(activity = json.loads(json_data)),
+                total_Logs = total_Logs,
+                total_pages = total_pages,
+                current_page = page
+                ), 200 
+
+            elif validated_data_query.get('page'):
+                return dict(
+                status='fail', message=f'size is required'), 400
+
+            elif validated_data_query.get('size'):
+                return dict(
+                status='fail', message=f'page is required'), 400
+
             #get logs
             activities = mongo.db['activities'].find(validated_data_query)
             json_data = dumps(activities)
-
-            # TODO: Add pagination for these activities
 
             return dict(
                 status='success',

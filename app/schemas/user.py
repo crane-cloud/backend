@@ -48,3 +48,5 @@ class ActivityLogSchema(Schema):
     creation_date = fields.Date()
     start = fields.Date(load_only=True)
     end = fields.Date(load_only=True)
+    page = fields.Integer()
+    size = fields.Integer()
