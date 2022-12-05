@@ -474,6 +474,14 @@ paths:
           required: false
           type: string
           format: date
+        - in: query
+          name: page
+          required: false
+          type: integer
+        - in: query
+          name: size
+          required: false
+          type: integer
       produces:
         - application/json
       responses:
