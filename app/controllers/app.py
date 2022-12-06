@@ -439,7 +439,7 @@ class ProjectAppsView(Resource):
             return dict(status='fail', message=f'project {project_id} not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='Unauthorised'), 403
 
         cluster = project.cluster
@@ -754,7 +754,7 @@ class ProjectAppsView(Resource):
                 return dict(status='fail', message=f'project {project_id} not found'), 404
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id ,'member'):
+                if not is_authorised_project_user(project, current_user_id, 'member'):
                     return dict(status='fail', message='Unauthorised'), 403
 
             cluster = Cluster.get_by_id(project.cluster_id)
@@ -849,7 +849,7 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id ,'member'):
+                if not is_authorised_project_user(project, current_user_id, 'member'):
                     return dict(status='fail', message='Unauthorised'), 403
 
             app_data, errors = app_schema.dumps(app)
@@ -876,12 +876,12 @@ class AppDetailView(Resource):
 
             app_deployment_status_conditions = app_status_object.status.conditions
 
-            app_list["image"]= app_status_object.spec.template.spec.containers[0].image
-            app_list["port"]=  app_status_object.spec.template.spec.containers[0].ports[0].container_port
+            app_list["image"] = app_status_object.spec.template.spec.containers[0].image
+            app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
             app_list["replicas"] = app_status_object.spec.replicas
             app_list["revision"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
-            
+
             # Get app command
             app_command = app_status_object.spec.template.spec.containers[0].command
             if app_command:
@@ -928,12 +928,11 @@ class AppDetailView(Resource):
                     app_list['app_running_status'] = "failed"
             else:
                 app_list['app_running_status'] = "unknown"
-            
+
             # Get deployment version history
             version_history = kube_client.appsv1_api.list_namespaced_replica_set(
                 project.alias, label_selector=f"app={app_list['alias']}")
-            
-            
+
             revisions = []
             for item in version_history.items:
                 replica_command = item.spec.template.spec.containers[0].command
@@ -941,7 +940,7 @@ class AppDetailView(Resource):
                     replica_command = ' '.join(replica_command)
                 else:
                     replica_command = replica_command
-                #TODO Add deployment status to replicas
+                # TODO Add deployment status to replicas
                 replica_set = {
                     'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
                     'revision_id': int(item.metadata.creation_timestamp.timestamp()),
@@ -954,15 +953,16 @@ class AppDetailView(Resource):
 
                 if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
                     replica_set["current"] = True
-                    app_list["revision_id"]=int(item.metadata.creation_timestamp.timestamp())
+                    app_list["revision_id"] = int(
+                        item.metadata.creation_timestamp.timestamp())
                 revisions.append(replica_set)
-            
-            #sort revisions
-            revisions.sort(key = lambda x:x['revision_id'], reverse=True)
+
+            # sort revisions
+            revisions.sort(key=lambda x: x['revision_id'], reverse=True)
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=app_list)), 409
-            return dict(status='success', 
-                       data=dict(apps=app_list,revisions=revisions)), 200
+            return dict(status='success',
+                        data=dict(apps=app_list, revisions=revisions)), 200
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status
@@ -991,7 +991,7 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id ,'admin'):
+                if not is_authorised_project_user(project, current_user_id, 'admin'):
                     return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
@@ -1064,7 +1064,7 @@ class AppDetailView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id ,'member'):
+                if not is_authorised_project_user(project, current_user_id, 'member'):
                     return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
@@ -1275,7 +1275,8 @@ class AppRevertView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id ,'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
@@ -1370,6 +1371,7 @@ class AppRevertView(Resource):
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
+
 class AppReviseView(Resource):
     @jwt_required
     def post(self, app_id, revision_id):
@@ -1394,7 +1396,8 @@ class AppReviseView(Resource):
                 return dict(status='fail', message='Internal server error'), 500
 
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                return dict(status='fail', message='Unauthorised'), 403
+                if not is_authorised_project_user(project, current_user_id, 'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
 
             cluster = project.cluster
             namespace = project.alias
@@ -1427,7 +1430,7 @@ class AppReviseView(Resource):
             )
 
             template = None
-            
+
             for item in associated_replica_sets.items:
                 revision = item.metadata.annotations['deployment.kubernetes.io/revision']
                 if int(item.metadata.creation_timestamp.timestamp()) == int(revision_id):
@@ -1461,7 +1464,6 @@ class AppReviseView(Resource):
                 namespace=namespace
             )
 
-
             return dict(
                 status='success',
                 message=f'App revised successfully'
@@ -1472,6 +1474,8 @@ class AppReviseView(Resource):
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
+
+
 class AppMemoryUsageView(Resource):
 
     @jwt_required
@@ -1512,7 +1516,7 @@ class AppMemoryUsageView(Resource):
             return dict(status='fail', message=f'App {app_id} not found'), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='Unauthorised'), 403
 
         app_alias = app.alias
@@ -1566,7 +1570,7 @@ class AppCpuUsageView(Resource):
                 message=f'project {project_id} not found'
             ), 404
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
@@ -1639,7 +1643,7 @@ class AppNetworkUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
@@ -1711,7 +1715,7 @@ class AppLogsView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
@@ -1829,7 +1833,7 @@ class AppStorageUsageView(Resource):
             ), 404
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id ,'member'):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
         # Check app from db
