@@ -11,6 +11,18 @@ services:
       - "4200:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+  
+  crane-mongo-db:
+    restart: always
+    image: mongo:4.2.3
+    container_name: crane-mongo-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+    ports:
+      - "27010:27017"
+    volumes:
+      - .:/mongodb/data
   api:
     restart: always
     build:
@@ -24,12 +36,14 @@ services:
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
+      MONGO_URI: mongodb://${MONGO_DB_USER}:${MONGO_DB_PASSWORD}@crane-mongo-db:27010
     ports:
       - "4100:5000"
     volumes:
       - .:/app
     links:
       - database
+      - crane-mongo-db
   celery-worker:
     restart: always
     build:
@@ -44,6 +58,8 @@ services:
       - .:/app
     links:
       - database
+      - crane-mongo-db
+  
 
 volumes:
   db-data:
