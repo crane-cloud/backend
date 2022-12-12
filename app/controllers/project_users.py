@@ -49,7 +49,7 @@ class ProjectUsersView(Resource):
         if not user:
             # register anonymous user
             anonymous_user_email = validated_project_user_data.get('email', None)
-            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email)
+            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email, project_id=project.id)
 
             if anonymous_user_exists:
                 return dict(status='fail', message='Annoymous user already exists'), 500
