@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - develop-new
+      - ft-fix-activity-logs
 
 jobs:
   build:
