@@ -17,12 +17,13 @@ services:
     image: mongo:4.2.3
     container_name: crane-mongo-db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USER}
+      MONGO_INITDB_ROOT_USERNAME: crane
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+      MONGODB_DATA_DIR: /data/db
     ports:
       - "27010:27017"
     volumes:
-      - .:/mongodb/data
+      - cranemongodbdata:/data/db
   api:
     restart: always
     build:
@@ -36,11 +37,14 @@ services:
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
-      MONGO_URI: mongodb://${MONGO_DB_USER}:${MONGO_DB_PASSWORD}@crane-mongo-db:27010
+      MONGO_URI: mongodb://crane:${MONGO_DB_PASSWORD}@crane-mongo-db:27017/admin
     ports:
       - "4100:5000"
     volumes:
       - .:/app
+    depends_on:
+      - database
+      - crane-mongo-db
     links:
       - database
       - crane-mongo-db
@@ -63,3 +67,4 @@ services:
 
 volumes:
   db-data:
+  cranemongodbdata:
