@@ -103,7 +103,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v1
         with:
           cluster_name: staging-cluster
-          location: central1-a
+          location: us-central1-a
           project_id: crane-cloud-274413
 
       - name: Add Repo (cranecloud-backend)
