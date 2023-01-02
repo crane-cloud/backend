@@ -30,9 +30,10 @@ jobs:
           credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
       - name: Install (Gcloud)
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
+          install_components: 'gke-gcloud-auth-plugin'
 
       - name: Login (GCR)
         run: gcloud auth configure-docker
@@ -96,16 +97,20 @@ jobs:
           credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
       - name: Install (Gcloud)
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
+          install_components: 'gke-gcloud-auth-plugin'
 
       - name: Install (Helm)
         uses: azure/setup-helm@v1
 
       - name: Login (Kubernetes Cluster)
-        run: |
-          gcloud container clusters get-credentials staging-cluster --zone us-central1-a
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: staging-cluster
+          location: us-central1
+          project_id: crane-cloud-274413
 
       - name: Add Repo (cranecloud-backend)
         run: |
