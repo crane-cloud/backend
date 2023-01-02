@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - develop-new
+      - fix-workflow
 
 jobs:
   build:
@@ -102,7 +103,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v1
         with:
           cluster_name: staging-cluster
-          location: us-central1
+          location: central1-a
           project_id: crane-cloud-274413
 
       - name: Add Repo (cranecloud-backend)
