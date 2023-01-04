@@ -35,7 +35,6 @@ class Base:
     # Mongo db
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
 
-
 class Development(Base):
     """ development config """
 

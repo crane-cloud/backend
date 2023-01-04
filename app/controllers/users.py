@@ -787,7 +787,7 @@ class UserActivitesView(Resource):
             #check if admin
             if not is_admin(current_user_roles):
                 validated_data_query['user_id'] = current_user_id
-
+            
             #check for start and end query params
             if validated_data_query.get('start') and validated_data_query.get('end'):
 
