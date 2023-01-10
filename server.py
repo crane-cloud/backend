@@ -40,7 +40,7 @@ def create_app(config_name):
 
     # register app with the mongo db
     mongo.init_app(app)
-
+    
     # initialize api resources
     api.init_app(app)
 

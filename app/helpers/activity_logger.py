@@ -26,10 +26,10 @@ def log_activity(model: str, status: str, operation: str, description: str, a_us
         'a_project_id': str(a_project_id) if a_project_id else None,
         'a_cluster_id': str(a_cluster_id) if a_cluster_id else None
     }
-    filtered = {k: v for k, v in data.items() if v is not None }
+    filtered = {k: v for k, v in data.items() if v is not None}
+
     try:
         mongo.db['activities'].insert_one(filtered)
         return True
     except Exception:
         return False
-
