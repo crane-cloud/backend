@@ -34,6 +34,7 @@ def create_app(config_name):
     # use running config settings on app
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['MONGO_URI'] = os.getenv("MONGO_HOST")
 
     # register app with the db
     db.init_app(app)
