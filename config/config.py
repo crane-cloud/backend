@@ -41,7 +41,7 @@ class Development(Base):
     """ development config """
     
     DEBUG = True
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
+    MONGO_URI = os.getenv("mongodb://localhost:27017/cranecloud")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
 
 
