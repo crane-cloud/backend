@@ -55,6 +55,9 @@ class Testing(Base):
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
 
+    MONGO_URI = os.getenv("MONGO_HOST")
+    
+
 
 class Staging(Base):
     """ Staging config """
