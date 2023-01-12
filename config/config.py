@@ -59,14 +59,14 @@ class Staging(Base):
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-
+    MONGO_URI = os.getenv("MONGO_URI")
 
 class Production(Base):
     """ production config """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-
+    MONGO_URI = os.getenv("MONGO_URI")
 
 app_config = {"development": Development, "testing": Testing,
               "staging": Staging, "production": Production}
