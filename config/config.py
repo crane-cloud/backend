@@ -33,13 +33,15 @@ class Base:
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
     # Mongo db
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
+    
+    MONGO_URI = os.getenv("MONGO_HOST", "")
+
 
 class Development(Base):
     """ development config """
-
+    
     DEBUG = True
-    # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
 
 
@@ -59,14 +61,14 @@ class Staging(Base):
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-    MONGO_URI = os.getenv("MONGO_URI")
+    MONGO_URI = os.getenv("MONGO_HOST")
 
 class Production(Base):
     """ production config """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-    MONGO_URI = os.getenv("MONGO_URI")
+    MONGO_URI = os.getenv("MONGO_HOST")
 
 app_config = {"development": Development, "testing": Testing,
               "staging": Staging, "production": Production}
