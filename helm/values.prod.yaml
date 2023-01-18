@@ -68,6 +68,7 @@ environment:
   APP_MAIL_USERNAME: no-reply@cranecloud.io
   CLIENT_BASE_URL: https://cranecloud.io
   DATABASE_URI: ${{ DATABASE_URL }}
+  MONGO_URI: ${{ MONGO_URI }}
   FLASK_APP: server.py
   FLASK_APP_SALT: ${{ APP_SALT }}
   FLASK_APP_SECRET: ${{ APP_SECRET }}
