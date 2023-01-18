@@ -131,5 +131,5 @@ jobs:
 
       - name: Monitor Rollout
         run: |
-          kubectl rollout status deployment/cranecloud-backend --timeout=600s --namespace cranecloud 
+          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud 
 
