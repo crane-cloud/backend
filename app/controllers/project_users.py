@@ -49,7 +49,7 @@ class ProjectUsersView(Resource):
         if not user:
             # register anonymous user
             anonymous_user_email = validated_project_user_data.get('email', None)
-            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email)
+            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email, project_id=project.id)
 
             if anonymous_user_exists:
                 return dict(status='fail', message='Annoymous user already exists'), 500
@@ -311,7 +311,22 @@ class ProjectUsersView(Resource):
         user = User.find_first(email=validated_project_user_data.get('email', None))
 
         if not user:
-            return dict(status='fail', message='User not found'), 404
+            # check if this user exists as an anonymous user
+            anonymous_user_email = validated_project_user_data.get('email', None)
+            anonymous_user_exists = AnonymousUser.find_first(email=anonymous_user_email, project_id=project.id)
+
+            if not anonymous_user_exists:
+                return dict(status='fail', message='User not found'), 404
+
+            deleted_anonymous_user = AnonymousUser.delete(anonymous_user_exists)
+            
+            if not deleted_anonymous_user:
+                return dict(status='fail', message='Internal Server Error'), 500
+
+            return dict(
+            status='success',
+            message='Anonymous user removed from project successfully',
+        ), 201
 
         existing_user = ProjectUser.find_first(user_id=user.id, project_id=project.id)
 

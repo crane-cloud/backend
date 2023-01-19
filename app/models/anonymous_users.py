@@ -15,7 +15,7 @@ class AnonymousUser(ModelMixin):
     # fields of the user table
     id = db.Column(UUID(as_uuid=True), primary_key=True,
                    server_default=sa_text("uuid_generate_v4()"))
-    email = db.Column(db.String(256), unique=True, nullable=False, default="")
+    email = db.Column(db.String(256), unique=False, nullable=False, default="")
     role = db.Column(db.String(256), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
