@@ -9,7 +9,7 @@ help:  ## Display this help
 
 build-image: ## Build docker image
 	@ ${INFO} "Building required docker images"
-	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) build api
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) build api celery-worker
 	@ ${INFO} "Image succesfully built"
 	@ echo " "
 
