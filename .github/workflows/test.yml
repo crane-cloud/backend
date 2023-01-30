@@ -25,6 +25,15 @@ jobs:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
         - 5432:5432
+      
+      mongo:
+        image: mongo:4.2.3
+        env:
+          MONGO_INITDB_ROOT_USERNAME: crane
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TEST_MONGO_PASSWORD }}
+        ports:
+        - 27017:27017
+
 
     strategy:
       matrix:
@@ -46,12 +55,14 @@ jobs:
     - name: Test with pytest
       env:
         TEST_DATABASE_URI: ${{ secrets.TEST_DATABASE_URI }}
+        TEST_MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
       run: |
         python -m pytest
     
     - name: Generate Report
       env:
         TEST_DATABASE_URI: ${{ secrets.TEST_DATABASE_URI }}
+        TEST_MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
       run: |
         pip install coverage
         coverage run -m pytest

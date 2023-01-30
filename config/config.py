@@ -32,8 +32,6 @@ class Base:
     # celery
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-    # Mongo db
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
 
 class Development(Base):
     """ development config """
@@ -41,6 +39,7 @@ class Development(Base):
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
 
 
 class Testing(Base):
@@ -52,6 +51,7 @@ class Testing(Base):
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
+    MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/cranecloud_test_db")
 
 
 class Staging(Base):

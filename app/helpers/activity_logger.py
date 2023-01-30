@@ -5,7 +5,11 @@ from app.tasks import celery_app
 from flask_pymongo import MongoClient
 import os
 mongo = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017/'))
-mongo_db = mongo.get_default_database()
+
+try:
+    mongo_db = mongo.get_default_database()
+except Exception as e:
+    mongo_db = mongo.get_database('testing')
 
 
 def log_activity(model: str, status: str, operation: str, description: str, a_user_id=None, a_db_id=None, a_app_id=None, a_project_id=None, a_cluster_id=None):
