@@ -87,15 +87,16 @@ class UsersView(Resource):
             template,
             subject
         )
-        
+
         # check if user exists in anonymous table and assign them to a project
         anonymous_user_exists = AnonymousUser.find_first(email=email)
 
         if anonymous_user_exists:
             project = Project.get_by_id(anonymous_user_exists.project_id)
             user_details = User.find_first(email=email)
-            
-            new_role = ProjectUser(role=anonymous_user_exists.role, user_id=user_details.id)
+
+            new_role = ProjectUser(
+                role=anonymous_user_exists.role, user_id=user_details.id)
             project.users.append(new_role)
             saved_project_user = project.save()
             if not saved_project_user:
@@ -187,7 +188,7 @@ class UserLoginView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-        
+
         email = validated_user_data.get('email', None)
         password = validated_user_data.get('password', None)
 
@@ -222,7 +223,7 @@ class UserLoginView(Resource):
                     verified=user.verified,
                     id=str(user.id),
                     is_beta_user=user.is_beta_user,
-                    name= user.name,
+                    name=user.name,
                 )), 200
 
         return dict(status='fail', message="login failed"), 401
@@ -234,7 +235,7 @@ class UserDetailView(Resource):
         """
         """
         user_schema = UserSchema()
-        
+
         user = User.get_by_id(user_id)
 
         if not user:
@@ -767,19 +768,19 @@ class UserDataSummaryView(Resource):
                 graph_data=user_info)
         ), 200
 
+
 class UserActivitesView(Resource):
 
     @jwt_required
     def get(self):
-        
+
         try:
             
             current_user_roles = get_jwt_claims()['roles']
             current_user_id = get_jwt_identity()
 
             activity_schema = ActivityLogSchema()
-
-            #get query params
+            # get query params
             query_params = request.args
 
             validated_data_query, errors = activity_schema.load(query_params)
@@ -830,23 +831,23 @@ class UserActivitesView(Resource):
             if validated_data_query.get('start') and validated_data_query.get('end'):
 
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                datetime.min.time()).isoformat(' '),
-                "$lte": datetime.combine(validated_data_query.get('end'),
-                datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('start',None)
-                validated_data_query.pop('end',None)
-            
+                                                                                  datetime.min.time()).isoformat(' '),
+                                                         "$lte": datetime.combine(validated_data_query.get('end'),
+                                                                                  datetime.max.time()).isoformat(' ')}
+                validated_data_query.pop('start', None)
+                validated_data_query.pop('end', None)
+
             elif validated_data_query.get('start') and not validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                datetime.min.time()).isoformat(' ')}
-                validated_data_query.pop('start',None)
+                                                                                  datetime.min.time()).isoformat(' ')}
+                validated_data_query.pop('start', None)
 
             elif not validated_data_query.get('start') and validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
-                datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('end',None)
+                                                                                  datetime.max.time()).isoformat(' ')}
+                validated_data_query.pop('end', None)
 
-            #get logs
+            # get logs
             activities = mongo.db['activities'].find(validated_data_query)
             json_data = dumps(activities)
 
@@ -854,7 +855,7 @@ class UserActivitesView(Resource):
 
             return dict(
                 status='success',
-                data = dict(activity = json.loads(json_data))
+                data=dict(activity=json.loads(json_data))
             ), 200
         except Exception as err:
             return dict(status='fail', message=str(err)), 400

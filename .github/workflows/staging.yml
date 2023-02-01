@@ -122,6 +122,7 @@ jobs:
           --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
           --set environment.APP_MAIL_PASSWORD="${{ secrets.STAGING_APP_MAIL_PASSWORD }}" \
           --set environment.DATABASE_URI="${{ secrets.STAGING_DATABASE_URI }}" \
+          --set environment.MONGO_URI="${{ secrets.STAGING_MONGO_URI }}" \
           --set environment.FLASK_APP_SALT="${{ secrets.STAGING_FLASK_APP_SALT }}" \
           --set environment.FLASK_APP_SECRET="${{ secrets.STAGING_FLASK_APP_SECRET }}" \
           --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
