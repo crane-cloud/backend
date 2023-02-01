@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt_identity
 from app.tasks import celery_app
 from flask_pymongo import MongoClient
 import os
-mongo = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017/'))
+mongo = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017/cranecloud'))
 
 try:
     mongo_db = mongo.get_default_database()
