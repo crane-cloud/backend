@@ -1,6 +1,7 @@
 
 import datetime
 from flask_jwt_extended import get_jwt_identity
+from app.models.user import User
 from app.tasks import celery_app
 from flask_pymongo import MongoClient
 import os
