@@ -18,7 +18,7 @@ services:
     container_name: crane-mongo-db
     environment:
       MONGO_INITDB_ROOT_USERNAME: crane
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password
       MONGODB_DATA_DIR: /data/db
     ports:
       - "27010:27017"
@@ -37,7 +37,7 @@ services:
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
-      MONGO_URI: mongodb://crane:${MONGO_DB_PASSWORD}@crane-mongo-db:27017/admin
+      MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
     ports:
       - "4100:5000"
     volumes:
@@ -55,7 +55,10 @@ services:
       dockerfile: Dockerfile
     image: ckwagaba/osprey-backend:latest
     container_name: celery-worker
-    command: celery -A server.celery worker
+    command: celery -A server.celery worker --loglevel=info
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
     ports:
       - "4500:5000"
     volumes:
