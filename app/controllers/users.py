@@ -171,11 +171,12 @@ class UserLoginView(Resource):
         if not user:
             return dict(status='fail', message="login failed"), 401
 
-        if not user.verified:
-            return dict(
-                status='fail',
-                message='email not verified', data=dict(verified=user.verified)
-            ), 401
+        #Updating user's last login
+        user.last_seen = datetime.datetime.now()
+        updated_user = user.save()
+
+        if not updated_user:
+            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
 
         user_dict, errors = token_schema.dump(user)
         if user and user.password_is_valid(password):

@@ -25,7 +25,7 @@ class User(ModelMixin):
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
-    last_seen = db.Column(db.DateTime, default=db.func.current_timestamp)
+    last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
     is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
     credits = db.relationship('Credit', backref='user', lazy=True)
