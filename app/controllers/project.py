@@ -157,6 +157,16 @@ class ProjectsView(Resource):
                     status='fail',
                     message='An error occured during creation of a new invoice record'), 400
 
+            # create a billing invoice on project creation
+            new_invoice = BillingInvoice(project_id=project.id)
+
+            saved_new_invoice = new_invoice.save()
+
+            if not saved_new_invoice:
+                return dict(
+                    status='fail',
+                    message='An error occured during creation of a new invoice record'), 400
+
             new_project_data, errors = project_schema.dump(project)
             log_activity('Project', status='Success',
                          operation='Create',
