@@ -182,6 +182,7 @@ class ProjectsView(Resource):
 
         if has_role(current_user_roles, 'administrator'):
             projects = Project.find_all()
+            user = User.get_by_id(current_user_id)
         else:
             projects = Project.find_all(owner_id=current_user_id)
             user = User.get_by_id(current_user_id)
@@ -194,6 +195,13 @@ class ProjectsView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 500
+
+        #Updating user's last login
+        user.last_seen = datetime.datetime.now()
+        updated_user = user.save()
+
+        if not updated_user:
+            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
 
         return dict(status='success', data=dict(projects=json.loads(project_data))), 200
 
