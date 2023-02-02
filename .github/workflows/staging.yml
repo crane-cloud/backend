@@ -93,7 +93,6 @@ jobs:
           credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
       - name: Install (Gcloud)
-<<<<<<< HEAD
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
@@ -105,18 +104,6 @@ jobs:
           cluster_name: staging-cluster
           location: us-central1-a
           project_id: crane-cloud-274413
-=======
-        uses: google-github-actions/setup-gcloud@v0
-        with:
-          project_id: crane-cloud-274413
-
-      - name: Install (Helm)
-        uses: azure/setup-helm@v1
-
-      - name: Login (Kubernetes Cluster)
-        run: |
-          gcloud container clusters get-credentials staging-cluster --zone us-central1-a
->>>>>>> master
 
       - name: Add Repo (cranecloud-backend)
         run: |
@@ -135,10 +122,7 @@ jobs:
           --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
           --set environment.APP_MAIL_PASSWORD="${{ secrets.STAGING_APP_MAIL_PASSWORD }}" \
           --set environment.DATABASE_URI="${{ secrets.STAGING_DATABASE_URI }}" \
-<<<<<<< HEAD
           --set environment.MONGO_URI="${{ secrets.STAGING_MONGO_URI }}" \
-=======
->>>>>>> master
           --set environment.FLASK_APP_SALT="${{ secrets.STAGING_FLASK_APP_SALT }}" \
           --set environment.FLASK_APP_SECRET="${{ secrets.STAGING_FLASK_APP_SECRET }}" \
           --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
