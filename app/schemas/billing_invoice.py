@@ -5,6 +5,7 @@ from app.helpers.age_utility import get_item_age
 class BillingInvoiceSchema(Schema):
 
     id = fields.String(dump_only=True)
+    display_id = fields.String(dump_only=True)
 
     project_id = fields.String(required=True, error_message={
         "required": "project_id is required"},

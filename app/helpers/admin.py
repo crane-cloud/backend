@@ -50,29 +50,18 @@ def create_superuser(email, password, confirm_password):
 
 
 def create_default_roles():
-    admin = 'administrator'
-    user = 'customer'
+    roles = ['administrator', 'customer']
+    for role_name in roles:
+        role = Role.find_first(name=role_name)
+        if not role:
+            try:
+                role = Role(name=role_name)
+                role.save()
+            except Exception as e:
+                print(str(e))
+                return
+    print("Roles created successfully")
 
-    # create admin role
-    admin_role = Role.find_first(name=admin)
-
-    if not admin_role:
-        try:
-            admin_role = Role(name=admin)
-            admin_role.save()
-        except Exception as e:
-            print(str(e))
-            return
-    # create user role
-    user_role = Role.find_first(name=user)
-
-    if not user_role:
-        try:
-            user_role = Role(name=user)
-            user_role.save()
-        except Exception as e:
-            print(str(e))
-            return
 
 
 def is_owner_or_admin(resource, user_id, user_roles):
@@ -84,9 +73,30 @@ def is_owner_or_admin(resource, user_id, user_roles):
 
     return is_admin or is_owner
 
+def is_authorised_project_user(project, user_id, highest_role):
+    is_member = False
+    user_role = None
+    for user_role_item in project.users:
+        if str(user_role_item.user_id) == str(user_id):
+            is_member = True
+            user_role = user_role_item
+    if not is_member: 
+        return False
+    elif highest_role == 'admin' and str(user_role.role) == 'RolesList.admin':
+        return True
+    elif highest_role == 'member':
+        return True
+    else:
+        return False
+
 
 def is_current_or_admin(route_user_id, auth_user_id, user_roles):
     is_admin = has_role(user_roles, 'administrator')
     is_current = route_user_id == auth_user_id
 
     return is_admin or is_current
+
+def is_admin(user_roles):
+    is_admin = has_role(user_roles, 'administrator')
+
+    return is_admin

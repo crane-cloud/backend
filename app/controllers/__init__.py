@@ -4,7 +4,7 @@ from .index import IndexView
 from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
-    UserDetailView, AdminLoginView, OAuthView, UserDataSummaryView, UserAdminUpdateView)
+    UserDetailView, AdminLoginView, OAuthView, UserDataSummaryView, UserAdminUpdateView, UserActivitesView)
 from .deployments import DeploymentsView
 from .clusters import (
     ClustersView, ClusterDetailView, ClusterNamespacesView,
@@ -18,13 +18,13 @@ from .roles import RolesView, RolesDetailView
 from .credit_assignments import CreditAssignmentView, CreditAssignmentDetailView
 from .credits import CreditView, CreditDetailView
 from .user_role import UserRolesView
-from .transactions import TransactionRecordView, TransactionRecordDetailView, CreditTransactionRecordView
+from .transactions import TransactionRecordView, TransactionRecordDetailView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView
 from .project import (
     ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView,
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
-                  AppDataSummaryView, AppRevertView)
+                  AppDataSummaryView, AppRevertView, AppReviseView)
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
@@ -32,3 +32,4 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
 from .billing_invoice import (BillingInvoiceView,BillingInvoiceNotificationView)
 from .system_status import SystemStatusView
+from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView

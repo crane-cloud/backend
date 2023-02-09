@@ -9,22 +9,22 @@ help:  ## Display this help
 
 build-image: ## Build docker image
 	@ ${INFO} "Building required docker images"
-	@ docker-compose -f $(DOCKER_DEV_COMPOSE_FILE) build api
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) build api celery-worker
 	@ ${INFO} "Image succesfully built"
 	@ echo " "
 
 start:build-image ## Start development server
 	@ ${INFO} "starting local development server"
-	@ docker-compose -f $(DOCKER_DEV_COMPOSE_FILE) up
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) up
 
 psql-connect:build-image ## Connect to psql
 	@ ${INFO} "Connect to psql"
-	@ docker-compose -f $(DOCKER_DEV_COMPOSE_FILE) exec database psql --user postgres
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) exec database psql --user postgres
 
 clean: ## Remove all project images and volumes
 	@ ${INFO} "Cleaning your local environment"
 	@ ${INFO} "Note: All ephemeral volumes will be destroyed"
-	@ docker-compose -f $(DOCKER_DEV_COMPOSE_FILE) down --rmi all
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) down --rmi all
 	@ ${INFO} "Clean complete"
 
 stop: ## Stop all project images and volumes
@@ -34,7 +34,12 @@ stop: ## Stop all project images and volumes
 
 connect-to-container:build-image ## Connect to a container
 	@ ${INFO} "Connecting to a container"
-	@ docker-compose -f $(DOCKER_DEV_COMPOSE_FILE) run --rm --service-ports api sh
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) run --rm --service-ports api sh
+
+test:build-image ## Run tests
+	@ ${INFO} "Connecting to container"
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) exec api  python -m pytest
+	@ ${INFO} "Tests complete"
 
 # set default target
 .DEFAULT_GOAL := help

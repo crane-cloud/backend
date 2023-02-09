@@ -15,6 +15,8 @@ from app.schemas.billing_invoice import BillingInvoiceSchema
 from app.models import db
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.tasks import send_async_email
+
 
 class BillingInvoiceView(Resource):
     """
@@ -58,11 +60,10 @@ class BillingInvoiceView(Resource):
 
             if not cost_url:
                 return dict(status='fail', message='No cost modal url provided, please contact your administrator'), 404
-            
 
             start = project.date_created.timestamp()
-            date_created=None
-            
+            date_created = None
+
             existing_invoice_cashed = BillingInvoice.query.filter_by(project_id=project_id, is_cashed=True).order_by(
                 sqlalchemy.desc(BillingInvoice.date_created)).first()
 
@@ -77,9 +78,8 @@ class BillingInvoiceView(Resource):
 
             cost_data = cost_modal.get_namespace_cost(
                 window, namespace, series=False, show_deployments=False)
-            
-            total_amount = cost_data.totalCost
 
+            total_amount = cost_data.totalCost
 
             new_invoice_data = dict(
                 total_amount=total_amount,
@@ -94,7 +94,8 @@ class BillingInvoiceView(Resource):
                 print('errors', errors)
 
             if date_created:
-                invoice = BillingInvoice(date_created=date_created, **validated_invoice_data)
+                invoice = BillingInvoice(
+                    date_created=date_created, **validated_invoice_data)
             else:
                 invoice = BillingInvoice(**validated_invoice_data)
 
@@ -114,7 +115,7 @@ class BillingInvoiceView(Resource):
         subject = "Invoice from Crane Cloud Project"
         email = user.email
         name = user.name
-        invoice_id = invoice.id
+        invoice_id = invoice.display_id
         project_name = project.name
         invoice_date = invoice.date_created
         total_amount = invoice.total_amount
@@ -196,13 +197,12 @@ class BillingInvoiceDetailView(Resource):
                 status='fail',
                 message=f'billing invoice with invoice id {invoice_id} not found'
             ), 404
-        
         # Update total cost value
         namespace = project.alias
         cost_url = project.cluster.cost_modal_url
 
         billing_invoice_data, errors = billing_invoice_schema.dumps(
-                billing_invoice)
+            billing_invoice)
         if cost_url:
             start = project.date_created.timestamp()
             end = int(datetime.datetime.now().timestamp())
@@ -212,7 +212,6 @@ class BillingInvoiceDetailView(Resource):
 
             cost_data = cost_modal.get_namespace_cost(
                 window, namespace, series=False, show_deployments=False)
-            
             billing_invoice.total_amount = cost_data.totalCost
             new_billing_invoice = billing_invoice.save()
 
@@ -233,8 +232,6 @@ class BillingInvoiceNotificationView(Resource):
 
     @admin_required
     def get(self):
-
-        billing_invoice_schema = BillingInvoiceSchema()
 
         current_time = datetime.datetime.utcnow()
         one_month = current_time - datetime.timedelta(days=30)
@@ -262,23 +259,17 @@ class BillingInvoiceNotificationView(Resource):
             name = invoice.project.owner.name
             invoice_id = invoice.id
             project_name = invoice.project.name
-            invoice_date = invoice.date_created
+            invoice_date = invoice.date_created.strftime("%d %b, %Y %I:%M %p")
             total_amount = invoice.total_amount
-
-            # send message
-            send_invoice(
-                email,
-                name,
-                invoice_id,
-                project_name,
-                total_amount,
-                invoice_date,
-                sender,
-                current_app._get_current_object(),
-                template,
-                subject
-            )
-
+            send_async_email.delay(email,
+                                   name,
+                                   invoice_id,
+                                   project_name,
+                                   total_amount,
+                                   invoice_date,
+                                   sender,
+                                   template,
+                                   subject)
         return dict(
             status='success',
             message=f'{len(billing_invoices)} billing invoices found, and owners notified'

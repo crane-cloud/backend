@@ -6,9 +6,11 @@ from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService, generate_db_credentials
 from app.models.project import Project
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
 from app.helpers.db_flavor import get_db_flavour, database_flavours
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from app.helpers.activity_logger import log_activity
 
 
 class ProjectDatabaseView(Resource):
@@ -17,6 +19,9 @@ class ProjectDatabaseView(Resource):
     def post(self, project_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         databases_data = request.get_json()
@@ -24,9 +29,16 @@ class ProjectDatabaseView(Resource):
         credentials = generate_db_credentials()
 
         validated_database_data, errors = database_schema.load(databases_data)
-
         if errors:
             return dict(status="fail", message=errors), 400
+
+        project = Project.get_by_id(project_id)
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_flavour_name = validated_database_data.get(
             'database_flavour_name', None)
@@ -60,16 +72,17 @@ class ProjectDatabaseView(Resource):
         if errors:
             return dict(status="fail", message=errors), 400
 
-        project = Project.get_by_id(project_id)
-        if not project:
-            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
         validated_database_data['project_id'] = project_id
 
         database_existant = ProjectDatabase.find_first(
             name=database_name)
 
         if database_existant:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description=f'Database {database_name} Already Exists.',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status="fail",
                 message=f"Database {database_name} Already Exists."
@@ -79,6 +92,11 @@ class ProjectDatabaseView(Resource):
             user=database_user)
 
         if database_user_existant:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description=f'Database user {database_user} Already Exists',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status="fail",
                 message=f"Database user {database_user} Already Exists."
@@ -89,6 +107,11 @@ class ProjectDatabaseView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description='Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -101,6 +124,11 @@ class ProjectDatabaseView(Resource):
         )
 
         if not create_database:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description=f'Database Creation Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status="fail",
                 message=f"Unable to create database"
@@ -111,10 +139,20 @@ class ProjectDatabaseView(Resource):
         saved_database = database.save()
 
         if not saved_database:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description=f'Database Creation Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(status='fail', message=f'Internal Server Error'), 500
 
         new_database_data, errors = database_schema.dumps(database)
-
+        log_activity('Database', status='Success',
+                     operation='Create',
+                     description=f'Database {database_name} created successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database.id)
         return dict(
             status='success',
             data=dict(database=json.loads(new_database_data))
@@ -124,11 +162,18 @@ class ProjectDatabaseView(Resource):
     def get(self, project_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema(many=True)
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         databases = ProjectDatabase.find_all(project_id=project_id)
 
@@ -177,11 +222,16 @@ class ProjectDatabaseDetailView(Resource):
     def delete(self, project_id, database_id):
         """
         """
-        database_schema = ProjectDatabaseSchema()
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -208,6 +258,12 @@ class ProjectDatabaseDetailView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description='Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -217,6 +273,12 @@ class ProjectDatabaseDetailView(Resource):
             database_existant.name)
 
         if not delete_database:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description='Unable to delete database, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to delete database"
@@ -226,20 +288,37 @@ class ProjectDatabaseDetailView(Resource):
         deleted_database = database_existant.delete()
 
         if not deleted_database:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description=f'Database {database_id} deleted Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(status='fail', message=f'Internal Server Error'), 500
-
+        log_activity('Database', status='Success',
+                     operation='Delete',
+                     description=f'Database {database_id} deleted successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database Successfully deleted"), 200
 
     @jwt_required
     def get(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         project = Project.get_by_id(project_id)
-
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -301,6 +380,9 @@ class ProjectDatabasePasswordResetView(Resource):
     def post(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
@@ -316,6 +398,10 @@ class ProjectDatabasePasswordResetView(Resource):
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
         if not database_existant:
@@ -339,6 +425,12 @@ class ProjectDatabasePasswordResetView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -348,6 +440,12 @@ class ProjectDatabasePasswordResetView(Resource):
                                                                   password=new_database_password)
 
         if not reset_database_password:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Unable to reset database password, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to reset database password"
@@ -356,8 +454,20 @@ class ProjectDatabasePasswordResetView(Resource):
         updated = ProjectDatabase.update(
             database_existant, **validated_database_data)
         if not updated:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Unable to reset database, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(status='fail', message='internal server error'), 500
 
+        log_activity('Database', status='Success',
+                     operation='Update',
+                     description='Database password reset Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database password reset Successfully"), 200
 
 
@@ -367,12 +477,19 @@ class ProjectDatabaseRetrievePasswordView(Resource):
     def get(self, project_id, database_id):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
         database_schema = ProjectDatabaseSchema()
 
         project = Project.get_by_id(project_id)
 
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -471,6 +588,11 @@ class ProjectDatabaseAdminView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description='Admin Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -483,6 +605,11 @@ class ProjectDatabaseAdminView(Resource):
         )
 
         if not create_database:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description='Admin Unable, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,)
             return dict(
                 status="fail",
                 message=f"Unable to create database"
@@ -493,10 +620,20 @@ class ProjectDatabaseAdminView(Resource):
         saved_database = database.save()
 
         if not saved_database:
+            log_activity('Database', status='Failed',
+                         operation='Create',
+                         description='Admin Created Database Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,)
             return dict(status='fail', message=f'Internal Server Error'), 500
 
         new_database_data, errors = database_schema.dumps(database)
-
+        log_activity('Database', status='Success',
+                     operation='Create',
+                     description='Admin Created Database Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database.id)
         return dict(
             status='success',
             data=dict(database=json.loads(new_database_data))
@@ -536,6 +673,7 @@ class ProjectDatabaseAdminDetailView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
+        project = database_existant.project
         db_flavour = get_db_flavour(database_existant.database_flavour_name)
         if not db_flavour:
             return dict(
@@ -548,6 +686,12 @@ class ProjectDatabaseAdminDetailView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description='Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -557,6 +701,12 @@ class ProjectDatabaseAdminDetailView(Resource):
             database_existant.name)
 
         if not delete_database:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description='Unable to delete database, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to delete database"
@@ -566,8 +716,19 @@ class ProjectDatabaseAdminDetailView(Resource):
         deleted_database = database_existant.delete()
 
         if not deleted_database:
+            log_activity('Database', status='Failed',
+                         operation='Delete',
+                         description=f'Admin Delete Database {database_id} Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(status='fail', message=f'Internal Server Error'), 500
-
+        log_activity('Database', status='Success',
+                     operation='Delete',
+                     description=f'Admin Deleted Database {database_id} Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database Successfully deleted"), 200
 
     @admin_required
@@ -635,11 +796,16 @@ class ProjectDatabaseResetView(Resource):
         """
         Reset Database
         """
-        database_schema = ProjectDatabaseSchema()
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
 
         database_existant = ProjectDatabase.get_by_id(database_id)
 
@@ -662,6 +828,12 @@ class ProjectDatabaseResetView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description=f'Reset Database Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -674,11 +846,22 @@ class ProjectDatabaseResetView(Resource):
         )
 
         if not reset_database:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description=f'Reset Database {database_id} Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to reset database"
             ), 500
-
+        log_activity('Database', status='Success',
+                     operation='Update',
+                     description=f'Reset Database {database_id} Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database Reset Successfully"), 200
 
 
@@ -698,7 +881,7 @@ class ProjectDatabaseAdminResetView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-
+        project = database_existant.project
         # Reset the database
         db_flavour = get_db_flavour(database_existant.database_flavour_name)
 
@@ -713,6 +896,12 @@ class ProjectDatabaseAdminResetView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description=f'Admin Reset Database Failed to connect to the database service, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -725,11 +914,22 @@ class ProjectDatabaseAdminResetView(Resource):
         )
 
         if not reset_database:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description=f'Admin Reset Database {database_id} Failed, Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to reset database"
             ), 500
-
+        log_activity('Database', status='Success',
+                     operation='Update',
+                     description=f'Admin Reset Database {database_id} Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database Reset Successfully"), 200
 
 
@@ -756,7 +956,7 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
                 status="fail",
                 message=f"Database with id {database_id} not found."
             ), 404
-
+        project = database_existant.project
         database_flavour_name = database_existant.database_flavour_name
         db_flavour = get_db_flavour(database_flavour_name)
 
@@ -771,6 +971,12 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
         database_connection = database_service.check_db_connection()
 
         if not database_connection:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Failed to connect to the database service, internal server error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Failed to connect to the database service"
@@ -780,6 +986,12 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
                                                                   password=new_database_password)
 
         if not reset_database_password:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Unable to reset database password, internal server error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(
                 status="fail",
                 message=f"Unable to reset database password"
@@ -789,8 +1001,19 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
             database_existant, **validated_database_data)
 
         if not updated:
+            log_activity('Database', status='Failed',
+                         operation='Update',
+                         description='Database password reset Failed, internal server error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
             return dict(status='fail', message='internal server error'), 500
-
+        log_activity('Database', status='Success',
+                         operation='Update',
+                         description='Database password reset Successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_db_id=database_id)
         return dict(status='success', message="Database password reset Successfully"), 200
 
 

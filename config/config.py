@@ -22,20 +22,24 @@ class Base:
     # mail accounts
     MAIL_DEFAULT_SENDER = "no-reply@cranecloud.io"
 
-    # EXCEPTIONS 
+    # EXCEPTIONS
     PROPAGATE_EXCEPTIONS = True
 
     # Github auth
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
+    # celery
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
 
 class Development(Base):
     """ development config """
 
     DEBUG = True
-
-    SQLALCHEMY_DATABASE_URI = os.getenv("LOCAL_DATABASE_URI") or "postgresql:///cranecloud"
+    # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
 
 
 class Testing(Base):
@@ -45,7 +49,9 @@ class Testing(Base):
     DEBUG = True
     # use a separate db
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
+    MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/cranecloud_test_db")
 
 
 class Staging(Base):
@@ -53,13 +59,14 @@ class Staging(Base):
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
-
+    MONGO_URI = os.getenv("MONGO_URI")
 
 class Production(Base):
     """ production config """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
+    MONGO_URI = os.getenv("MONGO_URI")
 
-
-app_config = {"development": Development, "testing": Testing, "staging": Staging, "production": Production}
+app_config = {"development": Development, "testing": Testing,
+              "staging": Staging, "production": Production}

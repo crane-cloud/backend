@@ -6,15 +6,15 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
-from celery import Celery
 
 # import ORM
-
 from app.routes import api
 
-from app.models import db
+from app.models import db, mongo
 
 from app.helpers.email import mail
+
+from app.tasks import update_celery
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -38,6 +38,9 @@ def create_app(config_name):
     # register app with the db
     db.init_app(app)
 
+    # register app with the mongo db
+    mongo.init_app(app)
+    
     # initialize api resources
     api.init_app(app)
 
@@ -91,9 +94,11 @@ def create_app(config_name):
 
 
 # create app instance using running config
-redis_url = os.getenv("REDIS_URL")
 app = create_app(os.getenv('FLASK_ENV'))
-celery = Celery(app.name, broker=redis_url, backend=redis_url, include=['celery_tasks'])
+
+# Celery
+celery = update_celery(app)
+
 
 if __name__ == '__main__':
     app.run()
