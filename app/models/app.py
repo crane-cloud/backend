@@ -6,6 +6,7 @@ from app.models.model_mixin import ModelMixin, SoftDeleteQuery
 
 class App(ModelMixin):
     __tablename__ = 'app'
+    #SoftDeleteQuery is used to filter out deleted records
     query_class = SoftDeleteQuery
 
     id = db.Column(UUID(as_uuid=True), primary_key=True,

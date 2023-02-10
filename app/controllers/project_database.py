@@ -285,7 +285,7 @@ class ProjectDatabaseDetailView(Resource):
             ), 500
 
         # Delete database record from database
-        deleted_database = database_existant.delete()
+        deleted_database = database_existant.soft_delete()
 
         if not deleted_database:
             log_activity('Database', status='Failed',
@@ -713,7 +713,7 @@ class ProjectDatabaseAdminDetailView(Resource):
             ), 500
 
         # Delete database record from database
-        deleted_database = database_existant.delete()
+        deleted_database = database_existant.soft_delete()
 
         if not deleted_database:
             log_activity('Database', status='Failed',
