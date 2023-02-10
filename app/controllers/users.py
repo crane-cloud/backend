@@ -19,9 +19,11 @@ from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.admin import is_admin
+from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
+from app.models.project_database import ProjectDatabase
+from app.models.app import App
 
 
 class UsersView(Resource):
@@ -774,8 +776,9 @@ class UserActivitesView(Resource):
     def get(self):
 
         try:
-            current_user_id = get_jwt_identity()
+
             current_user_roles = get_jwt_claims()['roles']
+            current_user_id = get_jwt_identity()
 
             activity_schema = ActivityLogSchema()
             # get query params
@@ -786,9 +789,55 @@ class UserActivitesView(Resource):
             if errors:
                 return {"message": "Validation errors", "errors": errors}, 400
 
-            # check if admin
-            if not is_admin(current_user_roles):
-                validated_data_query['user_id'] = current_user_id
+            user_id = validated_data_query.get('user_id', None)
+
+            # check if owner or admin or member for project, database or app
+            project_id = None
+            if validated_data_query.get('a_project_id'):
+                project_id = validated_data_query.get('a_project_id')
+
+            elif validated_data_query.get('a_db_id'):
+                database_id = validated_data_query.get('a_db_id')
+                database_existant = ProjectDatabase.get_by_id(database_id)
+                if not database_existant:
+                    return dict(
+                        status="fail",
+                        message=f"Database with id {database_id} not found."
+                    ), 404
+                project_id = database_existant.project_id
+
+            elif validated_data_query.get('a_app_id'):
+                app_id = validated_data_query.get('a_app_id')
+                app = App.get_by_id(app_id)
+                if not app:
+                    return dict(status='fail', message=f'App {app_id} not found'), 404
+                project_id = app.project_id
+
+            if project_id:
+                project = Project.get_by_id(project_id)
+
+                if not project:
+                    return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+                if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                    if is_authorised_project_user(project, current_user_id, 'member'):
+                        if not user_id:
+                            validated_data_query.pop('user_id', None)
+                        elif user_id != current_user_id:
+                            if not is_authorised_project_user(project, user_id, 'member'):
+                                return dict(
+                                    status='fail',
+                                    message=f'User with id {user_id} not a member of the project'
+                                ), 200
+                        else:
+                            validated_data_query.pop('user_id', None)
+
+                    else:
+                        return dict(status='fail', message='unauthorised'), 403
+            else:
+                # check if user is admin if not make sure user_id is current user
+                if not is_admin(current_user_roles) and not user_id:
+                    validated_data_query['user_id'] = current_user_id
 
             # check for start and end query params
             if validated_data_query.get('start') and validated_data_query.get('end'):
