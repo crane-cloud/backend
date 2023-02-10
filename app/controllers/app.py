@@ -1031,9 +1031,8 @@ class AppDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             app = App.get_by_id(app_id)
-
             if not app:
-                return dict(status='fail', message=f'app {app_id} not found'), 404
+                return dict(status='fail', message=f'app with id {app_id} not found'), 404
 
             project = app.project
 
@@ -1064,7 +1063,7 @@ class AppDetailView(Resource):
             delete_cluster_app(kube_client, namespace, app)
 
             # delete the app from the database
-            deleted = app.delete()
+            deleted = app.soft_delete()
 
             if not deleted:
                 log_activity('App', status='Failed',

@@ -1,6 +1,34 @@
 from sqlalchemy import inspect, func, column
 from sqlalchemy.exc import SQLAlchemyError
+from flask_sqlalchemy import BaseQuery
 from ..models import db
+from sqlalchemy import or_
+import time
+
+
+class SoftDeleteQuery(BaseQuery):
+    def __new__(cls, *args, **kwargs):
+        obj = super(SoftDeleteQuery, cls).__new__(cls)
+        with_deleted = kwargs.pop('_with_deleted', False)
+        if len(args) > 0:
+            super(SoftDeleteQuery, obj).__init__(*args, **kwargs)
+            entities = obj._entities
+            filtered_entities = [
+                entity for entity in entities if hasattr(entity, 'deleted')]
+            if not with_deleted:
+                deleted_column = getattr(
+                    obj._entities[0].mapper.class_, 'deleted')
+                return obj.filter(*filtered_entities).filter(
+                    or_(deleted_column == False, deleted_column == None))
+        return obj
+
+    def __init__(self, *args, **kwargs):
+        super(SoftDeleteQuery, self).__init__(*args, **kwargs)
+
+    def with_deleted(self):
+        return self.__class__(self._only_full_mapper_zero('get'),
+                              session=db.session(), _with_deleted=True)
+
 
 class ModelMixin(db.Model):
 
@@ -19,6 +47,16 @@ class ModelMixin(db.Model):
     def delete(self):
         try:
             db.session.delete(self)
+            db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return False
+
+    def soft_delete(self):
+        try:
+            setattr(self, 'deleted', True)
+            setattr(self, 'name', f"{self.name}_deleted_{int(time.time())}")
             db.session.commit()
             return True
         except SQLAlchemyError as e:
@@ -68,8 +106,9 @@ class ModelMixin(db.Model):
     @classmethod
     def get_by_id(cls, id):
         try:
-            return cls.query.get(id)
-        except SQLAlchemyError:
+            return cls.query.filter_by(id=id).first()
+        except SQLAlchemyError as e:
+            print(e)
             return False
 
     def toDict(self):
