@@ -374,7 +374,6 @@ class CreditTransactionRecordView(Resource):
                 return dict(
                             status='fail',
                             message='An error occured during saving of the record'), 400
-
             new_invoice = BillingInvoice(project_id=project_id)
 
             saved_new_invoice = new_invoice.save()

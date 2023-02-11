@@ -197,7 +197,6 @@ class BillingInvoiceDetailView(Resource):
                 status='fail',
                 message=f'billing invoice with invoice id {invoice_id} not found'
             ), 404
-
         # Update total cost value
         namespace = project.alias
         cost_url = project.cluster.cost_modal_url
@@ -213,7 +212,6 @@ class BillingInvoiceDetailView(Resource):
 
             cost_data = cost_modal.get_namespace_cost(
                 window, namespace, series=False, show_deployments=False)
-
             billing_invoice.total_amount = cost_data.totalCost
             new_billing_invoice = billing_invoice.save()
 

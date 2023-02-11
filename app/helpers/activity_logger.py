@@ -1,10 +1,12 @@
 
 import datetime
 from flask_jwt_extended import get_jwt_identity
+from app.models.user import User
 from app.tasks import celery_app
 from flask_pymongo import MongoClient
 import os
-mongo = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017/cranecloud'))
+mongo = MongoClient(
+    os.getenv('MONGO_URI', 'mongodb://localhost:27017/cranecloud'))
 
 try:
     mongo_db = mongo.get_default_database()
@@ -14,9 +16,14 @@ except Exception as e:
 
 def log_activity(model: str, status: str, operation: str, description: str, a_user_id=None, a_db_id=None, a_app_id=None, a_project_id=None, a_cluster_id=None):
     user_id = get_jwt_identity()
+    user = User.get_by_id(user_id)
+    user_email = user.email
+    user_name = user.name
     date = str(datetime.datetime.now())
     data = {
         'user_id': user_id,
+        'user_email': user_email,
+        'user_name': user_name,
         'creation_date': date,
         'operation': operation,
         'model': model,
