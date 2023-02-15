@@ -89,5 +89,5 @@ vine==5.0.0
 virtualenv==16.6.0
 wcwidth==0.2.5
 websocket-client==0.56.0
-Werkzeug==0.15.5
+Werkzeug==2.2.3
 zipp==3.6.0
