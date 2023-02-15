@@ -7,13 +7,17 @@ from app.models.model_mixin import ModelMixin
 from app.models.project_users import ProjectUser
 from app.models.anonymous_users import AnonymousUser
 
+
 class Project(ModelMixin):
     __tablename__ = 'project'
-    id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
+    id = db.Column(UUID(as_uuid=True), primary_key=True,
+                   server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String(256), nullable=True)
     alias = db.Column(db.String(256), nullable=False, unique=True)
-    owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False)
-    cluster_id = db.Column(UUID(as_uuid=True), db.ForeignKey('clusters.id'), nullable=False)
+    owner_id = db.Column(UUID(as_uuid=True),
+                         db.ForeignKey('user.id'), nullable=False)
+    cluster_id = db.Column(UUID(as_uuid=True), db.ForeignKey(
+        'clusters.id'), nullable=False)
     apps = db.relationship('App', backref='project', lazy=True)
     description = db.Column(db.String, nullable=True)
     organisation = db.Column(db.String)
@@ -26,4 +30,6 @@ class Project(ModelMixin):
         'TransactionRecord', backref='project', lazy=True)
     billing_invoices = db.relationship(
         'BillingInvoice', backref='project', lazy=True)
-    anonymoususers = db.relationship('AnonymousUser', backref='anonymous_project_users', lazy=True)
+    anonymoususers = db.relationship(
+        'AnonymousUser', backref='anonymous_project_users', lazy=True)
+

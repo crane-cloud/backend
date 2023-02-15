@@ -19,7 +19,7 @@ start:build-image ## Start development server
 
 psql-connect:build-image ## Connect to psql
 	@ ${INFO} "Connect to psql"
-	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) exec database psql --user postgres
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) exec database psql --user postgres --dbname cranecloud
 
 clean: ## Remove all project images and volumes
 	@ ${INFO} "Cleaning your local environment"
