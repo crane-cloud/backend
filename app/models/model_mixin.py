@@ -62,6 +62,16 @@ class ModelMixin(db.Model):
             db.session.rollback()
             return False
 
+    def soft_delete(self):
+        try:
+            setattr(self, 'deleted', True)
+            setattr(self, 'name', f"{self.name}_deleted_{int(time.time())}")
+            db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return False
+
     @classmethod
     def update(cls, instance, **kwargs):
         try:
