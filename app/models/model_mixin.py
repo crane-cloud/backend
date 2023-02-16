@@ -39,8 +39,7 @@ class ModelMixin(db.Model):
             db.session.add(self)
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
-            print(e)
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 
@@ -49,7 +48,7 @@ class ModelMixin(db.Model):
             db.session.delete(self)
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 
@@ -59,7 +58,7 @@ class ModelMixin(db.Model):
             setattr(self, 'name', f"{self.name}_deleted_{int(time.time())}")
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 
@@ -73,7 +72,7 @@ class ModelMixin(db.Model):
                 setattr(instance, key, value)
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 
@@ -81,14 +80,14 @@ class ModelMixin(db.Model):
     def find_first(cls, **kwargs):
         try:
             return cls.query.filter_by(**kwargs).first()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             return False
 
     @classmethod
     def find_all(cls, **kwargs):
         try:
             return cls.query.filter_by(**kwargs).all()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             return False
 
     @classmethod
@@ -107,8 +106,7 @@ class ModelMixin(db.Model):
     def get_by_id(cls, id):
         try:
             return cls.query.filter_by(id=id).first()
-        except SQLAlchemyError as e:
-            print(e)
+        except SQLAlchemyError:
             return False
 
     def toDict(self):

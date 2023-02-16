@@ -325,7 +325,7 @@ class ProjectDetailView(Resource):
                         ), 500
 
                     # Delete database record from database
-                    deleted_database = database.delete()
+                    deleted_database = database.soft_delete()
 
                     if not deleted_database:
                         log_activity('Project', status='Failed',
@@ -353,7 +353,7 @@ class ProjectDetailView(Resource):
                 for app in apps_list:
                     delete_cluster_app(kube_client, project.alias, app)
                     # delete the app from the database
-                    deleted = app.delete()
+                    deleted = app.soft_delete()
 
             # get corresponding namespace
             try:
@@ -365,8 +365,7 @@ class ProjectDetailView(Resource):
                 # if unable to get namespace, it means it is already deleted
                 pass
 
-            # TODO: change delete to a soft delete
-            deleted = project.delete()
+            deleted = project.soft_delete()
 
             if not deleted:
                 log_activity('Project', status='Failed',
@@ -395,9 +394,9 @@ class ProjectDetailView(Resource):
                 if apps_list:
                     for app in apps_list:
                         # delete the app from the database
-                        deleted = app.delete()
+                        deleted = app.soft_delete()
 
-                deleted = project.delete()
+                deleted = project.soft_delete()
 
                 if not deleted:
                     return dict(status='fail', message='deletion failed'), 500
