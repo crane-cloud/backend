@@ -1,15 +1,17 @@
-from datetime import datetime, timedelta
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from app.models import billing_invoice, db
-from app.models.model_mixin import ModelMixin
+from app.models.model_mixin import ModelMixin, SoftDeleteQuery
 from app.models.project_users import ProjectUser
 from app.models.anonymous_users import AnonymousUser
 
 
 class Project(ModelMixin):
     __tablename__ = 'project'
+    # SoftDeleteQuery is used to filter out deleted records
+    query_class = SoftDeleteQuery
+
     id = db.Column(UUID(as_uuid=True), primary_key=True,
                    server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String(256), nullable=True)
@@ -32,4 +34,4 @@ class Project(ModelMixin):
         'BillingInvoice', backref='project', lazy=True)
     anonymoususers = db.relationship(
         'AnonymousUser', backref='anonymous_project_users', lazy=True)
-
+    deleted = db.Column(db.Boolean, default=False)
