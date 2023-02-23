@@ -795,7 +795,8 @@ class ProjectAppsView(Resource):
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
-
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
             app_schema = AppSchema(many=True)
 
             project = Project.get_by_id(project_id)
@@ -816,8 +817,10 @@ class ProjectAppsView(Resource):
             kube_token = cluster.token
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            apps = App.find_all(project_id=project_id)
-
+            paginated = App.find_all(
+                project_id=project_id, paginate=True, page=page, per_page=per_page)
+            pagination = paginated.pagination
+            apps = paginated.items
             apps_data, errors = app_schema.dumps(apps)
 
             # if errors:
@@ -867,7 +870,8 @@ class ProjectAppsView(Resource):
                     app['app_running_status'] = "unknown"
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=apps_data_list)), 409
-            return dict(status='success', data=dict(apps=apps_data_list)), 200
+            return dict(status='success',
+                        data=dict(pagination=pagination, apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status

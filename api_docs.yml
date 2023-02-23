@@ -2050,6 +2050,14 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Success"
@@ -2232,6 +2240,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -2920,7 +2936,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-
   "/databases":
     post:
       tags:
@@ -3367,7 +3382,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
   "/apps/{app_id}/revise/{revision_id}":
     post:

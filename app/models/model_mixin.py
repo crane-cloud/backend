@@ -4,6 +4,7 @@ from flask_sqlalchemy import BaseQuery
 from ..models import db
 from sqlalchemy import or_
 import time
+from types import SimpleNamespace
 
 
 class SoftDeleteQuery(BaseQuery):
@@ -95,8 +96,27 @@ class ModelMixin(db.Model):
 
     @classmethod
     def find_all(cls, **kwargs):
+        paginate = kwargs.pop('paginate', False)
+        page = kwargs.pop('page', 1)
+        per_page = kwargs.pop('per_page', 10)
+
         try:
-            return cls.query.filter_by(**kwargs).all()
+            if paginate:
+                result = cls.query.filter_by(
+                    **kwargs).paginate(page=page, per_page=per_page, error_out=False)
+                pagination = {
+                    'total': result.total,
+                    'pages': result.pages,
+                    'page': result.page,
+                    'per_page': result.per_page,
+                    'next': result.next_num,
+                    'prev': result.prev_num,
+                }
+                return SimpleNamespace(
+                    pagination=pagination,
+                    items=result.items)
+            else:
+                return cls.query.filter_by(**kwargs).all()
         except SQLAlchemyError:
             return False
 
