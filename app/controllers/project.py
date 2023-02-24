@@ -19,6 +19,8 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_
 
 
 class ProjectsView(Resource):
@@ -197,20 +199,35 @@ class ProjectsView(Resource):
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
         project_schema = ProjectSchema(many=True)
-
         if has_role(current_user_roles, 'administrator'):
             projects = Project.find_all()
             user = User.get_by_id(current_user_id)
         else:
-            projects = Project.find_all(owner_id=current_user_id)
-            user = User.get_by_id(current_user_id)
+            try:
+                pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
+                    ProjectUser.user_id == current_user_id))).paginate(
+                    page=page, per_page=per_page, error_out=False)
+            except SQLAlchemyError:
+                pagination = None
+                return dict(status='fail', message='Internal Server Error'), 500
 
-            for project_role in user.other_projects:
-                if project_role.other_project not in projects:
-                    projects.append(project_role.other_project)
+        user = User.get_by_id(current_user_id)
+        projects = []
+        if pagination:
+            projects = pagination.items
 
+            pagination_data = {
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'page': pagination.page,
+                'per_page': pagination.per_page,
+                'next': pagination.next_num,
+                'prev': pagination.prev_num
+            }
         project_data, errors = project_schema.dumps(projects)
 
         if errors:
@@ -223,7 +240,10 @@ class ProjectsView(Resource):
         if not updated_user:
             return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
 
-        return dict(status='success', data=dict(projects=json.loads(project_data))), 200
+        return dict(status='success',
+                    data=dict(
+                        pagination=pagination_data,
+                        projects=json.loads(project_data))), 200
 
 
 class ProjectDetailView(Resource):
