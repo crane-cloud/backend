@@ -200,11 +200,11 @@ class UserLoginView(Resource):
         if not user:
             return dict(status='fail', message="login failed"), 401
 
-        # if not user.verified:
-        #     return dict(
-        #         status='fail',
-        #         message='email not verified', data=dict(verified=user.verified)
-        #     ), 401
+        if not user.verified:
+            return dict(
+                status='fail',
+                message='email not verified', data=dict(verified=user.verified)
+            ), 401
 
         #Updating user's last login
         user.last_seen = datetime.datetime.now()
