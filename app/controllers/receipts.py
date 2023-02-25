@@ -1,7 +1,7 @@
 
 
 import json
-from flask_restful import Resource
+from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_owner_or_admin
 from app.models.project import Project
@@ -20,6 +20,9 @@ class BillingReceiptsView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
         billing_receipt_schema = BillingReceiptSchema(many=True)
         project = Project.get_by_id(project_id)
 
@@ -30,7 +33,7 @@ class BillingReceiptsView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='Unauthorised'), 403
 
-        billing_receipts = TransactionRecord.find_all(project_id=project_id)
+        billing_receipts = TransactionRecord.find_all(project_id=project_id, paginate=True, page=page, per_page=per_page)
 
         if not billing_receipts:
             return dict(
@@ -38,13 +41,13 @@ class BillingReceiptsView(Resource):
                 message=f'billing receipt records not found'
             ), 404
 
-        billing_receipts_data, errors = billing_receipt_schema.dumps(billing_receipts)
+        billing_receipts_data, errors = billing_receipt_schema.dumps(billing_receipts.items)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            billing_receipts=json.loads(billing_receipts_data))), 200
+            billing_receipts=json.loads(billing_receipts_data) , pagination=billing_receipts.pagination)), 200
 
 
 class BillingReceiptsDetailView(Resource):

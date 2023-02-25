@@ -120,17 +120,19 @@ class UsersView(Resource):
         """
 
         user_schema = UserSchema(many=True)
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
-        users = User.find_all()
+        users = User.find_all(paginate=True, page=page, per_page=per_page)
 
-        users_data, errors = user_schema.dumps(users)
+        users_data, errors = user_schema.dumps(users.items)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
         return dict(
             status='success',
-            data=dict(users=json.loads(users_data))
+            data=dict(users=json.loads(users_data) , pagination=users.pagination)
         ), 200
 
 
@@ -198,11 +200,11 @@ class UserLoginView(Resource):
         if not user:
             return dict(status='fail', message="login failed"), 401
 
-        if not user.verified:
-            return dict(
-                status='fail',
-                message='email not verified', data=dict(verified=user.verified)
-            ), 401
+        # if not user.verified:
+        #     return dict(
+        #         status='fail',
+        #         message='email not verified', data=dict(verified=user.verified)
+        #     ), 401
 
         #Updating user's last login
         user.last_seen = datetime.datetime.now()

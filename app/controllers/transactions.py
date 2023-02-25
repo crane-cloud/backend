@@ -133,10 +133,13 @@ class TransactionRecordView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
         transaction_schema = TransactionRecordSchema(many=True)
         project = Project.get_by_id(project_id)
 
-        transaction = TransactionRecord.find_all(project_id=project_id)
+        transaction = TransactionRecord.find_all(project_id=project_id, paginate=True, page=page, per_page=per_page)
 
         if not transaction:
             return dict(
@@ -148,13 +151,13 @@ class TransactionRecordView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='Unauthorised'), 403
 
-        transaction_data, errors = transaction_schema.dumps(transaction)
+        transaction_data, errors = transaction_schema.dumps(transaction.items)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            transaction=json.loads(transaction_data))), 200
+            transaction=json.loads(transaction_data), pagination=transaction.pagination)), 200
 
 
 class TransactionRecordDetailView(Resource):

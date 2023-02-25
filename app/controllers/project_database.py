@@ -165,6 +165,9 @@ class ProjectDatabaseView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
         database_schema = ProjectDatabaseSchema(many=True)
 
         project = Project.get_by_id(project_id)
@@ -175,14 +178,15 @@ class ProjectDatabaseView(Resource):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
-        databases = ProjectDatabase.find_all(project_id=project_id)
+        databases = ProjectDatabase.find_all(project_id=project_id, paginate=True, page=page, per_page=per_page)
 
-        database_data, errors = database_schema.dumps(databases)
+        database_data, errors = database_schema.dumps(databases.items)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         database_data_list = json.loads(database_data)
+        pagination = databases.pagination
 
         # Check the database status on host
         for database in database_data_list:
@@ -213,7 +217,7 @@ class ProjectDatabaseView(Resource):
 
             database['db_status'] = db_status
 
-        return dict(status='success', data=dict(databases=database_data_list)), 200
+        return dict(status='success', data=dict(databases=database_data_list, pagination=pagination)), 200
 
 
 class ProjectDatabaseDetailView(Resource):
@@ -645,16 +649,20 @@ class ProjectDatabaseAdminView(Resource):
         """
         database_schema = ProjectDatabaseSchema(many=True)
 
-        databases = ProjectDatabase.find_all()
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
-        database_data, errors = database_schema.dumps(databases)
+        databases = ProjectDatabase.find_all(paginate=True, page=page, per_page=per_page)
+
+        database_data, errors = database_schema.dumps(databases.items)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         database_data_list = json.loads(database_data)
+        pagination = databases.pagination
 
-        return dict(status='success', data=dict(databases=database_data_list)), 200
+        return dict(status='success', data=dict(databases=database_data_list, pagination=pagination)), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
