@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - develop-new
+      - fix-migration-head
 
 jobs:
   build:
