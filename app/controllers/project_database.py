@@ -217,7 +217,7 @@ class ProjectDatabaseView(Resource):
 
             database['db_status'] = db_status
 
-        return dict(status='success', data=dict(databases=database_data_list, pagination=pagination)), 200
+        return dict(status='success', data=dict(pagination=pagination,databases=database_data_list)), 200
 
 
 class ProjectDatabaseDetailView(Resource):
@@ -662,7 +662,7 @@ class ProjectDatabaseAdminView(Resource):
         database_data_list = json.loads(database_data)
         pagination = databases.pagination
 
-        return dict(status='success', data=dict(databases=database_data_list, pagination=pagination)), 200
+        return dict(status='success', data=dict(pagination=pagination,databases=database_data_list)), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
