@@ -132,7 +132,7 @@ class UsersView(Resource):
 
         return dict(
             status='success',
-            data=dict(users=json.loads(users_data) , pagination=users.pagination)
+            data=dict(pagination=users.pagination, users=json.loads(users_data))
         ), 200
 
 
