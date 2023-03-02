@@ -157,7 +157,7 @@ class TransactionRecordView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            transaction=json.loads(transaction_data), pagination=transaction.pagination)), 200
+           pagination=transaction.pagination, transaction=json.loads(transaction_data))), 200
 
 
 class TransactionRecordDetailView(Resource):
