@@ -47,7 +47,7 @@ class BillingReceiptsView(Resource):
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            billing_receipts=json.loads(billing_receipts_data) , pagination=billing_receipts.pagination)), 200
+            pagination=billing_receipts.pagination, billing_receipts=json.loads(billing_receipts_data))), 200
 
 
 class BillingReceiptsDetailView(Resource):
