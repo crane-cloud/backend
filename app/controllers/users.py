@@ -22,7 +22,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
-import datetime
 from app.models.project_database import ProjectDatabase
 from app.models.app import App
 
@@ -205,7 +204,7 @@ class UserLoginView(Resource):
             ), 401
 
         #Updating user's last login
-        user.last_seen = datetime.datetime.now()
+        user.last_seen = datetime.now()
         updated_user = user.save()
 
         if not updated_user:
@@ -850,20 +849,19 @@ class UserActivitesView(Resource):
             if validated_data_query.get('start') and validated_data_query.get('end'):
 
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' '),
-                                                         "$lte": datetime.combine(validated_data_query.get('end'),
-                                                                                  datetime.max.time()).isoformat(' ')}
+                datetime.min.time()).isoformat(' '),
+                "$lte": datetime.combine(validated_data_query.get('end'), datetime.max.time()).isoformat(' ')}
                 validated_data_query.pop('start', None)
                 validated_data_query.pop('end', None)
 
             elif validated_data_query.get('start') and not validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' ')}
+                datetime.min.time()).isoformat(' ')}
                 validated_data_query.pop('start', None)
 
             elif not validated_data_query.get('start') and validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
-                                                                                  datetime.max.time()).isoformat(' ')}
+                datetime.max.time()).isoformat(' ')}
                 validated_data_query.pop('end', None)
 
             # get logs
