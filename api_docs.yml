@@ -44,6 +44,14 @@ paths:
           name: Authorization
           required: true
           description: "Bearer [token]"
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
@@ -1711,6 +1719,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -1871,6 +1887,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -1953,6 +1977,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -2550,6 +2582,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
@@ -2981,6 +3021,14 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
