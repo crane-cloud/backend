@@ -1,7 +1,9 @@
 import os
+import datetime
+import json
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import create_kube_clients, delete_cluster_app
@@ -11,9 +13,8 @@ from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.schemas import ProjectSchema, MetricsSchema
-import datetime
+from app.helpers.decorators import admin_required
 from prometheus_http_client import Prometheus
-import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -547,6 +548,44 @@ class UserProjectsView(Resource):
         return dict(
             status='success',
             data=dict(projects=json.loads(projects_json))
+        ), 200
+
+
+class ClusterProjectsView(Resource):
+
+    @admin_required
+    def get(self, cluster_id):
+        """
+        Get projects in a cluster
+        """
+
+        current_user_roles = get_jwt_claims()['roles']
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        if not is_admin(current_user_roles):
+            return dict(status='fail', message='user unauthorised'), 403
+
+        project_schema = ProjectSchema(many=True)
+        cluster = Cluster.get_by_id(cluster_id)
+
+        if not cluster:
+            return dict(status='fail', message=f'Cluster with id {cluster_id} not found'), 404
+
+        projects = cluster.projects
+        projects = Project.find_all(
+            cluster_id=cluster_id, paginate=True, page=page, per_page=per_page)
+
+        projects_json, errors = project_schema.dumps(projects.items)
+
+        if errors:
+            return dict(status='fail', message='Internal server error'), 500
+
+        return dict(
+            status='success',
+            data=dict(
+                pagination=projects.pagination,
+                projects=json.loads(projects_json))
         ), 200
 
 
