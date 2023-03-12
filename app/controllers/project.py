@@ -203,42 +203,41 @@ class ProjectsView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
 
         project_schema = ProjectSchema(many=True)
+        projects = []
         if has_role(current_user_roles, 'administrator'):
-            projects = Project.find_all()
-            user = User.get_by_id(current_user_id)
+            paginated = Project.find_all(
+                paginate=True, page=page, per_page=per_page)
+            projects = paginated.items
+            pagination_data = paginated.pagination
         else:
             try:
                 pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
                     ProjectUser.user_id == current_user_id))).paginate(
                     page=page, per_page=per_page, error_out=False)
+                projects = pagination.items
+                if pagination:
+                    pagination_data = {
+                        'total': pagination.total,
+                        'pages': pagination.pages,
+                        'page': pagination.page,
+                        'per_page': pagination.per_page,
+                        'next': pagination.next_num,
+                        'prev': pagination.prev_num
+                    }
             except SQLAlchemyError:
                 pagination = None
                 return dict(status='fail', message='Internal Server Error'), 500
 
-        user = User.get_by_id(current_user_id)
-        projects = []
-        if pagination:
-            projects = pagination.items
-
-            pagination_data = {
-                'total': pagination.total,
-                'pages': pagination.pages,
-                'page': pagination.page,
-                'per_page': pagination.per_page,
-                'next': pagination.next_num,
-                'prev': pagination.prev_num
-            }
         project_data, errors = project_schema.dumps(projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         # Updating user's last login
+        user = User.get_by_id(current_user_id)
         user.last_seen = datetime.datetime.now()
-        updated_user = user.save()
-
-        if not updated_user:
-            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
+        user.save()
+        #ADD a logger for when user.save does not work
 
         return dict(status='success',
                     data=dict(
