@@ -1,7 +1,7 @@
 import os
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import create_kube_clients, delete_cluster_app
@@ -10,7 +10,7 @@ from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema
+from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema
 import datetime
 from prometheus_http_client import Prometheus
 import json
@@ -237,7 +237,7 @@ class ProjectsView(Resource):
         user = User.get_by_id(current_user_id)
         user.last_seen = datetime.datetime.now()
         user.save()
-        #ADD a logger for when user.save does not work
+        # ADD a logger for when user.save does not work
 
         return dict(status='success',
                     data=dict(
@@ -269,12 +269,24 @@ class ProjectDetailView(Resource):
                 return dict(status='fail', message='unauthorised'), 403
 
         project_data, errors = project_schema.dumps(project)
-
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(
-            project=json.loads(project_data))), 200
+        # if user not an admin
+        if not is_admin(current_user_roles):
+            return dict(status='success', data=dict(
+                project=json.loads(project_data))), 200
+        else:
+            apps_schema = AppSchema(many=True)
+            database_schema = ProjectDatabaseSchema(many=True)
+            apps = project.apps
+            databases = project.project_databases
+            apps_data, errors = apps_schema.dumps(apps)
+            databases_data, errors = database_schema.dumps(databases)
+            return dict(status='success', data=dict(
+                project=dict(**json.loads(project_data),
+                             apps=json.loads(apps_data),
+                             databases=json.loads(databases_data)))), 200
 
     @jwt_required
     def delete(self, project_id):
