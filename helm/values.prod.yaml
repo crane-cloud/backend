@@ -78,3 +78,4 @@ environment:
   NEW_RELIC_APP_NAME: Cranecloud-api-production
   NEW_RELIC_LICENSE_KEY: ${{ NEW_RELIC_LICENSE_KEY }}
   PROMETHEUS_URL: https://prom.cranecloud.io/
+  REDIS_URL: redis://redis:6379
