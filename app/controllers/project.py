@@ -10,7 +10,7 @@ from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema
+from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema
 import datetime
 from prometheus_http_client import Prometheus
 import json
@@ -279,14 +279,18 @@ class ProjectDetailView(Resource):
         else:
             apps_schema = AppSchema(many=True)
             database_schema = ProjectDatabaseSchema(many=True)
+            users_schema = ProjectUserSchema(many=True)
             apps = project.apps
             databases = project.project_databases
+            users = project.users
             apps_data, errors = apps_schema.dumps(apps)
             databases_data, errors = database_schema.dumps(databases)
+            users_data, errors = users_schema.dumps(users)
             return dict(status='success', data=dict(
                 project=dict(**json.loads(project_data),
                              apps=json.loads(apps_data),
-                             databases=json.loads(databases_data)))), 200
+                             databases=json.loads(databases_data),
+                             users=json.loads(users_data)))), 200
 
     @jwt_required
     def delete(self, project_id):
