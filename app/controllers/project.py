@@ -1,7 +1,7 @@
 import os
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin
+from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import create_kube_clients, delete_cluster_app
@@ -10,7 +10,7 @@ from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema
+from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema
 import datetime
 from prometheus_http_client import Prometheus
 import json
@@ -203,42 +203,41 @@ class ProjectsView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
 
         project_schema = ProjectSchema(many=True)
+        projects = []
         if has_role(current_user_roles, 'administrator'):
-            projects = Project.find_all()
-            user = User.get_by_id(current_user_id)
+            paginated = Project.find_all(
+                paginate=True, page=page, per_page=per_page)
+            projects = paginated.items
+            pagination_data = paginated.pagination
         else:
             try:
                 pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
                     ProjectUser.user_id == current_user_id))).paginate(
                     page=page, per_page=per_page, error_out=False)
+                projects = pagination.items
+                if pagination:
+                    pagination_data = {
+                        'total': pagination.total,
+                        'pages': pagination.pages,
+                        'page': pagination.page,
+                        'per_page': pagination.per_page,
+                        'next': pagination.next_num,
+                        'prev': pagination.prev_num
+                    }
             except SQLAlchemyError:
                 pagination = None
                 return dict(status='fail', message='Internal Server Error'), 500
 
-        user = User.get_by_id(current_user_id)
-        projects = []
-        if pagination:
-            projects = pagination.items
-
-            pagination_data = {
-                'total': pagination.total,
-                'pages': pagination.pages,
-                'page': pagination.page,
-                'per_page': pagination.per_page,
-                'next': pagination.next_num,
-                'prev': pagination.prev_num
-            }
         project_data, errors = project_schema.dumps(projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         # Updating user's last login
+        user = User.get_by_id(current_user_id)
         user.last_seen = datetime.datetime.now()
-        updated_user = user.save()
-
-        if not updated_user:
-            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
+        user.save()
+        # ADD a logger for when user.save does not work
 
         return dict(status='success',
                     data=dict(
@@ -270,12 +269,28 @@ class ProjectDetailView(Resource):
                 return dict(status='fail', message='unauthorised'), 403
 
         project_data, errors = project_schema.dumps(project)
-
         if errors:
             return dict(status='fail', message=errors), 500
 
-        return dict(status='success', data=dict(
-            project=json.loads(project_data))), 200
+        # if user not an admin
+        if not is_admin(current_user_roles):
+            return dict(status='success', data=dict(
+                project=json.loads(project_data))), 200
+        else:
+            apps_schema = AppSchema(many=True)
+            database_schema = ProjectDatabaseSchema(many=True)
+            users_schema = ProjectUserSchema(many=True)
+            apps = project.apps
+            databases = project.project_databases
+            users = project.users
+            apps_data, errors = apps_schema.dumps(apps)
+            databases_data, errors = database_schema.dumps(databases)
+            users_data, errors = users_schema.dumps(users)
+            return dict(status='success', data=dict(
+                project=dict(**json.loads(project_data),
+                             apps=json.loads(apps_data),
+                             databases=json.loads(databases_data),
+                             users=json.loads(users_data)))), 200
 
     @jwt_required
     def delete(self, project_id):
