@@ -188,7 +188,7 @@ class ProjectsView(Resource):
         except Exception as err:
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=e.body,
+                         description=err,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
@@ -203,9 +203,15 @@ class ProjectsView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
 
         project_schema = ProjectSchema(many=True)
+        pagination = {}
+        projects = []
+        pagination_data = {}
         if has_role(current_user_roles, 'administrator'):
-            projects = Project.find_all()
+            admin_pagination = Project.find_all(paginate=True, page=page, per_page=per_page)
             user = User.get_by_id(current_user_id)
+            if admin_pagination:
+                projects = admin_pagination.items
+                pagination_data = admin_pagination.pagination
         else:
             try:
                 pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
@@ -215,8 +221,8 @@ class ProjectsView(Resource):
                 pagination = None
                 return dict(status='fail', message='Internal Server Error'), 500
 
-        user = User.get_by_id(current_user_id)
-        projects = []
+        user = User.get_by_id(current_user_id)        
+
         if pagination:
             projects = pagination.items
 
