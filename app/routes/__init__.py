@@ -14,10 +14,10 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView, 
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
-    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView, ProjectUsersHandleInviteView)
+    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView, ProjectUsersHandleInviteView, ClusterProjectsView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -79,6 +79,8 @@ api.add_resource(ClusterStorageClassView,
                  '/clusters/<string:cluster_id>/storage_classes')
 api.add_resource(ClusterStorageClassDetailView,
                  '/clusters/<string:cluster_id>/storage_classes/<string:storage_class_name>')
+api.add_resource(ClusterProjectsView,
+                 '/clusters/<string:cluster_id>/projects')
 
 # Credit routes
 api.add_resource(CreditView, '/credit', endpoint='credit')
@@ -105,15 +107,15 @@ api.add_resource(TransactionRecordView,
 api.add_resource(TransactionRecordDetailView,
                  '/projects/<string:project_id>/transactions/<string:record_id>')
 api.add_resource(TransactionVerificationView,
-                  '/projects/<string:project_id>/transactions/<string:transaction_id>/<string:tx_ref>')
+                 '/projects/<string:project_id>/transactions/<string:transaction_id>/<string:tx_ref>')
 
-#Credit Transaction route
+# Credit Transaction route
 api.add_resource(CreditTransactionRecordView,
-                 '/projects/<string:project_id>/credit_transactions', endpoint='credit_transactions') 
+                 '/projects/<string:project_id>/credit_transactions', endpoint='credit_transactions')
 
-#Credit Purchase Transaction route
+# Credit Purchase Transaction route
 api.add_resource(CreditPurchaseTransactionRecordView,
-                 '/projects/<string:project_id>/credit_purchase_transactions', endpoint='credit_purchase_transactions')             
+                 '/projects/<string:project_id>/credit_purchase_transactions', endpoint='credit_purchase_transactions')
 
 # Invoice routes
 api.add_resource(BillingInvoiceView,
@@ -150,7 +152,8 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
 api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
-api.add_resource(AppReviseView, '/apps/<string:app_id>/revise/<string:revision_id>')
+api.add_resource(
+    AppReviseView, '/apps/<string:app_id>/revise/<string:revision_id>')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
@@ -190,7 +193,9 @@ api.add_resource(DatabaseStatsView, '/databases/stats')
 
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
-api.add_resource(ProjectUsersTransferView, '/projects/<string:project_id>/users/transfer')
-api.add_resource(ProjectUsersHandleInviteView, '/projects/<string:project_id>/users/handle_invite')
+api.add_resource(ProjectUsersTransferView,
+                 '/projects/<string:project_id>/users/transfer')
+api.add_resource(ProjectUsersHandleInviteView,
+                 '/projects/<string:project_id>/users/handle_invite')
 # system status
 api.add_resource(SystemStatusView, '/system_status')

@@ -657,6 +657,43 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/clusters/{cluster_id}/projects":
+    get:
+      tags:
+        - clusters
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: cluster_id
+          required: true
+          type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+
+      responses:
+        200:
+          description: "Get projects in a cluster"
+        404:
+          description: "cluster not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters/{cluster_id}/namespaces":
     get:
       tags:
