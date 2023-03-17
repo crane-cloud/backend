@@ -20,8 +20,7 @@ from .credits import CreditView, CreditDetailView
 from .user_role import UserRolesView
 from .transactions import TransactionRecordView, TransactionRecordDetailView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView
 from .project import (
-    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView,
-    ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
+    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView,ProjectDisableView,ProjectEnableView,ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
                   AppDataSummaryView, AppRevertView, AppReviseView)

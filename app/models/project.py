@@ -35,3 +35,4 @@ class Project(ModelMixin):
     anonymoususers = db.relationship(
         'AnonymousUser', backref='anonymous_project_users', lazy=True)
     deleted = db.Column(db.Boolean, default=False)
+    disabled = db.Column(db.Boolean, default=False)
