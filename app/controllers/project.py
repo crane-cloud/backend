@@ -953,8 +953,8 @@ class ProjectDisableView(Resource):
                                     operation='Disable',
                                     description='Unable to disable postgres database, Internal Server Error',
                                     a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id,
-                                    a_db_id=database.database_id)
+                                    a_cluster_id=project.cluster_id
+                                    )
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
@@ -1000,8 +1000,7 @@ class ProjectDisableView(Resource):
                                     operation='Disable',
                                     description='Unable to disable mysql database, Internal Server Error',
                                     a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id,
-                                    a_db_id=database.database_id)
+                                    a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
@@ -1083,8 +1082,7 @@ class ProjectEnableView(Resource):
                                     operation='Disable',
                                     description='Unable to disable postgres database, Internal Server Error',
                                     a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id,
-                                    a_db_id=database.database_id)
+                                    a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
@@ -1130,8 +1128,8 @@ class ProjectEnableView(Resource):
                                     operation='Disable',
                                     description='Unable to disable mysql database, Internal Server Error',
                                     a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id,
-                                    a_db_id=database.database_id)
+                                    a_cluster_id=project.cluster_id
+                                    )
                         return dict(
                             status="fail",
                             message=f"Unable to Enable database"
