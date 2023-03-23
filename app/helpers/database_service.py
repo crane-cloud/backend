@@ -363,6 +363,45 @@ class MysqlDbService(DatabaseService):
                 connection.close()
 
 
+    # disable user database log in
+    def disable_user_log_in(self, db_user_name, db_user_pw):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(f"ALTER USER {db_user_name} IDENTIFIED BY '{db_user_pw}'ACCOUNT LOCK")
+            
+            return True
+        except self.Error:
+            return False
+        finally:
+            if not connection:
+                return False
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
+    # enable user database log in
+    def enable_user_log_in(self, db_user_name, db_user_pw):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(f"ALTER USER {db_user_name} IDENTIFIED BY '{db_user_pw}'ACCOUNT UNLOCK")
+            
+            return True
+        except self.Error:
+            return False
+        finally:
+            if not connection:
+                return False
+            if (connection.is_connected()):
+                cursor.close()
+                connection.close()
+
+
 class PostgresqlDbService(DatabaseService):
 
     def __init__(self):
@@ -637,5 +676,43 @@ class PostgresqlDbService(DatabaseService):
                     'status': 'error',
                     'message': 'Unable to connect to database'}
 
+            cursor.close()
+            connection.close()
+
+    # disable user database log in
+    def disable_user_log_in(self, db_user_name):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(f"ALTER USER {db_user_name} NOLOGIN")
+            
+            return True
+        except self.Error as e:
+            print(e)
+            return False
+        finally:
+            if not connection:
+                return False
+            cursor.close()
+            connection.close()
+
+    # enable user database log in
+    def enable_user_log_in(self, db_user_name):
+        try:
+            connection = self.create_connection()
+            if not connection:
+                return False
+            cursor = connection.cursor()
+            cursor.execute(f"ALTER USER {db_user_name} WITH LOGIN")
+            
+            return True
+        except self.Error as e:
+            print(e)
+            return False
+        finally:
+            if not connection:
+                return False
             cursor.close()
             connection.close()
