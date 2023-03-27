@@ -74,7 +74,7 @@ pytz==2021.3
 pyxdg==0.25
 PyYAML==6.0
 rave-python==1.2.16
-redis==3.5.3
+redis==4.5.3
 requests==2.22.0
 requests-oauthlib==1.2.0
 rsa==4.0
