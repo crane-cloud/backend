@@ -25,6 +25,8 @@ class ProjectSchema(Schema):
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     apps_count = fields.Method("get_apps_count", dump_only=True)
+    disabled = fields.Boolean()
+
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
