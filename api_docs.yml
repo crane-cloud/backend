@@ -712,6 +712,14 @@ paths:
           name: cluster_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -774,7 +782,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of nodes"
@@ -836,6 +851,14 @@ paths:
           name: cluster_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -902,7 +925,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of PVCs"
@@ -968,7 +998,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of PVs"
@@ -1030,7 +1067,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of pods"
@@ -1096,7 +1140,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of services"
