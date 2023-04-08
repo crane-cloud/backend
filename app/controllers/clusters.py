@@ -6,6 +6,7 @@ from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
 from app.helpers.kube import create_kube_clients
 from app.helpers.decorators import admin_required
+from app.helpers.pagination import paginate
 
 
 class ClustersView(Resource):
@@ -196,10 +197,11 @@ class ClusterNamespacesView(Resource):
 
             cluster = Cluster.get_by_id(cluster_id)
 
-            namespaces = []
-
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -209,13 +211,17 @@ class ClusterNamespacesView(Resource):
             # get all namespaces in the cluster
             namespace_resp = kube_client.kube.list_namespace()
 
-            for item in namespace_resp.items:
+            pagination , paginated_items = paginate(namespace_resp , per_page , page)
+
+            namespaces = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 namespaces.append(item)
 
             namespaces_json = json.dumps(namespaces)
 
-            return dict(status='success', data=dict(namespaces=json.loads(namespaces_json))), 200
+            return dict(status='success', data=dict(pagination = pagination , namespaces=json.loads(namespaces_json))), 200
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
@@ -269,10 +275,11 @@ class ClusterNodesView(Resource):
         try:
             cluster = Cluster.get_by_id(cluster_id)
 
-            nodes = []
-
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -282,13 +289,17 @@ class ClusterNodesView(Resource):
             # get all nodes in the cluster
             node_resp = kube_client.kube.list_node()
 
-            for item in node_resp.items:
+            pagination , paginated_items = paginate(node_resp , per_page , page)
+
+            nodes = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 nodes.append(item)
 
             nodes_json = json.dumps(nodes)
 
-            return dict(status='success', data=dict(nodes=json.loads(nodes_json))), 200
+            return dict(status='success', data=dict(pagination = pagination , nodes=json.loads(nodes_json))), 200
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
@@ -340,6 +351,9 @@ class ClusterDeploymentsView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -348,9 +362,12 @@ class ClusterDeploymentsView(Resource):
 
             deployment_resp =\
                 kube_client.appsv1_api.list_deployment_for_all_namespaces()
+            
+            pagination , paginated_items = paginate(deployment_resp.items , per_page , page)
+
             tot_deployment_count = 0
             tot_success_deployments = 0
-            for item in deployment_resp.items:
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 deployments.append(item)
 
@@ -365,7 +382,7 @@ class ClusterDeploymentsView(Resource):
                                           total_successful_deployments=tot_success_deployments, total_failed_deployment=tot_failed_deployments)
             deployments_json = json.dumps(deployments)
 
-            return dict(status='success', data=dict(deployments=json.loads(deployments_json), deployment_summary_stats=summary_stats_metadata)), 200
+            return dict(status='success', data=dict(pagination = pagination , deployment_summary_stats=summary_stats_metadata, deployments=json.loads(deployments_json))), 200
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
 
@@ -421,10 +438,11 @@ class ClusterPvcsView(Resource):
         try:
             cluster = Cluster.get_by_id(cluster_id)
 
-            pvcs = []
-
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -433,15 +451,19 @@ class ClusterPvcsView(Resource):
 
             pvcs_resp = \
                 kube_client.kube.list_persistent_volume_claim_for_all_namespaces()
+            
+            pagination , paginated_items = paginate(pvcs_resp.items , per_page , page)
 
-            for item in pvcs_resp.items:
+            pvcs = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 pvcs.append(item)
 
             pvcs_json = json.dumps(pvcs)
 
             return dict(
-                status='success', data=dict(pvcs=json.loads(pvcs_json))), 200
+                status='success', data=dict(pagination = pagination , pvcs=json.loads(pvcs_json))), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -493,10 +515,11 @@ class ClusterPVsView(Resource):
         try:
             cluster = Cluster.get_by_id(cluster_id)
 
-            pvs = []
-
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -505,13 +528,17 @@ class ClusterPVsView(Resource):
 
             pvs_resp = kube_client.kube.list_persistent_volume()
 
-            for item in pvs_resp.items:
+            pagination , paginated_items = paginate(pvs_resp.items , per_page , page)
+
+            pvs = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 pvs.append(item)
 
             pvs_json = json.dumps(pvs)
 
-            return dict(status='success', data=dict(pvs=json.loads(pvs_json))), 200
+            return dict(status='success', data=dict(pagination = pagination , pvs=json.loads(pvs_json))), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -563,28 +590,30 @@ class ClusterPodsView(Resource):
         try:
             cluster = Cluster.get_by_id(cluster_id)
 
-            pods = []
-
             if not cluster:
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
                 ), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
 
             kube_client = create_kube_clients(kube_host, kube_token)
-
             pods_resp = kube_client.kube.list_pod_for_all_namespaces()
+            
+            pagination , paginated_items = paginate(pods_resp.items,per_page,page)
 
-            for item in pods_resp.items:
+            pods = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 pods.append(item)
 
-            pods_json = json.dumps(pods)
-
-            return dict(status='success', data=dict(pods=json.loads(pods_json))), 200
+            return dict(status='success', data=dict(pagination=pagination , pods=pods)), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
@@ -634,13 +663,14 @@ class ClusterServicesView(Resource):
         try:
             cluster = Cluster.get_by_id(cluster_id)
 
-            services = []
-
             if not cluster:
                 return dict(
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
                 ), 404
+            
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -649,14 +679,18 @@ class ClusterServicesView(Resource):
 
             service_resp =\
                 kube_client.kube.list_service_for_all_namespaces()
+            
+            pagination , paginated_items = paginate(service_resp.items,per_page,page)
 
-            for item in service_resp.items:
+            services = []
+
+            for item in paginated_items:
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 services.append(item)
 
             services_json = json.dumps(services)
 
-            return dict(status='success', data=dict(services=json.loads(services_json))), 200
+            return dict(status='success', data=dict(pagination = pagination , services=json.loads(services_json))), 200
 
         except client.rest.ApiException as e:
             return dict(status='fail', message=e.reason), e.status
