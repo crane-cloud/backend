@@ -38,8 +38,8 @@ class Development(Base):
 
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@database/cranecloud"
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud")
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "postgresql:///cranecloud2")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/cranecloud2")
 
 
 class Testing(Base):
@@ -50,8 +50,8 @@ class Testing(Base):
     # use a separate db
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
-        "TEST_DATABASE_URI") or "postgresql:///cranecloud_test_db"
-    MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/cranecloud_test_db")
+        "TEST_DATABASE_URI") or "postgresql:///cranecloud2"
+    MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/cranecloud2")
 
 
 class Staging(Base):

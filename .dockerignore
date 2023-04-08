@@ -6,3 +6,4 @@ tests/
 .coverage
 .vscode/
 docker/
+env
