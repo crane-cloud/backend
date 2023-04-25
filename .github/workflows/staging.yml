@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - develop-new
-      - upgrade-select-packages
 
 jobs:
   build:
