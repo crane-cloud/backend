@@ -1162,9 +1162,7 @@ class ProjectAdminDisableView(Resource):
     @admin_required
     def post(self, project_id):
 
-        # check credentials
-        # current_user_id = get_jwt_identity()
-        # current_user_roles = get_jwt_claims()['roles']
+
 
         #check if admin
         current_user_roles = get_jwt_claims()['roles']
@@ -1176,9 +1174,7 @@ class ProjectAdminDisableView(Resource):
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
-        # if not is_owner_or_admin(project, current_user_id, current_user_roles):
-        #     if not is_authorised_project_user(project, current_user_id, 'admin'):
-        #         return dict(status='fail', message='unauthorised'), 403
+
         
         if project.admin_disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already admin disabled'), 409
@@ -1311,9 +1307,7 @@ class ProjectAdminEnableView(Resource):
     @admin_required
     def post(self, project_id):
 
-        # check credentials
-        # current_user_id = get_jwt_identity()
-        # current_user_roles = get_jwt_claims()['roles']
+
 
          #check if admin
         current_user_roles = get_jwt_claims()['roles']
@@ -1324,9 +1318,7 @@ class ProjectAdminEnableView(Resource):
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
-        # if not is_owner_or_admin(project, current_user_id, current_user_roles):
-        #     if not is_authorised_project_user(project, current_user_id, 'admin'):
-        #         return dict(status='fail', message='unauthorised'), 403
+
         
         if not project.admin_disabled and not project.disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already admin enabled'), 409
