@@ -26,6 +26,7 @@ class ProjectSchema(Schema):
     age = fields.Method("get_age", dump_only=True)
     apps_count = fields.Method("get_apps_count", dump_only=True)
     disabled = fields.Boolean()
+    admin_disabled = fields.Boolean()
 
 
     def get_age(self, obj):
