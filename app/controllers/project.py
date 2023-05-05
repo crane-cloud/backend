@@ -203,19 +203,44 @@ class ProjectsView(Resource):
         current_user_roles = get_jwt_claims()['roles']
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
+        keywords = request.args.get('keywords', '')
 
         project_schema = ProjectSchema(many=True)
         projects = []
+
         if has_role(current_user_roles, 'administrator'):
-            paginated = Project.find_all(
-                paginate=True, page=page, per_page=per_page)
-            projects = paginated.items
-            pagination_data = paginated.pagination
+
+            if (keywords == ''):
+                paginated = Project.find_all(
+                    paginate=True, page=page, per_page=per_page)
+                projects = paginated.items
+                pagination_data = paginated.pagination
+            else :
+                paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).paginate(
+                        page=page, per_page=per_page, error_out=False)
+                projects = paginated.items
+                pagination_data = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
         else:
             try:
-                pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                    ProjectUser.user_id == current_user_id))).paginate(
-                    page=page, per_page=per_page, error_out=False)
+
+                if (keywords == ''):
+
+                    pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
+                        ProjectUser.user_id == current_user_id))).paginate(
+                        page=page, per_page=per_page, error_out=False)
+                else :
+
+                    pagination = Project.query.filter(Project.owner_id == current_user_id, Project.name.ilike('%'+keywords+'%'), Project.users.any(
+                        ProjectUser.user_id == current_user_id)).paginate(
+                        page=page, per_page=per_page, error_out=False)
+                    
                 projects = pagination.items
                 if pagination:
                     pagination_data = {
