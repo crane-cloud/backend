@@ -2171,6 +2171,10 @@ paths:
           description: "Bearer [token]"
           type: string
         - in: query
+          name: keywords
+          type: string
+          description: Enter keywords if searching 
+        - in: query
           name: page
           type: integer
           description: Page number
