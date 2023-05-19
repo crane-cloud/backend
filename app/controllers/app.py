@@ -797,6 +797,7 @@ class ProjectAppsView(Resource):
             current_user_roles = get_jwt_claims()['roles']
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
+            keywords = request.args.get('keywords' , '')
             app_schema = AppSchema(many=True)
 
             project = Project.get_by_id(project_id)
@@ -817,11 +818,25 @@ class ProjectAppsView(Resource):
             kube_token = cluster.token
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            paginated = App.find_all(
-                project_id=project_id, paginate=True, page=page, per_page=per_page)
-            pagination = paginated.pagination
-            apps = paginated.items
-            apps_data, errors = app_schema.dumps(apps)
+            if (keywords == ''):
+                paginated = App.find_all(
+                    project_id=project_id, paginate=True, page=page, per_page=per_page)
+                pagination = paginated.pagination
+                apps = paginated.items
+                apps_data, errors = app_schema.dumps(apps)
+
+            else :
+                paginated = App.query.filter(App.name.ilike('%'+keywords+'%')).paginate(page=page, per_page=per_page, error_out=False)
+                pagination = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
+                apps = paginated.items
+                apps_data, errors = app_schema.dumps(apps)
 
             # if errors:
             #     return dict(status='fail', message=errors), 500
