@@ -832,12 +832,13 @@ class ProjectAppsView(Resource):
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
                             app['alias'] + "-deployment", project.alias)
-
                     app_deployment_status_conditions = app_status_object.status.conditions
 
-                    for deplyoment_status_condition in app_deployment_status_conditions:
-                        if deplyoment_status_condition.type == "Available":
-                            app_deployment_status = deplyoment_status_condition.status
+                    app_deployment_status = None
+                    if app_deployment_status_conditions: 
+                        for deplyoment_status_condition in app_deployment_status_conditions:
+                            if deplyoment_status_condition.type == "Available":
+                                app_deployment_status = deplyoment_status_condition.status
 
                 except client.rest.ApiException:
                     app_deployment_status = None
