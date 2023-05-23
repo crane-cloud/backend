@@ -16,7 +16,6 @@ Click==7.0
 click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
-codecov==2.1.12
 coverage==6.2
 cryptography==3.4.8
 dnspython==2.2.1
