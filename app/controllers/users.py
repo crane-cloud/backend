@@ -121,17 +121,32 @@ class UsersView(Resource):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
+        keywords = request.args.get('keywords' , '')
 
-        users = User.find_all(paginate=True, page=page, per_page=per_page)
+        if (keywords == ''):
+            paginated = User.find_all(paginate=True, page=page, per_page=per_page)
+            users = paginated.items
+            pagination = paginated.pagination
+        else :
+            paginated = User.query.filter(User.name.ilike('%'+keywords+'%')).paginate(page=page, per_page=per_page, error_out=False)
+            users = paginated.items
+            pagination = {
+                'total': paginated.total,
+                'pages': paginated.pages,
+                'page': paginated.page,
+                'per_page': paginated.per_page,
+                'next': paginated.next_num,
+                'prev': paginated.prev_num
+            } 
 
-        users_data, errors = user_schema.dumps(users.items)
+        users_data, errors = user_schema.dumps(users)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
         return dict(
             status='success',
-            data=dict(pagination=users.pagination, users=json.loads(users_data))
+            data=dict(pagination=pagination, users=json.loads(users_data))
         ), 200
 
 
