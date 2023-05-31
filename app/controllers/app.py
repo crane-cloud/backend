@@ -826,7 +826,7 @@ class ProjectAppsView(Resource):
                 apps_data, errors = app_schema.dumps(apps)
 
             else :
-                paginated = App.query.filter(App.name.ilike('%'+keywords+'%')).paginate(page=page, per_page=per_page, error_out=False)
+                paginated = App.query.filter(App.name.ilike('%'+keywords+'%') , App.project_id == project_id).paginate(page=page, per_page=per_page, error_out=False)
                 pagination = {
                     'total': paginated.total,
                     'pages': paginated.pages,
