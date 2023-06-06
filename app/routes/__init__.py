@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,
     RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -22,7 +22,6 @@ from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
 
-
 api = Api()
 
 # Index route
@@ -41,6 +40,7 @@ api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/summary')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
+api.add_resource(InActiveUsersView, '/users/inactive_users', endpoint='inactive_users')
 
 
 # Deployments

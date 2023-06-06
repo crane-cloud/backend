@@ -496,6 +496,41 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/users/inactive_users":
+    get:
+      tags:
+        - users
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: query
+          name: date
+          required: true
+          type: string
+          format: date
+          description: day since last login
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters":
     post:
       tags:

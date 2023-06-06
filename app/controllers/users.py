@@ -1,4 +1,5 @@
 import json
+from math import ceil
 import os
 from flask import current_app
 from flask_restful import Resource, request
@@ -893,3 +894,60 @@ class UserActivitesView(Resource):
             ), 200
         except Exception as err:
             return dict(status='fail', message=str(err)), 400
+
+class InActiveUsersView(Resource):
+    computed_results = {}  # Dictionary to cache computed results
+    
+    @admin_required
+    def get(self):
+        user_schema = UserSchema(many=True)
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        date = request.args.get("date")
+
+        if (date is not None):
+            try:
+                date = datetime.strptime(date, "%Y-%m-%d").date().isoformat()  # Standardize the date format
+
+                if date in self.computed_results:
+                    users_data = self.computed_results[date]
+                    total_items = len(json.loads(users_data))
+                    total_pages = ceil(total_items / per_page)
+
+                    pagination = {
+                        'total': total_items,
+                        'pages': total_pages,
+                        'page': page,
+                        'per_page': per_page,
+                        'next': page + 1 if page < total_pages else None,
+                        'prev': page - 1 if page > 1 else None
+                    }
+                                        
+                else:        
+                    paginated = User.query.filter(User.last_seen < date).paginate(page=page, per_page=per_page, error_out=False)
+                    
+                    users = paginated.items
+                    pagination = {
+                        'total': paginated.total,
+                        'pages': paginated.pages,
+                        'page': paginated.page,
+                        'per_page': paginated.per_page,
+                        'next': paginated.next_num,
+                        'prev': paginated.prev_num
+                    }
+
+                    users_data, errors = user_schema.dumps(users)
+                    self.computed_results[date] = users_data
+                
+                    if errors:
+                        return dict(status='fail', message=errors), 400
+                
+                return dict(
+                    status='success',
+                    data=dict(pagination=pagination, users=json.loads(users_data))
+                ), 200
+
+            except ValueError:
+                return dict(status='fail', message="Invalid date format"), 400
+        else: 
+            return dict(status='fail', message="missing required  parameter date"), 400
