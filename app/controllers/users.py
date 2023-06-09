@@ -13,9 +13,10 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import func, column
+from sqlalchemy import Date, func, column, cast
 from app.models import db
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
@@ -903,51 +904,61 @@ class InActiveUsersView(Resource):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        date = request.args.get("date")
+        entered_date = request.args.get("date")
+        days = request.args.get("days", 0, type=int)
+        weeks = request.args.get("weeks", 0, type=int)
+        months = request.args.get("months", 0, type=int)
+        years = request.args.get("years", 0, type=int)
 
-        if (date is not None):
+        today = datetime.now().date()
+
+        if (entered_date is not None):
             try:
-                date = datetime.strptime(date, "%Y-%m-%d").date().isoformat()  # Standardize the date format
-
-                if date in self.computed_results:
-                    users_data = self.computed_results[date]
-                    total_items = len(json.loads(users_data))
-                    total_pages = ceil(total_items / per_page)
-
-                    pagination = {
-                        'total': total_items,
-                        'pages': total_pages,
-                        'page': page,
-                        'per_page': per_page,
-                        'next': page + 1 if page < total_pages else None,
-                        'prev': page - 1 if page > 1 else None
-                    }
-                                        
-                else:        
-                    paginated = User.query.filter(User.last_seen < date).paginate(page=page, per_page=per_page, error_out=False)
-                    
-                    users = paginated.items
-                    pagination = {
-                        'total': paginated.total,
-                        'pages': paginated.pages,
-                        'page': paginated.page,
-                        'per_page': paginated.per_page,
-                        'next': paginated.next_num,
-                        'prev': paginated.prev_num
-                    }
-
-                    users_data, errors = user_schema.dumps(users)
-                    self.computed_results[date] = users_data
-                
-                    if errors:
-                        return dict(status='fail', message=errors), 400
-                
-                return dict(
-                    status='success',
-                    data=dict(pagination=pagination, users=json.loads(users_data))
-                ), 200
-
+                entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
                 return dict(status='fail', message="Invalid date format"), 400
-        else: 
-            return dict(status='fail', message="missing required  parameter date"), 400
+        elif any([days, weeks, months, years]):
+                entered_date = today - timedelta(days=days, weeks=weeks, months=months, years=years)
+        else:
+            return dict(status='fail', message="Missing required parameters"), 400
+        
+        if entered_date > today:
+                return dict(status='fail', message="Entered date cannot be in the future"), 400
+
+        if entered_date in self.computed_results:
+            users_data = self.computed_results[entered_date]
+            total_items = len(json.loads(users_data))
+            total_pages = ceil(total_items / per_page)
+
+            pagination = {
+                'total': total_items,
+                'pages': total_pages,
+                'page': page,
+                'per_page': per_page,
+                'next': page + 1 if page < total_pages else None,
+                'prev': page - 1 if page > 1 else None
+            }
+
+        else:
+            paginated = User.query.filter(User.last_seen <= entered_date).paginate(page=page, per_page=per_page, error_out=False)
+
+            users = paginated.items
+            pagination = {
+                'total': paginated.total,
+                'pages': paginated.pages,
+                'page': paginated.page,
+                'per_page': paginated.per_page,
+                'next': paginated.next_num,
+                'prev': paginated.prev_num
+            }
+
+            users_data, errors = user_schema.dumps(users)
+            self.computed_results[entered_date] = users_data
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(pagination=pagination, users=json.loads(users_data))
+        ), 200
