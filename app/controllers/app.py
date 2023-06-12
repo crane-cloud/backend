@@ -795,7 +795,9 @@ class ProjectAppsView(Resource):
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
-
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
+            keywords = request.args.get('keywords' , '')
             app_schema = AppSchema(many=True)
 
             project = Project.get_by_id(project_id)
@@ -816,9 +818,25 @@ class ProjectAppsView(Resource):
             kube_token = cluster.token
             kube_client = create_kube_clients(kube_host, kube_token)
 
-            apps = App.find_all(project_id=project_id)
+            if (keywords == ''):
+                paginated = App.find_all(
+                    project_id=project_id, paginate=True, page=page, per_page=per_page)
+                pagination = paginated.pagination
+                apps = paginated.items
+                apps_data, errors = app_schema.dumps(apps)
 
-            apps_data, errors = app_schema.dumps(apps)
+            else :
+                paginated = App.query.filter(App.name.ilike('%'+keywords+'%') , App.project_id == project_id).paginate(page=page, per_page=per_page, error_out=False)
+                pagination = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
+                apps = paginated.items
+                apps_data, errors = app_schema.dumps(apps)
 
             # if errors:
             #     return dict(status='fail', message=errors), 500
@@ -829,12 +847,13 @@ class ProjectAppsView(Resource):
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
                             app['alias'] + "-deployment", project.alias)
-
                     app_deployment_status_conditions = app_status_object.status.conditions
 
-                    for deplyoment_status_condition in app_deployment_status_conditions:
-                        if deplyoment_status_condition.type == "Available":
-                            app_deployment_status = deplyoment_status_condition.status
+                    app_deployment_status = None
+                    if app_deployment_status_conditions: 
+                        for deplyoment_status_condition in app_deployment_status_conditions:
+                            if deplyoment_status_condition.type == "Available":
+                                app_deployment_status = deplyoment_status_condition.status
 
                 except client.rest.ApiException:
                     app_deployment_status = None
@@ -867,7 +886,8 @@ class ProjectAppsView(Resource):
                     app['app_running_status'] = "unknown"
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=apps_data_list)), 409
-            return dict(status='success', data=dict(apps=apps_data_list)), 200
+            return dict(status='success',
+                        data=dict(pagination=pagination, apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
             return dict(status='fail', message=exc.reason), exc.status
@@ -1031,9 +1051,8 @@ class AppDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             app = App.get_by_id(app_id)
-
             if not app:
-                return dict(status='fail', message=f'app {app_id} not found'), 404
+                return dict(status='fail', message=f'app with id {app_id} not found'), 404
 
             project = app.project
 
@@ -1064,7 +1083,7 @@ class AppDetailView(Resource):
             delete_cluster_app(kube_client, namespace, app)
 
             # delete the app from the database
-            deleted = app.delete()
+            deleted = app.soft_delete()
 
             if not deleted:
                 log_activity('App', status='Failed',

@@ -78,5 +78,6 @@ environment:
   NEW_RELIC_APP_NAME: Cranecloud-api-staging
   NEW_RELIC_LICENSE_KEY: ${{ NEW_RELIC_LICENSE_KEY }}
   PROMETHEUS_URL: http://staging-prom.cranecloud.io/
+  REDIS_URL: redis://redis:6379
   MIRA_BACKEND_URL: http://mira.cranecloud.io:5000
   MIRA_FRONTEND_URL: http://mira.cranecloud.io:3000

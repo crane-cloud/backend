@@ -44,6 +44,18 @@ paths:
           name: Authorization
           required: true
           description: "Bearer [token]"
+        - in: query
+          name: keywords
+          type: string
+          description: Enter keywords if searching
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
@@ -649,6 +661,43 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/clusters/{cluster_id}/projects":
+    get:
+      tags:
+        - clusters
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: cluster_id
+          required: true
+          type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+
+      responses:
+        200:
+          description: "Get projects in a cluster"
+        404:
+          description: "cluster not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters/{cluster_id}/namespaces":
     get:
       tags:
@@ -667,6 +716,14 @@ paths:
           name: cluster_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -729,7 +786,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of nodes"
@@ -791,6 +855,14 @@ paths:
           name: cluster_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -857,7 +929,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of PVCs"
@@ -923,7 +1002,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of PVs"
@@ -985,7 +1071,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of pods"
@@ -1051,7 +1144,14 @@ paths:
           name: cluster_id
           required: true
           type: string
-
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Returns a list of services"
@@ -1711,6 +1811,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -1871,6 +1979,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -1953,6 +2069,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -2050,6 +2174,18 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+        - in: query
+          name: keywords
+          type: string
+          description: Enter keywords if searching 
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       responses:
         200:
           description: "Success"
@@ -2232,6 +2368,18 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: keywords
+          type: string
+          description: Enter keywords if searching 
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
 
       responses:
         200:
@@ -2484,6 +2632,118 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/projects/{project_id}/disable":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+        404:
+          description: "Project not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/projects/{project_id}/enable":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+        404:
+          description: "Project not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/projects/{project_id}/admin_disable":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+        404:
+          description: "Project not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/projects/{project_id}/admin_enable":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+        404:
+          description: "Project not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/projects/{project_id}/databases":
     post:
       tags:
@@ -2534,6 +2794,14 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
@@ -2920,7 +3188,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-
   "/databases":
     post:
       tags:
@@ -2966,6 +3233,14 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
       produces:
         - application/json
       responses:
@@ -3367,7 +3642,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
   "/apps/{app_id}/revise/{revision_id}":
     post:
