@@ -13,9 +13,9 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import Date, func, column, cast
+from sqlalchemy import func, column, cast
 from app.models import db
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
@@ -905,10 +905,6 @@ class InActiveUsersView(Resource):
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
         entered_date = request.args.get("date")
-        days = request.args.get("days", 0, type=int)
-        weeks = request.args.get("weeks", 0, type=int)
-        months = request.args.get("months", 0, type=int)
-        years = request.args.get("years", 0, type=int)
 
         today = datetime.now().date()
 
@@ -917,16 +913,17 @@ class InActiveUsersView(Resource):
                 entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
                 return dict(status='fail', message="Invalid date format"), 400
-        elif any([days, weeks, months, years]):
-                entered_date = today - timedelta(days=days, weeks=weeks, months=months, years=years)
         else:
             return dict(status='fail', message="Missing required parameters"), 400
         
         if entered_date > today:
                 return dict(status='fail', message="Entered date cannot be in the future"), 400
 
-        if entered_date in self.computed_results:
-            users_data = self.computed_results[entered_date]
+        time_difference = relativedelta(today, entered_date)
+        days_difference = time_difference.days
+
+        if days_difference in self.computed_results:
+            users_data = self.computed_results[days_difference]
             total_items = len(json.loads(users_data))
             total_pages = ceil(total_items / per_page)
 
@@ -953,7 +950,7 @@ class InActiveUsersView(Resource):
             }
 
             users_data, errors = user_schema.dumps(users)
-            self.computed_results[entered_date] = users_data
+            self.computed_results[days_difference] = users_data
 
             if errors:
                 return dict(status='fail', message=errors), 400
