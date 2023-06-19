@@ -64,7 +64,7 @@ class UsersView(Resource):
                 status="fail",
                 message=f"Email {validated_user_data['email']} already in use."
             ), 400
-
+        
         user = User(**validated_user_data)
 
         if user_role:
