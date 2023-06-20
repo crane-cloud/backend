@@ -15,7 +15,7 @@ import secrets
 import string
 from sqlalchemy import func, column, cast
 from app.models import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
@@ -905,7 +905,10 @@ class InActiveUsersView(Resource):
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
         entered_date = request.args.get("date")
-
+        days = request.args.get("days", 0, type=int)
+        weeks = request.args.get("weeks", 0, type=int)
+        months = request.args.get("months", 0, type=int)
+        years = request.args.get("years", 0, type=int)
         today = datetime.now().date()
 
         if (entered_date is not None):
@@ -913,47 +916,47 @@ class InActiveUsersView(Resource):
                 entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
                 return dict(status='fail', message="Invalid date format"), 400
+        elif any([days, weeks, months, years]):
+            entered_date = today - timedelta(days=days, weeks=weeks, months=months, years=years)
         else:
             return dict(status='fail', message="Missing required parameters"), 400
         
-        if entered_date > today:
+        if entered_date >= today:
                 return dict(status='fail', message="Entered date cannot be in the future"), 400
 
         time_difference = relativedelta(today, entered_date)
         days_difference = time_difference.days
 
         if days_difference in self.computed_results:
-            users_data = self.computed_results[days_difference]
-            total_items = len(json.loads(users_data))
-            total_pages = ceil(total_items / per_page)
-
-            pagination = {
-                'total': total_items,
-                'pages': total_pages,
-                'page': page,
-                'per_page': per_page,
-                'next': page + 1 if page < total_pages else None,
-                'prev': page - 1 if page > 1 else None
-            }
+            returned_users = self.computed_results[days_difference]
 
         else:
-            paginated = User.query.filter(User.last_seen <= entered_date).paginate(page=page, per_page=per_page, error_out=False)
+            returned_users = User.query.filter(
+                User.last_seen <= entered_date,
+                User.last_seen < entered_date + timedelta(days=30),  # Start of the next month
+                User.verified == True
+            )
+            self.computed_results[days_difference] = returned_users
 
-            users = paginated.items
-            pagination = {
-                'total': paginated.total,
-                'pages': paginated.pages,
-                'page': paginated.page,
-                'per_page': paginated.per_page,
-                'next': paginated.next_num,
-                'prev': paginated.prev_num
-            }
+        paginated = returned_users.paginate(page=page, per_page=per_page, error_out=False)
+        users = paginated.items
+        pagination = {
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'page': paginated.page,
+            'per_page': paginated.per_page,
+            'next': paginated.next_num,
+            'prev': paginated.prev_num
+        }
 
             users_data, errors = user_schema.dumps(users)
+            users_data, errors = user_schema.dumps(users)
+            self.computed_results[days_difference] = users_data
+        users_data, errors = user_schema.dumps(users)
             self.computed_results[days_difference] = users_data
 
-            if errors:
-                return dict(status='fail', message=errors), 400
+        if errors:
+            return dict(status='fail', message=errors), 400
 
         return dict(
             status='success',
