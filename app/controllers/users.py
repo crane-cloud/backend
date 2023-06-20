@@ -899,7 +899,6 @@ class UserActivitesView(Resource):
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     
-    @admin_required
     def get(self):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
@@ -948,12 +947,8 @@ class InActiveUsersView(Resource):
             'next': paginated.next_num,
             'prev': paginated.prev_num
         }
-
-            users_data, errors = user_schema.dumps(users)
-            users_data, errors = user_schema.dumps(users)
-            self.computed_results[days_difference] = users_data
+        
         users_data, errors = user_schema.dumps(users)
-            self.computed_results[days_difference] = users_data
 
         if errors:
             return dict(status='fail', message=errors), 400
