@@ -1,10 +1,13 @@
 from flask import render_template
 from .email import send_email
+from flask import Flask, request
 
 
 def send_user_to_project_notification( email, name, app, template, subject, date, project_name, email_role, success):
-    html = render_template(template, 
-                            email=email, 
+    client_base_url = f'https://{request.host}/register'
+    html = render_template(template,
+                            email=email,
+                            client_base_url=client_base_url,
                             name=name, 
                             date= date,
                             project_name = project_name,
