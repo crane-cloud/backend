@@ -29,7 +29,14 @@ class UserSchema(Schema):
     age = fields.Method("get_age", dump_only=True)
     is_beta_user = fields.Boolean()
     credits = fields.Nested(CreditSchema, many=True, dump_only=True)
-
+    organisation = fields.String(required=True, error_message={
+        "required": "Organisation name is required"},
+         validate=[
+            validate.Regexp(
+                regex=r'^(?!\s*$)', error='Organisations should be a valid string'
+            ),
+    ])
+   
     def get_age(self, obj):
         return get_item_age(obj.date_created)
 

@@ -13,7 +13,7 @@ from server import create_app, db
 @pytest.fixture(scope='function')
 def new_user(test_client):
     user = User(
-        email='test_email@testdomain.com', password='test_password', name='test_name')
+        email='test_email@testdomain.com', password='test_password', name='test_name' , organisation='Makerere')
     user.verified=True
     user.save()
     return user

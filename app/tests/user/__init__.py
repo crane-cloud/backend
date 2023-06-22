@@ -7,11 +7,13 @@ class UserBaseTestCase():
         'email': 'test_email@testdomain.com',
         'name': 'Test User',
         'password': 'Compl3xPassw0rd',
+        'organisation': 'Makerere',
         'phone_number': '+256777777777'
         }
     user_data_2 = {
         'email': 'test_email_2@testdomain.com',
         'name': 'Test User 2',
+        'organisation': 'Makerere',
         'password': 'Compl3xPassw0rd',
     }
     invalid_user_data = {
@@ -24,11 +26,13 @@ class UserBaseTestCase():
         'email': 'test_admin@testdomain.com',
         'name': 'Test Admin',
         'password': 'Compl3xPassw0rd',
-        'phone_number': '+256777777777'
+        'phone_number': '+256777777777',
+        'organisation': 'Makerere',
     }
 
     def create_user(self, user_data):
-        user = User(email=user_data['email'], 
+        user = User(email=user_data['email'],
+                    organisation=user_data['organisation'], 
                     password=user_data['password'], 
                     name=user_data['name'])
         user.verified=True

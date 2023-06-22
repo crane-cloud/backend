@@ -27,16 +27,18 @@ class User(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
+    organisation = db.Column(db.String(256), nullable=True, default="")
     other_projects = db.relationship('ProjectUser', back_populates='user')
     is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
     credits = db.relationship('Credit', backref='user', lazy=True)
     credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
 
-    def __init__(self, email, name, password):
+    def __init__(self, email, name, password, organisation):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
         self.username = name
+        self.organisation = organisation
         self.password = Bcrypt().generate_password_hash(password).decode()
 
     def password_is_valid(self, password):

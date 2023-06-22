@@ -17,12 +17,15 @@ paths:
               - email
               - name
               - password
+              - organisation
             properties:
               email:
                 type: string
               name:
                 type: string
               password:
+                type: string
+              organisation:
                 type: string
       produces:
         - application/json
