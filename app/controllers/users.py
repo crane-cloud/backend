@@ -1,4 +1,5 @@
 import json
+from math import ceil
 import os
 from flask import current_app
 from flask_restful import Resource, request
@@ -12,9 +13,10 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import func, column
+from sqlalchemy import func, column, cast
 from app.models import db
-from datetime import date, datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
@@ -893,3 +895,62 @@ class UserActivitesView(Resource):
             ), 200
         except Exception as err:
             return dict(status='fail', message=str(err)), 400
+
+class InActiveUsersView(Resource):
+    computed_results = {}  # Dictionary to cache computed results
+    
+    @admin_required
+    def get(self):
+        user_schema = UserSchema(many=True)
+        page = request.args.get('page', 1,type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        start_date = request.args.get("start")
+        end_date = request.args.get("end")
+        today = datetime.now().date()
+        
+        if (start_date is not None and end_date is not None):
+            try:
+                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()  # Standardize the date format
+                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()  # Standardize the date format
+            except ValueError:
+                return dict(status='fail', message="Invalid date format"), 400
+        else:
+            return dict(status='fail', message="Missing required parameters"), 400
+        
+        if start_date >= today:
+                return dict(status='fail', message="Entered date cannot be in the future"), 400
+
+        time_difference = relativedelta(end_date, start_date)
+        days_difference = time_difference.days
+
+        if days_difference in self.computed_results:
+            returned_users = self.computed_results[days_difference]
+
+        else:
+            returned_users = User.query.filter(
+                User.last_seen <= start_date,
+                User.last_seen < start_date + end_date,  # Start of the next month
+                User.verified == True
+            )
+            self.computed_results[days_difference] = returned_users
+
+        paginated = returned_users.paginate(page=page, per_page=per_page, error_out=False)
+        users = paginated.items
+        pagination = {
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'page': paginated.page,
+            'per_page': paginated.per_page,
+            'next': paginated.next_num,
+            'prev': paginated.prev_num
+        }
+        
+        users_data, errors = user_schema.dumps(users)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(pagination=pagination, users=json.loads(users_data))
+        ), 200
