@@ -904,27 +904,21 @@ class InActiveUsersView(Resource):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        entered_date = request.args.get("date")
-        days = request.args.get("days", 0, type=int)
-        weeks = request.args.get("weeks", 0, type=int)
-        months = request.args.get("months", 0, type=int)
-        years = request.args.get("years", 0, type=int)
-        today = datetime.now().date()
+        from_entered_date = request.args.get("from_date")
+        to_entered_date = request.args.get("to_date")
 
-        if (entered_date is not None):
+        if (from_entered_date is not None and to_entered_date is not None):
             try:
-                entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
+                from_entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
+                to_entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
-                return dict(status='fail', message="Invalid date format"), 400
-        elif any([days, weeks, months, years]):
-            entered_date = today - timedelta(days=days, weeks=weeks, months=months, years=years)
         else:
             return dict(status='fail', message="Missing required parameters"), 400
         
-        if entered_date >= today:
+        if to_entered_date >= today:
                 return dict(status='fail', message="Entered date cannot be in the future"), 400
 
-        time_difference = relativedelta(today, entered_date)
+        time_difference = relativedelta(to_entered_date, from_entered_date)
         days_difference = time_difference.days
 
         if days_difference in self.computed_results:
