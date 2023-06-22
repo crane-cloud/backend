@@ -904,21 +904,23 @@ class InActiveUsersView(Resource):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        from_entered_date = request.args.get("from_date")
-        to_entered_date = request.args.get("to_date")
-
-        if (from_entered_date is not None and to_entered_date is not None):
+        start_date = request.args.get("start")
+        end_date = request.args.get("end")
+        today = datetime.now().date()
+        
+        if (start_date is not None and end_date is not None):
             try:
-                from_entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
-                to_entered_date = datetime.strptime(entered_date, "%Y-%m-%d").date()  # Standardize the date format
+                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()  # Standardize the date format
+                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
+                return dict(status='fail', message="Invalid date format"), 400
         else:
             return dict(status='fail', message="Missing required parameters"), 400
         
-        if to_entered_date >= today:
+        if start_date >= today:
                 return dict(status='fail', message="Entered date cannot be in the future"), 400
 
-        time_difference = relativedelta(to_entered_date, from_entered_date)
+        time_difference = relativedelta(end_date, start_date)
         days_difference = time_difference.days
 
         if days_difference in self.computed_results:
@@ -926,8 +928,8 @@ class InActiveUsersView(Resource):
 
         else:
             returned_users = User.query.filter(
-                User.last_seen <= entered_date,
-                User.last_seen < entered_date + timedelta(days=30),  # Start of the next month
+                User.last_seen <= start_date,
+                User.last_seen < start_date + end_date,  # Start of the next month
                 User.verified == True
             )
             self.computed_results[days_difference] = returned_users
