@@ -511,11 +511,17 @@ paths:
           required: true
           description: "Bearer [token]"
         - in: query
-          name: date
+          name: start
           required: true
           type: string
           format: date
-          description: day since last login
+          description: start date for last login
+        - in: query
+          name: end
+          required: true
+          type: string
+          format: date
+          description: end date for last login
         - in: query
           name: page
           type: integer
