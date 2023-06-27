@@ -216,7 +216,7 @@ class ProjectsView(Resource):
                 projects = paginated.items
                 pagination_data = paginated.pagination
             else :
-                paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).paginate(
+                paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).order_by(Project.date_created.desc()).paginate(
                         page=page, per_page=per_page, error_out=False)
                 projects = paginated.items
                 pagination_data = {
