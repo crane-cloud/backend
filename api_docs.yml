@@ -511,17 +511,28 @@ paths:
           required: true
           description: "Bearer [token]"
         - in: query
+          name: range
+          schema:
+            type: string
+          description: >
+             A relative date range for inactive users, such as `last 14 days`.
+             For an exact range, use `start` and `end` instead.
+        - in: query
           name: start
-          required: true
-          type: string
-          format: date
-          description: start date for last login
+          schema:
+            type: string
+            format: date
+          description: >
+            The start date for inactive users. Must be used together with `end`.
+            This parameter is incompatible with `range`.
         - in: query
           name: end
-          required: true
-          type: string
-          format: date
-          description: end date for last login
+          schema:
+            type: string
+            format: date
+          description: >
+            The end date for inactive users. Must be used together with `start`.
+            This parameter is incompatible with `range`.
         - in: query
           name: page
           type: integer

@@ -13,10 +13,9 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import func, column, cast
+from sqlalchemy import Date, func, column, cast
 from app.models import db
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
@@ -898,6 +897,7 @@ class UserActivitesView(Resource):
 
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
+    current_date = None  # Variable to track the current date
     
     @admin_required
     def get(self):
@@ -906,33 +906,48 @@ class InActiveUsersView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
         start_date = request.args.get("start")
         end_date = request.args.get("end")
+        range = request.args.get("range", 0, type=int)
         today = datetime.now().date()
         
         if (start_date is not None and end_date is not None):
+            if range:
+                return dict(status='fail', message="Either pass `range` or `start` and `end` but not all the three."), 400
             try:
                 start_date = datetime.strptime(start_date, "%Y-%m-%d").date()  # Standardize the date format
                 end_date = datetime.strptime(end_date, "%Y-%m-%d").date()  # Standardize the date format
             except ValueError:
                 return dict(status='fail', message="Invalid date format"), 400
+
+        elif range:
+            start_date = today
+            end_date = today - timedelta(days=range)
+
         else:
             return dict(status='fail', message="Missing required parameters"), 400
         
-        if start_date >= today:
-                return dict(status='fail', message="Entered date cannot be in the future"), 400
+        if start_date > today:
+            return dict(status='fail', message="Entered date cannot be in the future"), 400
 
-        time_difference = relativedelta(end_date, start_date)
-        days_difference = time_difference.days
+        if end_date > start_date:
+            return dict(status='fail', message="Invalid date range: The start date must be earlier than the end date"), 400
+        
+        # Clear computed results for the each new day
+        if self.current_date != today:
+            self.current_date = today
+            self.computed_results = {}
 
-        if days_difference in self.computed_results:
-            returned_users = self.computed_results[days_difference]
+        date_range = (start_date, end_date)
+
+        if date_range in self.computed_results:
+            returned_users = self.computed_results[date_range]
 
         else:
             returned_users = User.query.filter(
-                User.last_seen <= start_date,
-                User.last_seen < start_date + end_date,  # Start of the next month
+                cast(User.last_seen, Date) <= start_date,
+                cast(User.last_seen, Date) >= end_date,
                 User.verified == True
             )
-            self.computed_results[days_difference] = returned_users
+            self.computed_results[date_range] = returned_users
 
         paginated = returned_users.paginate(page=page, per_page=per_page, error_out=False)
         users = paginated.items
