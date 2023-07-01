@@ -233,12 +233,12 @@ class ProjectsView(Resource):
                 if (keywords == ''):
 
                     pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                        ProjectUser.user_id == current_user_id))).paginate(
+                        ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
                         page=page, per_page=per_page, error_out=False)
                 else :
 
                     pagination = Project.query.filter(Project.owner_id == current_user_id, Project.name.ilike('%'+keywords+'%'), Project.users.any(
-                        ProjectUser.user_id == current_user_id)).paginate(
+                        ProjectUser.user_id == current_user_id)).order_by(Project.date_created.desc()).paginate(
                         page=page, per_page=per_page, error_out=False)
                     
                 projects = pagination.items
