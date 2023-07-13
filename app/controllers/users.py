@@ -129,7 +129,7 @@ class UsersView(Resource):
             users = paginated.items
             pagination = paginated.pagination
         else :
-            paginated = User.query.filter(User.name.ilike('%'+keywords+'%')).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            paginated = User.query.filter(User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
             users = paginated.items
             pagination = {
                 'total': paginated.total,
