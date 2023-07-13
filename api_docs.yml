@@ -534,6 +534,14 @@ paths:
             The end date for inactive users. Must be used together with `start`.
             This parameter is incompatible with `range`.
         - in: query
+          name: created
+          schema:
+            type: string
+            format: date
+          description: >
+            The created date for inactive users from the `current date`.
+            This parameter is `optional`.
+        - in: query
           name: page
           type: integer
           description: Page number
