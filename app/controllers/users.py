@@ -897,7 +897,7 @@ class UserActivitesView(Resource):
 
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
-    current_date = None  # Variable to track the current dat
+    current_date = None  # Variable to track the current date
 
     @admin_required
     def get(self):
