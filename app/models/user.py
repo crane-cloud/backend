@@ -33,7 +33,7 @@ class User(ModelMixin):
     credits = db.relationship('Credit', backref='user', lazy=True)
     credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
 
-    def __init__(self, email, name, password, organisation):
+    def __init__(self, email, name, password, organisation = None):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
