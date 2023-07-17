@@ -897,8 +897,9 @@ class UserActivitesView(Resource):
 
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
-    current_date = None  # Variable to track the current date
-    
+    current_date = None  # Variable to track the current dat
+
+    @admin_required
     def get(self):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
