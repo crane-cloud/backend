@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
+from app.schemas import ProjectSchema, AppSchema
 from app.helpers.decorators import admin_required
 import requests
 import secrets
@@ -118,11 +119,14 @@ class UsersView(Resource):
     def get(self):
         """
         """
-
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
+        entire_profile = request.args.get('entire_profile' , False)
         keywords = request.args.get('keywords' , '')
+
+        users = []
+        users_profiles = []
 
         if (keywords == ''):
             paginated = User.find_all(paginate=True, page=page, per_page=per_page)
@@ -138,12 +142,41 @@ class UsersView(Resource):
                 'per_page': paginated.per_page,
                 'next': paginated.next_num,
                 'prev': paginated.prev_num
-            } 
-
+            }
+        
+         
         users_data, errors = user_schema.dumps(users)
 
         if errors:
             return dict(status='fail', message=errors), 400
+        
+        if (entire_profile):
+            for user in users:
+                
+                Profile_schema = UserSchema()
+                user_data, errors = Profile_schema.dumps(user)
+                user_profile = {'Profile' : {**json.loads(user_data)}}
+
+                projects = user.projects
+                user_profile['Projects'] = []
+
+                for project in projects:
+                    Project_schema = ProjectSchema()
+                    project_data , errors = Project_schema.dumps(project)
+                    project_info = {**json.loads(project_data)}
+
+                    App_schema = AppSchema(many=True)
+                    App_data , errors = App_schema.dumps(project.apps)
+                    project_info['apps'] = App_data
+                    user_profile['Projects'].append(project_info)
+
+
+                users_profiles.append(user_profile)
+            return dict(
+                status='success',
+                data=dict(pagination=pagination, users=users_profiles)
+            ), 200
+            
 
         return dict(
             status='success',
