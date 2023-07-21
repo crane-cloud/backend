@@ -931,7 +931,7 @@ class UserActivitesView(Resource):
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date
-    
+
     @admin_required
     def get(self):
         user_schema = UserSchema(many=True)
@@ -939,6 +939,7 @@ class InActiveUsersView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
         start_date = request.args.get("start")
         end_date = request.args.get("end")
+        created_date = request.args.get("created")
         range = request.args.get("range", 0, type=int)
         today = datetime.now().date()
         
@@ -969,17 +970,23 @@ class InActiveUsersView(Resource):
             self.current_date = today
             self.computed_results = {}
 
-        date_range = (start_date, end_date)
+        date_range = (start_date, end_date, created_date)
 
         if date_range in self.computed_results:
             returned_users = self.computed_results[date_range]
 
         else:
-            returned_users = User.query.filter(
+            query = User.query.filter(
                 cast(User.last_seen, Date) <= start_date,
                 cast(User.last_seen, Date) >= end_date,
                 User.verified == True
             )
+            if created_date is not None:
+                query = query.filter(
+                    cast(User.date_created, Date) <= today,
+                    cast(User.date_created, Date) >= created_date,
+                )
+            returned_users = query
             self.computed_results[date_range] = returned_users
 
         paginated = returned_users.paginate(page=page, per_page=per_page, error_out=False)
