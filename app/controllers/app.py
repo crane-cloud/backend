@@ -67,7 +67,7 @@ class AppsView(Resource):
         app_name = validated_app_data['name']
         app_alias = create_alias(validated_app_data['name'])
         app_image = validated_app_data['image']
-        command = validated_app_data.get('command', None)
+        command_string = validated_app_data.get('command', None)
         project_id = validated_app_data['project_id']
         # env_vars = validated_app_data['env_vars']
         env_vars = validated_app_data.get('env_vars', None)
@@ -80,7 +80,7 @@ class AppsView(Resource):
         app_port = validated_app_data.get('port')
         image_pull_secret = None
 
-        command = command.split() if command else None
+        command = command_string.split() if command_string else None
 
         project = Project.get_by_id(project_id)
 
@@ -118,7 +118,10 @@ class AppsView(Resource):
                 image=app_image,
                 project_id=project_id,
                 alias=app_alias,
-                port=app_port
+                port=app_port,
+                command=command_string,
+                replicas=replicas,
+                private_image=private_repo
             )
 
             if private_repo:
@@ -445,7 +448,7 @@ class ProjectAppsView(Resource):
         app_name = validated_app_data['name']
         app_alias = create_alias(validated_app_data['name'])
         app_image = validated_app_data['image']
-        command = validated_app_data.get('command', None)
+        command_string = validated_app_data.get('command', None)
         # env_vars = validated_app_data['env_vars']
         env_vars = validated_app_data.get('env_vars', None)
         private_repo = validated_app_data.get('private_image', False)
@@ -458,7 +461,7 @@ class ProjectAppsView(Resource):
         custom_domain = validated_app_data.get('custom_domain', None)
         image_pull_secret = None
 
-        command = command.split() if command else None
+        command = command_string.split() if command_string else None
 
         project = Project.get_by_id(project_id)
 
@@ -503,7 +506,10 @@ class ProjectAppsView(Resource):
                 image=app_image,
                 project_id=project_id,
                 alias=app_alias,
-                port=app_port
+                port=app_port,
+                command=command_string,
+                replicas=replicas,
+                private_image=private_repo
             )
 
             if private_repo:
