@@ -797,7 +797,7 @@ class ProjectAppsView(Resource):
             current_user_roles = get_jwt_claims()['roles']
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
-            keywords = request.args.get('keywords' , '')
+            keywords = request.args.get('keywords', '')
             app_schema = AppSchema(many=True)
 
             project = Project.get_by_id(project_id)
@@ -825,8 +825,9 @@ class ProjectAppsView(Resource):
                 apps = paginated.items
                 apps_data, errors = app_schema.dumps(apps)
 
-            else :
-                paginated = App.query.filter(App.name.ilike('%'+keywords+'%') , App.project_id == project_id).order_by(App.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            else:
+                paginated = App.query.filter(App.name.ilike('%'+keywords+'%'), App.project_id == project_id).order_by(
+                    App.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
                 pagination = {
                     'total': paginated.total,
                     'pages': paginated.pages,
@@ -850,7 +851,7 @@ class ProjectAppsView(Resource):
                     app_deployment_status_conditions = app_status_object.status.conditions
 
                     app_deployment_status = None
-                    if app_deployment_status_conditions: 
+                    if app_deployment_status_conditions:
                         for deplyoment_status_condition in app_deployment_status_conditions:
                             if deplyoment_status_condition.type == "Available":
                                 app_deployment_status = deplyoment_status_condition.status
@@ -1035,6 +1036,10 @@ class AppDetailView(Resource):
                         data=dict(apps=app_list, revisions=revisions)), 200
 
         except client.rest.ApiException as exc:
+
+            if exc.status == 404:
+                return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
+
             return dict(status='fail', message=exc.reason), exc.status
 
         except Exception as exc:
