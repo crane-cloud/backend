@@ -8,9 +8,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
 from prometheus_http_client import Prometheus
+from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -1648,6 +1649,81 @@ class AppReviseView(Resource):
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
             return dict(status='fail', message=str(exc)), 500
+
+
+class AppRedeployView(Resource):
+    @jwt_required
+    def post(self, app_id):
+        """
+        Redeploy application
+        """
+        app_schema = AppSchema()
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+
+            project = app.project
+
+            if not project:
+                # todo: recreate project
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                if not is_authorised_project_user(project, current_user_id, 'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+            kube_host = cluster.host
+            kube_token = cluster.token
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            new_app = create_user_app(
+                app,
+                app.alias,
+                app.image,
+                project,
+                command_string=app.command,
+                env_vars=None,
+                private_repo=app.private_image,
+                docker_server=None,
+                docker_username=None,
+                docker_password=None,
+                docker_email=None,
+                replicas=app.relicas if app.replicas else 1,
+                app_port=app.port
+            )
+            if type(new_app) == SimpleNamespace:
+                status_code = new_app.status_code if new_app.status_code else 500
+                return dict(status='fail', message=new_app.message), status_code
+
+            new_app_data, _ = app_schema.dump(new_app)
+            log_activity('App', status='Success',
+                         operation='Create',
+                         description='Redeployed app Successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_app_id=new_app.id)
+            return dict(status='success', data=dict(app=new_app_data)), 201
+        except Exception as e:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=str(e),
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         )
+            return dict(status='fail', message=str(e)), 500
 
 
 class AppMemoryUsageView(Resource):

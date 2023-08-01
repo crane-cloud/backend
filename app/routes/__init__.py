@@ -16,8 +16,10 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
-    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView, ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView,ProjectAdminDisableView,ProjectAdminEnableView)
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
+    BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
+    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectAdminDisableView, ProjectAdminEnableView,
+    AppRedeployView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -40,7 +42,8 @@ api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/summary')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
-api.add_resource(InActiveUsersView, '/users/inactive_users', endpoint='inactive_users')
+api.add_resource(InActiveUsersView, '/users/inactive_users',
+                 endpoint='inactive_users')
 
 
 # Deployments
@@ -161,6 +164,8 @@ api.add_resource(AppDetailView, '/apps/<string:app_id>')
 api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
 api.add_resource(
     AppReviseView, '/apps/<string:app_id>/revise/<string:revision_id>')
+api.add_resource(
+    AppRedeployView, '/apps/<string:app_id>/redeploy')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,

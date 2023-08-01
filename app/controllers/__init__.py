@@ -24,7 +24,7 @@ from .project import (
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView, ProjectDisableView,ProjectEnableView,ProjectAdminDisableView,ProjectAdminEnableView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
-                  AppDataSummaryView, AppRevertView, AppReviseView)
+                  AppDataSummaryView, AppRevertView, AppReviseView, AppRedeployView)
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,

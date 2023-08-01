@@ -3732,7 +3732,7 @@ paths:
           type: string
 
       responses:
-        200:
+        201:
           description: "Success"
         404:
           description: "App not found"
@@ -3740,6 +3740,35 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
+
+  "/apps/{app_id}/redeploy":
+    post:
+      description: "redeploys app that doesnt exist on the cluster"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
 
   "/projects/{project_id}/apps/{app_id}/metrics/cpu":
     post:
