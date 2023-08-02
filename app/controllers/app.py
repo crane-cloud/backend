@@ -1657,6 +1657,7 @@ class AppRedeployView(Resource):
         """
         Redeploy application
         """
+        #TODO: handle private login
         app_schema = AppSchema()
         try:
             current_user_id = get_jwt_identity()
@@ -1685,9 +1686,6 @@ class AppRedeployView(Resource):
 
             if not cluster or not namespace:
                 return dict(status='fail', message='Internal server error'), 500
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
 
             new_app = create_user_app(
                 app,
