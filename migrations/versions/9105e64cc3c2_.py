@@ -22,10 +22,10 @@ def upgrade():
     op.add_column('app', sa.Column('replicas', sa.Integer(), nullable=True))
     op.alter_column('credits', 'promotion_credits',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=True)
     op.alter_column('credits', 'purchased_credits',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=True)
     # ### end Alembic commands ###
 
 
