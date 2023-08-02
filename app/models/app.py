@@ -21,3 +21,6 @@ class App(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     deleted = db.Column(db.Boolean, default=False)
     has_custom_domain = db.Column(db.Boolean, nullable=False, default=False)
+    command = db.Column(db.String(256), nullable=True)
+    replicas = db.Column(db.Integer, nullable=True)
+    private_image = db.Column(db.Boolean, default=False)
