@@ -122,11 +122,9 @@ class UsersView(Resource):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        entire_profile = request.args.get('entire_profile' , False)
         keywords = request.args.get('keywords' , '')
 
         users = []
-        users_profiles = []
 
         if (keywords == ''):
             paginated = User.find_all(paginate=True, page=page, per_page=per_page)
@@ -150,34 +148,6 @@ class UsersView(Resource):
         if errors:
             return dict(status='fail', message=errors), 400
         
-        if (entire_profile):
-            for user in users:
-                
-                Profile_schema = UserSchema()
-                user_data, errors = Profile_schema.dumps(user)
-                user_profile = {'Profile' : {**json.loads(user_data)}}
-
-                projects = user.projects
-                user_profile['Projects'] = []
-
-                for project in projects:
-                    Project_schema = ProjectSchema()
-                    project_data , errors = Project_schema.dumps(project)
-                    project_info = {**json.loads(project_data)}
-
-                    App_schema = AppSchema(many=True)
-                    App_data , errors = App_schema.dumps(project.apps)
-                    project_info['apps'] = App_data
-                    user_profile['Projects'].append(project_info)
-
-
-                users_profiles.append(user_profile)
-            return dict(
-                status='success',
-                data=dict(pagination=pagination, users=users_profiles)
-            ), 200
-            
-
         return dict(
             status='success',
             data=dict(pagination=pagination, users=json.loads(users_data))
@@ -301,14 +271,19 @@ class UserDetailView(Resource):
                 status='fail',
                 message=f'user {user_id} not found'
             ), 404
+        
 
         user_data, errors = user_schema.dumps(user)
+
+        projects = user.projects
+        new_user_data = json.loads(user_data)
+        new_user_data['projects_count'] = len(projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            user=json.loads(user_data))), 200
+            user=new_user_data)), 200
 
     def delete(self, user_id):
         """
