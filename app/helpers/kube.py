@@ -130,7 +130,8 @@ def create_user_app(
 
     if not cluster:
         return SimpleNamespace(
-            message="Invalid Cluster"
+            message="Invalid Cluster",
+            status_code=500
         )
 
     kube_host = cluster.host
@@ -398,7 +399,8 @@ def create_user_app(
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id)
             return SimpleNamespace(
-                message='Internal Server Error'
+                message='Internal Server Error',
+                status_code=500
             )
 
         # log_activity('App', status='Success',
@@ -424,7 +426,8 @@ def create_user_app(
                      a_cluster_id=project.cluster_id,
                      )
         return SimpleNamespace(
-            message=json.loads(e.body)
+            message=json.loads(e.body),
+            status_code=500
         )
 
     except Exception as e:
@@ -441,5 +444,6 @@ def create_user_app(
                      a_cluster_id=project.cluster_id,
                      )
         return SimpleNamespace(
-            message=str(e)
+            message=str(e),
+            status_code=500
         )

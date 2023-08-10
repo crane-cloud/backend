@@ -1686,7 +1686,6 @@ class AppRedeployView(Resource):
 
             if not cluster or not namespace:
                 return dict(status='fail', message='Internal server error'), 500
-
             new_app = create_user_app(
                 app,
                 app.alias,
@@ -1699,7 +1698,7 @@ class AppRedeployView(Resource):
                 docker_username=None,
                 docker_password=None,
                 docker_email=None,
-                replicas=app.relicas if app.replicas else 1,
+                replicas=app.replicas if app.replicas else 1,
                 app_port=app.port
             )
             if type(new_app) == SimpleNamespace:
