@@ -14,7 +14,7 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import Date, func, column, cast
+from sqlalchemy import Date, func, column, cast, and_
 from app.models import db
 from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
@@ -123,15 +123,34 @@ class UsersView(Resource):
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords' , '')
+        verified = request.args.get('verified' , True)
+        is_beta = request.args.get('is_beta' , False)
+        All = request.args.get('All' , False)
 
         users = []
 
         if (keywords == ''):
-            paginated = User.find_all(paginate=True, page=page, per_page=per_page)
-            users = paginated.items
-            pagination = paginated.pagination
+            if not All :
+                paginated = User.query.filter(User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                users = paginated.items
+                pagination = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
+
+            else :     
+                paginated = User.find_all(paginate=True, page=page, per_page=per_page)
+                users = paginated.items
+                pagination = paginated.pagination
         else :
-            paginated = User.query.filter(User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            if not All :
+                paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            else :
+                paginated = User.query.filter(User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
             users = paginated.items
             pagination = {
                 'total': paginated.total,
@@ -748,11 +767,20 @@ class ResetPasswordView(Resource):
 class UserDataSummaryView(Resource):
 
     @admin_required
-    def post(self):
+    def get(self):
         """
         Shows new users per month or year
         """
-        user_filter_data = request.get_json()
+        user_filter_data = {
+            'start' : request.args.get('start' , None),
+            'end' : request.args.get('end' , None),
+            'set_by' : request.args.get('set_by' , None)
+        }
+
+        verified = request.args.get('verified' , True)
+        is_beta = request.args.get('is_beta' , False)
+        All = request.args.get('All' , False)
+ 
         filter_schema = UserGraphSchema()
 
         validated_query_data, errors = filter_schema.load(user_filter_data)
@@ -764,31 +792,53 @@ class UserDataSummaryView(Resource):
         end = validated_query_data.get('end', datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
         total_users = len(User.find_all())
+
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')
             month = column('month')
 
-            user_data = db.session.query(month, func.count(User.id)).\
-                select_from(date_list).\
-                outerjoin(User, func.date_trunc('month', User.date_created) == month).\
-                group_by(month).\
-                order_by(month).\
-                all()
+            if not All :
+                user_data = db.session.query(month, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, and_(func.date_trunc('month', User.date_created) == month , User.verified == verified , User.is_beta_user == is_beta)).\
+                    group_by(month).\
+                    order_by(month).\
+                    all()
+            else :
+                user_data = db.session.query(month, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, func.date_trunc('month', User.date_created) == month ).\
+                    group_by(month).\
+                    order_by(month).\
+                    all()
 
+            
         else:
             date_list = func.generate_series(
                 start, end, '1 year').alias('year')
             year = column('year')
 
-            user_data = db.session.query(year, func.count(User.id)).\
-                select_from(date_list).\
-                outerjoin(User, func.date_trunc('year', User.date_created) == year).\
-                group_by(year).\
-                order_by(year).\
-                all()
+            if not All :
+                user_data = db.session.query(year, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, and_(func.date_trunc('year', User.date_created) == year , User.verified == verified , User.is_beta_user == is_beta)).\
+                    group_by(year).\
+                    order_by(year).\
+                    all()
+            else :
+                user_data = db.session.query(year, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, func.date_trunc('year', User.date_created) == year).\
+                    group_by(year).\
+                    order_by(year).\
+                    all()
+
+
+
 
         user_info = []
+        
         for item in user_data:
             item_dict = {
                 'year': item[0].year, 'month': item[0].month, 'value': item[1]
