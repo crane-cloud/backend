@@ -14,7 +14,7 @@ from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import Date, func, column, cast, and_
+from sqlalchemy import Date, func, column, cast, and_  , select
 from app.models import db
 from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
@@ -123,15 +123,31 @@ class UsersView(Resource):
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords' , '')
-        verified = request.args.get('verified' , True)
-        is_beta = request.args.get('is_beta' , False)
-        All = request.args.get('All' , False)
+        verified = request.args.get('verified' , None)
+        is_beta = request.args.get('is_beta' , None)
+        All = request.args.get('All' , None)
 
         users = []
 
+        meta_data = {}
+        beta_count = User.query.with_entities(User.is_beta_user, func.count(User.is_beta_user)).group_by(User.is_beta_user).all()
+        verified_count = User.query.with_entities(User.verified, func.count(User.verified)).group_by(User.verified).all()
+        
+        meta_data['is_beta_user'] = {key : value for key , value in beta_count}
+        meta_data['verified'] = {key : value for key , value in verified_count}
+
+
         if (keywords == ''):
-            if not All :
-                paginated = User.query.filter(User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+                if (verified != None and is_beta != None):
+                    paginated = User.query.filter(User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                else :
+                    if (verified != None) :
+                        paginated = User.query.filter(User.verified == verified).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                    else :
+                        paginated = User.query.filter(User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                    
+                
                 users = paginated.items
                 pagination = {
                     'total': paginated.total,
@@ -147,8 +163,15 @@ class UsersView(Resource):
                 users = paginated.items
                 pagination = paginated.pagination
         else :
-            if not All :
-                paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+                if (verified != None and is_beta != None):
+                    paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                else :
+                    if (verified != None):
+                        paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.verified == verified).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                    else :
+                        paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
             else :
                 paginated = User.query.filter(User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
             users = paginated.items
@@ -169,7 +192,7 @@ class UsersView(Resource):
         
         return dict(
             status='success',
-            data=dict(pagination=pagination, users=json.loads(users_data))
+            data=dict(meta_data = meta_data , pagination=pagination, users=json.loads(users_data))
         ), 200
 
 
@@ -777,9 +800,17 @@ class UserDataSummaryView(Resource):
             'set_by' : request.args.get('set_by' , None)
         }
 
-        verified = request.args.get('verified' , True)
-        is_beta = request.args.get('is_beta' , False)
-        All = request.args.get('All' , False)
+        verified = request.args.get('verified' , None)
+        is_beta = request.args.get('is_beta' , None)
+        All = request.args.get('All' , None)
+        total_users = len(User.find_all())
+
+        meta_data = {'total_users' : total_users}
+        beta_count = User.query.with_entities(User.is_beta_user, func.count(User.is_beta_user)).group_by(User.is_beta_user).all()
+        verified_count = User.query.with_entities(User.verified, func.count(User.verified)).group_by(User.verified).all()
+        
+        meta_data['is_beta_user'] = {key : value for key , value in beta_count}
+        meta_data['verified'] = {key : value for key , value in verified_count}
  
         filter_schema = UserGraphSchema()
 
@@ -791,20 +822,27 @@ class UserDataSummaryView(Resource):
         start = validated_query_data.get('start', '2018-01-01')
         end = validated_query_data.get('end', datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
-        total_users = len(User.find_all())
 
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')
             month = column('month')
+            if  (All == None or All == 'False') and (verified != None or is_beta != None) :
+                if (verified != None):
+                    user_data = db.session.query(month, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('month', User.date_created) == month , User.verified == verified)).\
+                        group_by(month).\
+                        order_by(month).\
+                        all()
+                else :
+                    user_data = db.session.query(month, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('month', User.date_created) == month ,User.is_beta_user == is_beta)).\
+                        group_by(month).\
+                        order_by(month).\
+                        all()
 
-            if not All :
-                user_data = db.session.query(month, func.count(User.id)).\
-                    select_from(date_list).\
-                    outerjoin(User, and_(func.date_trunc('month', User.date_created) == month , User.verified == verified , User.is_beta_user == is_beta)).\
-                    group_by(month).\
-                    order_by(month).\
-                    all()
             else :
                 user_data = db.session.query(month, func.count(User.id)).\
                     select_from(date_list).\
@@ -819,13 +857,21 @@ class UserDataSummaryView(Resource):
                 start, end, '1 year').alias('year')
             year = column('year')
 
-            if not All :
-                user_data = db.session.query(year, func.count(User.id)).\
+            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+                if (verified != None):
+                    user_data = db.session.query(year, func.count(User.id)).\
                     select_from(date_list).\
-                    outerjoin(User, and_(func.date_trunc('year', User.date_created) == year , User.verified == verified , User.is_beta_user == is_beta)).\
+                    outerjoin(User, and_(func.date_trunc('year', User.date_created) == year , User.verified == verified)).\
                     group_by(year).\
                     order_by(year).\
                     all()
+                else :
+                    user_data = db.session.query(year, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('year', User.date_created) == year , User.is_beta_user == is_beta)).\
+                        group_by(year).\
+                        order_by(year).\
+                        all()
             else :
                 user_data = db.session.query(year, func.count(User.id)).\
                     select_from(date_list).\
@@ -847,7 +893,7 @@ class UserDataSummaryView(Resource):
         return dict(
             status='success',
             data=dict(
-                metadata=dict(total_users=total_users),
+                metadata=meta_data,
                 graph_data=user_info)
         ), 200
 

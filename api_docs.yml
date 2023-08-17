@@ -62,15 +62,15 @@ paths:
         - in: query
           name: verified
           type: string
-          description: Either True or False. Default is True
+          description: Either True or False.
         - in: query
           name: is_beta
           type: string
-          description: Either True or False. Default is False
+          description: Either True or False.e
         - in: query
           name: All
           type: string
-          description: Setting this True will overide the is_beta and verified flag and return all Users. Default is False
+          description: Setting this True will overide the is_beta and verified flag and return all Users.
       produces:
         - application/json
       responses:
@@ -110,11 +110,11 @@ paths:
         - in: query
           name: verified
           type: string
-          description: Either True of False. Default is True
+          description: Either True of False.
         - in: query
           name: is_beta
           type: string
-          description: Either True of False, Default is False
+          description: Either True of False.
         - in: query
           name: All
           type: string
