@@ -1,7 +1,7 @@
 import os
 from types import SimpleNamespace
 from kubernetes import client
-
+from kubernetes.client.rest import ApiException
 import base64
 import json
 from app.helpers.activity_logger import log_activity
@@ -140,6 +140,17 @@ def create_user_app(
     kube_client = create_kube_clients(kube_host, kube_token)
 
     try:
+        # check if namespace exisits
+        try:
+            kube_client.kube.read_namespace(namespace)
+        except ApiException as e:
+            if e.status == 404:
+                # create namespace in cluster
+                kube_client.kube.create_namespace(
+                    client.V1Namespace(
+                        metadata=client.V1ObjectMeta(name=namespace)
+                    ))
+
         try:
             # Check if app is in the cluster
             kube_client.appsv1_api.read_namespaced_deployment_status(
@@ -190,31 +201,6 @@ def create_user_app(
             image_pull_secret = client.V1LocalObjectReference(
                 name=app_alias)
 
-        # create app deployment's pvc meta and spec
-        # pvc_name = f'{app_alias}-pvc'
-        # pvc_meta = client.V1ObjectMeta(name=pvc_name)
-
-        # access_modes = ['ReadWriteOnce']
-        # storage_class = 'openebs-standard'
-        # resources = client.V1ResourceRequirements(
-        #     requests=dict(storage='1Gi'))
-
-        # pvc_spec = client.V1PersistentVolumeClaimSpec(
-        #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
-
-        # Create a PVC
-        # pvc = client.V1PersistentVolumeClaim(
-        #     api_version="v1",
-        #     kind="PersistentVolumeClaim",
-        #     metadata=pvc_meta,
-        #     spec=pvc_spec
-        # )
-
-        # kube_client.kube.create_namespaced_persistent_volume_claim(
-        #     namespace=namespace,
-        #     body=pvc
-        # )
-
         # create deployment
         dep_name = f'{app_alias}-deployment'
 
@@ -233,13 +219,8 @@ def create_user_app(
             ports=[client.V1ContainerPort(container_port=app_port)],
             env=env,
             command=command
-            # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
         )
 
-        # volumes = client.V1Volume(
-        #     name=dep_name,
-        #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-        # )
         # spec
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={
@@ -385,6 +366,8 @@ def create_user_app(
                 )
         except client.rest.ApiException as e:
             print(e)
+        except Exception:
+            pass
 
         service_url = f'https://{sub_domain}'
 
