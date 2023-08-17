@@ -190,7 +190,7 @@ class ProjectsView(Resource):
         except Exception as err:
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=e.body,
+                         description=err.body,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
