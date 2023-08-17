@@ -22,7 +22,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from app.models.project_database import ProjectDatabase
 
 class ProjectsView(Resource):
@@ -204,17 +204,51 @@ class ProjectsView(Resource):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords', '')
+        disabled = request.args.get('disabled')
+        project_type = request.args.get('project_type')
+        organisation = request.args.get('organisation')
+
 
         project_schema = ProjectSchema(many=True)
         projects = []
+        pagination_data = {}
+
+        filter_mapping = {
+        'disabled': disabled,
+        'project_type': project_type,
+        'organisation': organisation
+        }
+
+        # count items per project category 
+        project_metadata = {}
+        for category in filter_mapping.keys():
+            distinct_counts = (Project.query.with_entities(getattr(Project, category), func.count(getattr(Project, category))).group_by(getattr(Project, category)).all())
+            project_metadata[category] = {key: value for key, value in distinct_counts}
+
+
+        # Identify which attribute to filter on
+        attribute, attribute_value = next(((k, v) for k, v in filter_mapping.items() if v), (None, None))
 
         if has_role(current_user_roles, 'administrator'):
 
             if (keywords == ''):
-                paginated = Project.find_all(
-                    paginate=True, page=page, per_page=per_page)
-                projects = paginated.items
-                pagination_data = paginated.pagination
+                if attribute:
+                    paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
+                    projects = paginated.items
+                    pagination = {
+                        'total': paginated.total,
+                        'pages': paginated.pages,
+                        'page': paginated.page,
+                        'per_page': paginated.per_page,
+                        'next': paginated.next_num,
+                        'prev': paginated.prev_num
+                    }
+                
+                else:
+                    paginated = Project.find_all(
+                        paginate=True, page=page, per_page=per_page)
+                    projects = paginated.items
+                    pagination_data = paginated.pagination
             else :
                 paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).order_by(Project.date_created.desc()).paginate(
                         page=page, per_page=per_page, error_out=False)
@@ -231,10 +265,21 @@ class ProjectsView(Resource):
             try:
 
                 if (keywords == ''):
-
-                    pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                        ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
-                        page=page, per_page=per_page, error_out=False)
+                    if attribute:
+                        paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
+                        projects = paginated.items
+                        pagination = {
+                            'total': paginated.total,
+                            'pages': paginated.pages,
+                            'page': paginated.page,
+                            'per_page': paginated.per_page,
+                            'next': paginated.next_num,
+                            'prev': paginated.prev_num
+                        }
+                    else:
+                        pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
+                            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
+                            page=page, per_page=per_page, error_out=False)
                 else :
 
                     pagination = Project.query.filter(Project.owner_id == current_user_id, Project.name.ilike('%'+keywords+'%'), Project.users.any(
@@ -268,6 +313,7 @@ class ProjectsView(Resource):
 
         return dict(status='success',
                     data=dict(
+                        metadata= project_metadata,
                         pagination=pagination_data,
                         projects=json.loads(project_data))), 200
 
