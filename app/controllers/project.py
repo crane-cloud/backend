@@ -235,7 +235,7 @@ class ProjectsView(Resource):
                 if attribute:
                     paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
                     projects = paginated.items
-                    pagination = {
+                    pagination_data = {
                         'total': paginated.total,
                         'pages': paginated.pages,
                         'page': paginated.page,
