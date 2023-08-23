@@ -109,7 +109,7 @@ paths:
           description: Either month or year 
         - in: query
           name: verified
-          type: string
+          type: boolean
           description: Either True of False.
         - in: query
           name: is_beta
