@@ -113,7 +113,7 @@ paths:
           description: Either True of False.
         - in: query
           name: is_beta
-          type: string
+          type: boolean
           description: Either True of False.
         - in: query
           name: All
