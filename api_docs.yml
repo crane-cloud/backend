@@ -61,7 +61,7 @@ paths:
           description: Number of items per page
         - in: query
           name: verified
-          type: string
+          type: boolean
           description: Either True or False.
         - in: query
           name: is_beta
