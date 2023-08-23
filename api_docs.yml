@@ -67,10 +67,7 @@ paths:
           name: is_beta
           type: boolean
           description: Either True or False.e
-        - in: query
-          name: All
-          type: string
-          description: Setting this True will overide the is_beta and verified flag and return all Users.
+        
       produces:
         - application/json
       responses:
@@ -115,10 +112,6 @@ paths:
           name: is_beta
           type: boolean
           description: Either True of False.
-        - in: query
-          name: All
-          type: string
-          description: Either True of False. Setting this to True will ignore "verified" and "is_beta" flags and return all users
         
       produces:
         - application/json

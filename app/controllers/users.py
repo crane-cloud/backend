@@ -125,20 +125,29 @@ class UsersView(Resource):
         keywords = request.args.get('keywords' , '')
         verified = request.args.get('verified' , None)
         is_beta = request.args.get('is_beta' , None)
-        All = request.args.get('All' , None)
+        total_users = len(User.find_all())
 
         users = []
 
         meta_data = {}
         beta_count = User.query.with_entities(User.is_beta_user, func.count(User.is_beta_user)).group_by(User.is_beta_user).all()
         verified_count = User.query.with_entities(User.verified, func.count(User.verified)).group_by(User.verified).all()
-        
-        meta_data['is_beta_user'] = {key : value for key , value in beta_count}
-        meta_data['verified'] = {key : value for key , value in verified_count}
+        meta_data['total_users'] = total_users
+        meta_data['is_beta_user'] = 0
+        meta_data['verified'] = 0
 
+        for key , value in beta_count :
+            if key :
+                meta_data['is_beta_user'] = value
+                break
+
+        for key , value in verified_count : 
+            if key :
+                meta_data['verified'] = value
+                break
 
         if (keywords == ''):
-            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+            if (verified != None or is_beta != None) :
                 if (verified != None and is_beta != None):
                     paginated = User.query.filter(User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
                 else :
@@ -163,7 +172,7 @@ class UsersView(Resource):
                 users = paginated.items
                 pagination = paginated.pagination
         else :
-            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+            if(verified != None or is_beta != None) :
                 if (verified != None and is_beta != None):
                     paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')),User.verified == verified , User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
                 else :
@@ -802,16 +811,24 @@ class UserDataSummaryView(Resource):
 
         verified = request.args.get('verified' , None)
         is_beta = request.args.get('is_beta' , None)
-        All = request.args.get('All' , None)
         total_users = len(User.find_all())
 
         meta_data = {'total_users' : total_users}
         beta_count = User.query.with_entities(User.is_beta_user, func.count(User.is_beta_user)).group_by(User.is_beta_user).all()
         verified_count = User.query.with_entities(User.verified, func.count(User.verified)).group_by(User.verified).all()
-        
-        meta_data['is_beta_user'] = {key : value for key , value in beta_count}
-        meta_data['verified'] = {key : value for key , value in verified_count}
- 
+        meta_data['is_beta_user'] = 0
+        meta_data['verified'] = 0
+
+        for key , value in beta_count :
+            if key :
+                meta_data['is_beta_user'] = value
+                break
+
+        for key , value in verified_count : 
+            if key :
+                meta_data['verified'] = value
+                break
+
         filter_schema = UserGraphSchema()
 
         validated_query_data, errors = filter_schema.load(user_filter_data)
@@ -827,7 +844,7 @@ class UserDataSummaryView(Resource):
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')
             month = column('month')
-            if  (All == None or All == 'False') and (verified != None or is_beta != None) :
+            if  (verified != None or is_beta != None) :
                 if (verified != None):
                     user_data = db.session.query(month, func.count(User.id)).\
                         select_from(date_list).\
@@ -857,7 +874,7 @@ class UserDataSummaryView(Resource):
                 start, end, '1 year').alias('year')
             year = column('year')
 
-            if (All == None or All == 'False') and (verified != None or is_beta != None) :
+            if (verified != None or is_beta != None) :
                 if (verified != None):
                     user_data = db.session.query(year, func.count(User.id)).\
                     select_from(date_list).\
