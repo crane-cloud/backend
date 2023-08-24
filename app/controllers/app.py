@@ -404,6 +404,61 @@ class AppsView(Resource):
                          )
             return dict(status='fail', message=str(e)), 500
 
+    @admin_required
+    def get(self):
+        """
+        Get overal app information
+        """
+        graph_filter_data = {
+            'start': request.args.get('start', '2018-01-01'),
+            'end': request.args.get('end', datetime.datetime.now().strftime('%Y-%m-%d')),
+            'set_by': request.args.get('set_by', 'month')
+        }
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        series = request.args.get('series', False)
+
+        if isinstance(series, str):
+            series = series.lower() == 'true'
+
+        filter_schema = AppGraphSchema()
+        apps_schema = AppSchema(many=True)
+
+        total_apps = App.query.count()
+
+        if not series:
+            apps = App.find_all(paginate=True, page=page, per_page=per_page)
+            apps_data, errors = apps_schema.dumps(apps.items)
+            pagination = apps.pagination
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            return dict(
+                status='success',
+                data=dict(
+                    metadata=dict(total_apps=total_apps),
+                    pagination=pagination,
+                    apps=json.loads(apps_data))
+            ), 200
+
+        validated_query_data, errors = filter_schema.load(graph_filter_data)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start')
+        end = validated_query_data.get('end')
+        set_by = validated_query_data.get('set_by')
+
+        app_info = App.graph_data(start=start, end=end, set_by=set_by)
+
+        return dict(
+            status='success',
+            data=dict(
+                metadata=dict(total_apps=total_apps),
+                graph_data=app_info)
+        ), 200
+
 
 class ProjectAppsView(Resource):
 
@@ -1657,7 +1712,7 @@ class AppRedeployView(Resource):
         """
         Redeploy application
         """
-        #TODO: handle private login
+        # TODO: handle private login
         app_schema = AppSchema()
         try:
             current_user_id = get_jwt_identity()
