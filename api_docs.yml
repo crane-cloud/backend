@@ -2257,10 +2257,6 @@ paths:
           name: project_type
           type: string
           description: Shows the type of project. Corresponds to the predifined types like Research, Student, Personal, Commercial or Other.
-        - in: query
-          name: organisation
-          type: string
-          description: Shows the type of organisation for a project. Corresponds to the predifined types like Start-up, University Project, Individual or Final Year Project.
       responses:
         200:
           description: "Success"
