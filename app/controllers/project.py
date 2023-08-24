@@ -206,7 +206,6 @@ class ProjectsView(Resource):
         keywords = request.args.get('keywords', '')
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
-        organisation = request.args.get('organisation')
 
 
         project_schema = ProjectSchema(many=True)
@@ -215,8 +214,7 @@ class ProjectsView(Resource):
 
         filter_mapping = {
         'disabled': disabled,
-        'project_type': project_type,
-        'organisation': organisation
+        'project_type': project_type
         }
 
         # count items per project category 
