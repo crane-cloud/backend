@@ -1,5 +1,7 @@
+from datetime import datetime
 import json
 import os
+from app.schemas.monitoring_metrics import UserGraphSchema
 from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
@@ -11,7 +13,9 @@ from app.helpers.decorators import admin_required
 from app.helpers.db_flavor import get_db_flavour, database_flavours
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.activity_logger import log_activity
-from sqlalchemy import func
+from sqlalchemy import Date, func, column, cast, and_, select
+
+from app.models import db
 
 
 class ProjectDatabaseView(Resource):
@@ -669,7 +673,7 @@ class ProjectDatabaseAdminView(Resource):
         # Metadata
         metadata = dict()
         query = ProjectDatabase.query
-        metadata['database_number'] = query.count()
+        metadata['total'] = query.count()
         metadata['postgres_total'] = query.filter_by(
             database_flavour_name='postgres').count()
         metadata['mysql_total'] = query.filter_by(
@@ -688,6 +692,87 @@ class ProjectDatabaseAdminView(Resource):
         database_data_list = json.loads(database_data)
 
         return dict(status='success',  data=dict(metadata=metadata, pagination=pagination, databases=database_data_list)), 200
+
+
+class ProjectDatabaseGraphAdminView(Resource):
+
+    @admin_required
+    def get(self):
+        """
+        Shows databases graph data
+        """
+        graph_filter_data = {
+            'start': request.args.get('start', '2018-01-01'),
+            'end': request.args.get('end', datetime.now().strftime('%Y-%m-%d')),
+            'set_by': request.args.get('set_by', 'month')
+        }
+        flavour = request.args.get('db_flavour', None)
+        if flavour:
+            valid_flavour = get_db_flavour(flavour)
+            if not valid_flavour:
+                return dict(status='fail', message='Not a valid database flavour use mysql or postgres'), 401
+
+        filter_schema = UserGraphSchema()
+
+        validated_query_data, errors = filter_schema.load(graph_filter_data)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start')
+        end = validated_query_data.get('end')
+        set_by = validated_query_data.get('set_by')
+
+        if set_by == 'month':
+            date_list = func.generate_series(
+                start, end, '1 month').alias('month')
+            month = column('month')
+            query = db.session.query(month, func.count(ProjectDatabase.id)).\
+                select_from(date_list).\
+                outerjoin(ProjectDatabase, func.date_trunc(
+                    'month', ProjectDatabase.date_created) == month)
+            if flavour:
+                query = query.filter(
+                    ProjectDatabase.database_flavour_name == flavour)
+
+            db_data = query.group_by(month).order_by(month).all()
+
+        else:
+            date_list = func.generate_series(
+                start, end, '1 year').alias('year')
+            year = column('year')
+            query = db.session.query(year, func.count(ProjectDatabase.id)).\
+                select_from(date_list).\
+                outerjoin(ProjectDatabase, func.date_trunc(
+                    'year', ProjectDatabase.date_created) == year)
+
+            if flavour:
+                query = query.filter(
+                    ProjectDatabase.database_flavour_name == flavour)
+
+            db_data = query.group_by(year).order_by(year).all()
+
+        db_info = []
+        for item in db_data:
+            item_dict = {
+                'year': item[0].year, 'month': item[0].month, 'value': item[1]
+            }
+            db_info.append(item_dict)
+
+        # Metadata
+        metadata = dict()
+        query = ProjectDatabase.query
+        metadata['total'] = query.count()
+        metadata['postgres_total'] = query.filter_by(
+            database_flavour_name='postgres').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        db_user = ProjectDatabase.user
+        metadata['users_number'] = query.with_entities(
+            db_user, func.count(db_user)).group_by(db_user).distinct().count()
+
+        return dict(status='success',  data=dict(metadata=metadata, graph_data=db_info)), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
