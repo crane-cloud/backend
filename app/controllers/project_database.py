@@ -653,23 +653,31 @@ class ProjectDatabaseAdminView(Resource):
 
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
-
-        databases = ProjectDatabase.find_all(
-            paginate=True, page=page, per_page=per_page)
+        flavour = request.args.get('db_flavour', None)
+        if flavour:
+            valid_flavour = get_db_flavour(flavour)
+            if not valid_flavour:
+                return dict(status='fail', message='Not a valid database flavour use mysql or postgres'), 401
+            databases = ProjectDatabase.find_all(
+                database_flavour_name=flavour, paginate=True, page=page, per_page=per_page)
+        else:
+            databases = ProjectDatabase.find_all(
+                paginate=True, page=page, per_page=per_page)
 
         pagination = databases.pagination
 
         # Metadata
         metadata = dict()
-        metadata['database_number'] = pagination['total']
-        metadata['postgres_total'] = ProjectDatabase.query.filter_by(
+        query = ProjectDatabase.query
+        metadata['database_number'] = query.count()
+        metadata['postgres_total'] = query.filter_by(
             database_flavour_name='postgres').count()
-        metadata['mysql_total'] = ProjectDatabase.query.filter_by(
+        metadata['mysql_total'] = query.filter_by(
             database_flavour_name='mysql').count()
-        metadata['mysql_total'] = ProjectDatabase.query.filter_by(
+        metadata['mysql_total'] = query.filter_by(
             database_flavour_name='mysql').count()
         db_user = ProjectDatabase.user
-        metadata['users_number'] = ProjectDatabase.query.with_entities(
+        metadata['users_number'] = query.with_entities(
             db_user, func.count(db_user)).group_by(db_user).distinct().count()
 
         database_data, errors = database_schema.dumps(databases.items)

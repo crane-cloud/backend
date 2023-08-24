@@ -3327,6 +3327,10 @@ paths:
           description: "Bearer [token]"
           type: string
         - in: query
+          name: db_flavour
+          type: string
+          description: Database flavour either mysql or postgres
+        - in: query
           name: page
           type: integer
           description: Page number
