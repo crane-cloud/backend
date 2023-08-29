@@ -18,7 +18,7 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectAdminDisableView, ProjectAdminEnableView,
-    AppRedeployView)
+    AppRedeployView, ProjectDatabaseGraphAdminView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -185,6 +185,7 @@ api.add_resource(ProjectDatabaseView,
 api.add_resource(ProjectDatabaseDetailView,
                  '/projects/<string:project_id>/databases/<string:database_id>')
 api.add_resource(ProjectDatabaseAdminView, '/databases')
+api.add_resource(ProjectDatabaseGraphAdminView, '/databases/graph')
 api.add_resource(ProjectDatabaseAdminDetailView,
                  '/databases/<string:database_id>')
 api.add_resource(ProjectDatabaseResetView,

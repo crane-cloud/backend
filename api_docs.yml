@@ -3327,6 +3327,10 @@ paths:
           description: "Bearer [token]"
           type: string
         - in: query
+          name: db_flavour
+          type: string
+          description: Database flavour either mysql or postgres
+        - in: query
           name: page
           type: integer
           description: Page number
@@ -3358,6 +3362,46 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        404:
+          description: "Database stats not found"
+        500:
+          description: "Internal Server Error"
+
+  "/databases/graph":
+    get:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: query
+          name: start
+          type: string
+          description: Start date format(YYYY-MM-DD)
+        - in: query
+          name: end
+          type: string
+          description: End date format(YYYY-MM-DD)
+        - in: query
+          name: set_by
+          type: string
+          description: Either month or year
+        - in: query
+          name: db_flavour
+          type: string
+          description: Database flavour either mysql or postgres
       produces:
         - application/json
       responses:
