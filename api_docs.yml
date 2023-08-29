@@ -67,7 +67,7 @@ paths:
           name: is_beta
           type: boolean
           description: Either True or False.e
-        
+
       produces:
         - application/json
       responses:
@@ -103,7 +103,7 @@ paths:
           name: set_by
           required: true
           type: string
-          description: Either month or year 
+          description: Either month or year
         - in: query
           name: verified
           type: boolean
@@ -112,7 +112,7 @@ paths:
           name: is_beta
           type: boolean
           description: Either True of False.
-        
+
       produces:
         - application/json
       responses:
@@ -537,8 +537,8 @@ paths:
           schema:
             type: string
           description: >
-             A relative date range for inactive users, such as `last 14 days`.
-             For an exact range, use `start` and `end` instead.
+            A relative date range for inactive users, such as `last 14 days`.
+            For an exact range, use `start` and `end` instead.
         - in: query
           name: start
           schema:
@@ -2262,7 +2262,7 @@ paths:
         - in: query
           name: keywords
           type: string
-          description: Enter keywords if searching 
+          description: Enter keywords if searching
         - in: query
           name: page
           type: integer
@@ -2464,7 +2464,7 @@ paths:
         - in: query
           name: keywords
           type: string
-          description: Enter keywords if searching 
+          description: Enter keywords if searching
         - in: query
           name: page
           type: integer
@@ -3569,8 +3569,7 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/apps/summary":
-    post:
+    get:
       tags:
         - apps
       consumes:
@@ -3580,17 +3579,31 @@ paths:
           name: Authorization
           required: true
           description: "Bearer [token]"
-        - in: body
-          name: app
-          schema:
-            type: object
-            properties:
-              start:
-                type: string
-              end:
-                type: string
-              set_by:
-                type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+        - in: query
+          name: series
+          type: boolean
+          description: Returns graph data when set to true
+        - in: query
+          name: start
+          type: string
+          description: Start date format (YYYY-MM-DD)
+        - in: query
+          name: end
+          type: string
+          description: End date format (YYYY-MM-DD)
+        - in: query
+          name: set_by
+          type: string
+          description: Either month or year
+
       produces:
         - application/json
       responses:
@@ -3600,6 +3613,7 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
+
 
   "/apps/{app_id}":
     get:
@@ -3794,7 +3808,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
   "/projects/{project_id}/apps/{app_id}/metrics/cpu":
     post:
