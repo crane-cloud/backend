@@ -21,6 +21,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ${{ secrets.TEST_DATABASE_PASSWORD }}
           POSTGRES_DB: ${{ secrets.TEST_DATABASE_NAME }}
+          POSTGRES_HOST_AUTH_METHOD: trust
         options:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
