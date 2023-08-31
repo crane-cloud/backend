@@ -63,7 +63,7 @@ class SystemSummaryView(Resource):
 
         #Projects
         project_count = Project.query.count()
-        active_projects = Project.query.filter(Project.disabled == False).count()
+        disabled_projects = Project.query.filter(Project.disabled == True).count()
 
         #apps
         app_count = App.query.count()
