@@ -989,7 +989,7 @@ class ProjectDisableView(Resource):
 
         #get postgres project databases
         db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        psql_project_databases = ProjectDatabase.find_all(project_id = project_id, database_flavour_name = db_flavour)
 
         if psql_project_databases:
 
@@ -1035,7 +1035,7 @@ class ProjectDisableView(Resource):
 
         #get mysql project databases
         db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        mysql_project_databases = ProjectDatabase.find_all(project_id = project_id, database_flavour_name = db_flavour)
 
         if mysql_project_databases:
 
@@ -1120,7 +1120,7 @@ class ProjectEnableView(Resource):
 
         #get postgres project databases
         db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        psql_project_databases = ProjectDatabase.find_all(project_id = project_id, database_flavour_name = db_flavour)
 
         if psql_project_databases:
 
@@ -1166,7 +1166,7 @@ class ProjectEnableView(Resource):
 
         #get mysql project databases
         db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        mysql_project_databases = ProjectDatabase.find_all(project_id = project_id, database_flavour_name = db_flavour)
 
         if mysql_project_databases:
 
