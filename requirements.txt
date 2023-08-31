@@ -15,7 +15,7 @@ certifi==2023.7.22
 cffi==1.12.3
 chardet==3.0.4
 charset-normalizer==2.0.12
-Click==7.0
+click==7.1.2
 click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
@@ -24,7 +24,7 @@ cryptography==40.0.2
 dnspython==2.2.1
 enum34==1.1.6
 flasgger==0.9.3
-Flask==1.1.1
+Flask==2.0.3
 Flask-Bcrypt==0.7.1
 Flask-Cors==3.0.9
 Flask-JWT-Extended==3.20.0
@@ -40,15 +40,15 @@ idna==2.8
 importlib-metadata==4.8.3
 iniconfig==1.1.1
 ipaddress==1.0.22
-itsdangerous==1.1.0
-Jinja2==2.11.3
+itsdangerous==2.0.1
+Jinja2==3.0.3
 jsonschema==2.6.0
 keyring==10.6.0
 keyrings.alt==3.0
 kombu==5.1.0
 kubernetes==23.3.0
 Mako==1.1.6
-MarkupSafe==1.1.1
+MarkupSafe==2.0.1
 marshmallow==2.19.2
 mistune==2.0.3
 mysql-connector==2.2.9
