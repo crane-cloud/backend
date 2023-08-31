@@ -82,7 +82,7 @@ class SystemSummaryView(Resource):
             },
             'Projects' : {
                 'total_count' : project_count,
-                'active' : active_projects
+                'disabled' : disabled_projects
             },
             'Apps' : {
                 'total_count' : app_count,
