@@ -4019,6 +4019,30 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/system_summary":
+    get:
+      tags:
+        - system
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+
+  
+
   "/system_status":
     get:
       tags:
@@ -4044,3 +4068,5 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  
