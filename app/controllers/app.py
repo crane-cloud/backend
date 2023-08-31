@@ -494,6 +494,11 @@ class ProjectAppsView(Resource):
             project_id=project_id)
 
         if existing_app:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=f'App {app_name} already exists',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status='fail',
                 message=f'App with name {validated_app_data["name"]} already exists'
@@ -533,20 +538,6 @@ class ProjectAppsView(Resource):
 
         if not cluster:
             return dict(status='fail', message="Invalid Cluster"), 500
-
-        # check if app already exists
-        app = App.find_first(**{'name': app_name})
-
-        if app:
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=f'App {app_name} already exists',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return dict(
-                status='fail',
-                message=f'App {app_name} already exists'
-            ), 409
 
         kube_host = cluster.host
         kube_token = cluster.token

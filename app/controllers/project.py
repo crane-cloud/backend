@@ -1079,21 +1079,58 @@ class ProjectDisableView(Resource):
                     print('mysql databases:')
                     print(database.name)
         
-        # TODO: Disable project apps
+        # Disable apps
+        try:
+            kube_host = project.cluster.host
+            kube_token = project.cluster.token
 
-        #save project
-        project.disabled = True
-        project.save()
+            kube_client = create_kube_clients(kube_host, kube_token)
+            quota = client.V1ResourceQuota(
+                api_version="v1",
+                kind="ResourceQuota",
+                metadata=client.V1ObjectMeta(name="disable-quota", namespace=project.alias),
+                spec=client.V1ResourceQuotaSpec(
+                    hard={
+                        "requests.cpu": "0",
+                        "requests.memory": "0",
+                        "limits.cpu": "0",
+                        "limits.memory": "0"
+                    }
+                )
+            )
 
-        log_activity('Project', status='Success',
-                         operation='Disable',
-                         description='Disabled project Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} disabled successfully'
-        ), 200
+            kube_client.kube.create_namespaced_resource_quota(project.alias, quota)
+        
+            #save project
+            project.disabled = True
+            project.save()
+
+            log_activity('Project', status='Success',
+                            operation='Disable',
+                            description='Disabled project Successfully',
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id)
+            return dict(
+                status='success',
+                message=f'project {project_id} disabled successfully'
+            ), 200
+        
+        except client.rest.ApiException as e:
+            log_activity('Project', status='Failed',
+                            operation='Disable',
+                            description='Error creating resource quota',
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id)
+            return dict(status='fail', message=str(e.body)), e.status
+        
+        except Exception as err:
+            log_activity('Project', status='Failed',
+                            operation='Disable',
+                            description=err.body,
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id)
+            return dict(status='fail', message=str(err)), 500
+
 
 
 class ProjectEnableView(Resource):
@@ -1211,21 +1248,51 @@ class ProjectEnableView(Resource):
                     print('mysql databases:')
                     print(database.name)
         
-        # TODO: Disable project apps
+        # Disable apps
+        try:
+            kube_host = project.cluster.host
+            kube_token = project.cluster.token
 
-        #save project
-        project.disabled = False
-        project.save()
+            kube_client = create_kube_clients(kube_host, kube_token)
+            try:
+                # Delete the ResourceQuota
+                kube_client.kube.delete_namespaced_resource_quota(
+                    name='disable-quota', namespace=project.alias
+                )
+            except client.rest.ApiException as e:
+                if e.status != 404:
+                    log_activity('Project', status='Failed',
+                                    operation='Enable',
+                                    description='Error deleting resource quota',
+                                    a_project_id=project.id,
+                                    a_cluster_id=project.cluster_id)
+                    return dict(status='fail', message=str(e.body)), e.status\
+               
 
-        log_activity('Project', status='Success',
-                         operation='Enable',
-                         description='Enabled project Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} Enabled successfully'
-        ), 200
+            #save project
+            project.disabled = False
+            project.save()
+
+            log_activity('Project', status='Success',
+                            operation='Enable',
+                            description='Enabled project Successfully',
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id)
+            return dict(
+                status='success',
+                message=f'project {project_id} Enabled successfully'
+            ), 200
+        
+        
+        except Exception as err:
+            log_activity('Project', status='Failed',
+                            operation='Enable',
+                            description=err.body,
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id)
+            return dict(status='fail', message=str(err)), 500
+
+        
 
 class ProjectAdminDisableView(Resource):
     @admin_required
