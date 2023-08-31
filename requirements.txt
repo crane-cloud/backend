@@ -24,7 +24,7 @@ cryptography==40.0.2
 dnspython==2.2.1
 enum34==1.1.6
 flasgger==0.9.3
-Flask==2.0.3
+Flask==2.2.5
 Flask-Bcrypt==0.7.1
 Flask-Cors==3.0.9
 Flask-JWT-Extended==3.20.0
