@@ -320,15 +320,16 @@ class AppsView(Resource):
                         name=ingress_name
                     )
 
-                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                        # backend=ingress_backend,
-                        rules=[new_ingress_rule]
-                    )
+                    ingress_spec = {
+                        'rules': [new_ingress_rule]
+                    }
 
-                    ingress_body = client.ExtensionsV1beta1Ingress(
-                        metadata=ingress_meta,
-                        spec=ingress_spec
-                    )
+                    ingress_body = {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "kind": "Ingress",
+                        "metadata": ingress_meta,
+                        "spec": ingress_spec
+                    }
 
                     kube_client.networking_api.create_namespaced_ingress(
                         namespace=namespace,
@@ -760,15 +761,16 @@ class ProjectAppsView(Resource):
                     name=ingress_name
                 )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                ingress_spec = {
+                    'rules': [new_ingress_rule]
+                }
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                ingress_body = {
+                    "apiVersion": "networking.k8s.io/v1",
+                    "kind": "Ingress",
+                    "metadata": ingress_meta,
+                    "spec": ingress_spec
+                }
 
                 kube_client.networking_api.create_namespaced_ingress(
                     namespace=namespace,
