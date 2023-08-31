@@ -6,7 +6,7 @@ from app.models.model_mixin import ModelMixin, SoftDeleteQuery
 
 class App(ModelMixin):
     __tablename__ = 'app'
-    #SoftDeleteQuery is used to filter out deleted records
+    # SoftDeleteQuery is used to filter out deleted records
     query_class = SoftDeleteQuery
 
     id = db.Column(UUID(as_uuid=True), primary_key=True,
@@ -24,3 +24,4 @@ class App(ModelMixin):
     command = db.Column(db.String(256), nullable=True)
     replicas = db.Column(db.Integer, nullable=True)
     private_image = db.Column(db.Boolean, default=False)
+    # disabled = db.Column(db.Boolean, default=False)
