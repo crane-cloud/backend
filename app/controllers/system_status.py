@@ -72,6 +72,7 @@ class SystemSummaryView(Resource):
         #Databases
         database_count = ProjectDatabase.query.count()
         mysql_database_count = ProjectDatabase.query.filter(ProjectDatabase.database_flavour_name == 'mysql').count()
+        postgres_database_count = ProjectDatabase.query.filter(ProjectDatabase.database_flavour_name == 'postgres').count()
 
 
         return dict(status='success' , data={
@@ -90,6 +91,6 @@ class SystemSummaryView(Resource):
             'Databases' : {
                 'total_count' : database_count,
                 'mysql' : mysql_database_count,
-                'postgres' : database_count - mysql_database_count 
+                'postgres' : postgres_database_count 
             }
         }) , 200
