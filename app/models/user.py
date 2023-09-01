@@ -26,6 +26,7 @@ class User(ModelMixin):
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
+    last_reminder_sent = db.Column(db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
     organisation = db.Column(db.String(256), nullable=True, default="")
     other_projects = db.relationship('ProjectUser', back_populates='user')

@@ -581,6 +581,36 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/users/inactive_user_reminder":
+    post:
+      tags:
+        - inactive_user_reminder
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: body
+          name: inactive_user_reminder
+          schema:
+            type: object
+            required:
+              - inactive_users
+            properties:
+              inactive_users:
+                type: array<user>
+      produces:
+        - application/json
+      responses:
+        201:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters":
     post:
       tags:

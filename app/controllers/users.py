@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.token import validate_token
+from app.helpers.inactive_notification import send_inactive_notification_to_user
 from app.schemas import ProjectSchema, AppSchema
 from app.helpers.decorators import admin_required
 import requests
@@ -1097,3 +1098,58 @@ class InActiveUsersView(Resource):
             status='success',
             data=dict(pagination=pagination, users=json.loads(users_data))
         ), 200
+
+class SendInactiveUserMailReminder(Resource):
+
+    @admin_required
+    def post(self):
+         # Get the list of inactive users from the request body
+        user_schema = UserSchema()
+
+        user_data = request.get_json()
+
+        validated_user_data, errors = user_schema.load(user_data)
+
+        today = datetime.now()
+
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
+        if 'inactive_users' not in validated_user_data:
+            return dict(status='fail', message='Inactive users data not provided in the request'), 400
+
+        inactive_users = validated_user_data['inactive_users']
+
+        for user_data in inactive_users:
+            user = User.query.get(user_data['uuid'])  # Assuming there's a unique identifier like 'id'
+            
+            if user is None:
+                continue
+            
+            # Check if a reminder email was sent in the last month
+            if user.last_reminder_sent is None or user.last_reminder_sent < (datetime.now() - timedelta(days=30)):
+
+                # send email variable
+                name = user.name
+                template = "user/inactive_user_reminder.html"
+                subject = "We miss you at Crane Cloud"
+                email =user.email
+                today = today.date
+                success = False
+
+                # send email
+                success = True
+                send_inactive_notification_to_user(
+                email,
+                name,
+                current_app._get_current_object(),
+                template,
+                subject,
+                today.strftime("%m/%d/%Y"),
+                success)
+                                
+                user.last_reminder_sent = today.date()
+                db.session.commit()
+
+        return dict(status='success', message='Reminder emails sent successfully')
+    
