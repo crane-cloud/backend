@@ -1303,8 +1303,8 @@ class ProjectEnableView(Resource):
                     except:
                         pass
                     # save app
-                    # app.disabled = True
-                    # app.save()
+                    app.disabled = False
+                    app.save()
                 # Delete the ResourceQuota
                 kube_client.kube.delete_namespaced_resource_quota(
                     name='disable-quota', namespace=project.alias

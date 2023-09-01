@@ -24,4 +24,4 @@ class App(ModelMixin):
     command = db.Column(db.String(256), nullable=True)
     replicas = db.Column(db.Integer, nullable=True)
     private_image = db.Column(db.Boolean, default=False)
-    # disabled = db.Column(db.Boolean, default=False)
+    disabled = db.Column(db.Boolean, default=False)
