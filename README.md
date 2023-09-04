@@ -6,17 +6,19 @@
 
 Managed Kubernetes Platform
 
-### Project Setup
+## Project Setup
 
 Follow these steps to have a local running copy of the app.
 
-##### Clone The Repo
+#### Clone The Repo
 
 `git clone https://github.com/crane-cloud/backend.git`
 
 If `master` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
 
-##### Install PostgreSQL
+## Directly on your machine
+
+#### 1. Install PostgreSQL
 
 Here's a great resource to check out:
 
@@ -24,7 +26,7 @@ Here's a great resource to check out:
 
 Create the two databases `cranecloud` (for development) and `cranecloud_test_db` (for unit testing).
 
-##### Create a Virtual Environment
+#### 2. Create a Virtual Environment
 
 App was developed with `Python 3.6`.
 
@@ -56,7 +58,19 @@ Run the application.
 
 `flask run`
 
-#### Running Migrations
+## Running with Docker
+
+`make` is a build automation tool that is used to manage the build process of a software project
+
+- In the project directory, when you type `make`, it shows you a list of commands to use
+- Run `make start` to start the application and services required
+- Run `make connect-to-container` to connect to the flask application container after running make start
+
+## Finishing up
+>
+> Running with Docker, you have to ssh in the container first by running `make connect-to-container` then execute the following commands.
+>
+### Running Migrations
 
 The application uses sqlalchemy ORM to manange and run database migrations
 
@@ -64,7 +78,7 @@ Run `python manage.py db upgrade` command to run migration upgrade against the d
 
 Run `python manage.py db migrate` command to run migrations incase there are changes in the schema
 
-##### Testing and Coverage
+### Testing and Coverage
 
 This app uses `nose` to run tests.
 
@@ -72,37 +86,37 @@ This app uses `nose` to run tests.
 
 or `nosetests` to run without coverage
 
-##### Creating default roles
+### Creating default roles
 
 To create the default roles
 
 `python manage.py create_roles`
 
-##### Creating default admin account
+### Creating default admin account
 
 To create an admin account run
 
 `python manage.py admin_user --email=<an email> --password=<the password> --confirm_password=<the password>`
 
-#### To add clusters locally
+### To add clusters locally
 
 Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/#/clusters/post_clusters`
 
 `{ "description": "string", "host": "string", "name": "string", "token": "string" }`
 Reach out to backend team to get token and host values
 
-##### Add image repositories
+### Add image repositories
 
 To add image repositories to the database run
 
 `python manage.py create_registries`
 
-##### Run celery worker and beat on linux with
+### Run celery worker and beat on linux with
 
 `celery -A server.celery worker --loglevel=info`
 `celery -A server.celery beat --loglevel=info`
 
-##### Run celery worker and beat on windows with
+### Run celery worker and beat on windows with
 
 `celery -A server.celery worker --pool=solo --loglevel=info`
 `celery -A server.celery beat --loglevel=info`
