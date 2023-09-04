@@ -1,7 +1,9 @@
+To optimize the provided code, you can make a few formatting improvements to enhance readability. Here's an optimized version of the code:
+
 # Crane Cloud
 
-![Test](https://github.com/crane-cloud/backend/actions/workflows/test.yml/badge.svg)
-![Build](https://github.com/crane-cloud/backend/actions/workflows/staging.yml/badge.svg)
+[![Test](https://github.com/crane-cloud/backend/actions/workflows/test.yml/badge.svg)](https://github.com/crane-cloud/backend/actions/workflows/test.yml)
+[![Build](https://github.com/crane-cloud/backend/actions/workflows/staging.yml/badge.svg)](https://github.com/crane-cloud/backend/actions/workflows/staging.yml)
 [![codecov](https://codecov.io/gh/crane-cloud/backend/branch/develop/graph/badge.svg?token=kkuF1X6MWx)](https://codecov.io/gh/crane-cloud/backend)
 
 Managed Kubernetes Platform
@@ -10,43 +12,49 @@ Managed Kubernetes Platform
 
 Follow these steps to have a local running copy of the app.
 
-#### Clone The Repo
+### Clone The Repo
 
-`git clone https://github.com/crane-cloud/backend.git`
+```bash
+git clone https://github.com/crane-cloud/backend.git
+```
 
-If `master` is not up to date, `git checkout develop`. However, note that code on develop could be having some minor issues to sort.
+If `master` is not up to date, switch to the `develop` branch. However, note that code on `develop` could have some minor issues to sort out.
 
-## Directly on your machine
+### Directly on your machine
+---
+#### Install PostgreSQL
 
-#### 1. Install PostgreSQL
+Here's a great resource to check out: [How To Install and Use PostgreSQL](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04)
 
-Here's a great resource to check out:
+Create the two databases:
+- `cranecloud` (for development)
+- `cranecloud_test_db` (for unit testing)
 
-[How To Install and Use PostgreSQL](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04)
+#### Create a Virtual Environment
 
-Create the two databases `cranecloud` (for development) and `cranecloud_test_db` (for unit testing).
-
-#### 2. Create a Virtual Environment
-
-App was developed with `Python 3.6`.
+App was developed with Python 3.6.
 
 Make sure you have `pip` installed on your machine.
 
-Create a pip virtual environment you can call it `venv`
+Create a pip virtual environment called `venv`.
 
-Activate the virtual environment.
+Activate the virtual environment:
 
-`. venv/bin/activate`
+```bash
+. venv/bin/activate
+```
 
-Install the dependencies.
+Install the dependencies:
 
-`pip install -r requirements.txt`
+```bash
+pip install -r requirements.txt
+```
 
 Create a `.env` file (which defines the environment variables used) at the root of the app.
 
-Add the following details, customizing as needed.
+Add the following details, customizing as needed:
 
-```
+```bash
 export FLASK_APP=app.py
 export FLASK_ENV=development
 export FLASK_DEBUG=1
@@ -54,69 +62,112 @@ export FLASK_RUN_PORT=5000
 export FLASK_APP_SECRET=<app_secret>
 ```
 
-Run the application.
+Run the application:
 
-`flask run`
+```bash
+flask run
+```
 
-## Running with Docker
+### Running application with Docker
+---
+`make` is a build automation tool that is used to manage the build process of a software project.
 
-`make` is a build automation tool that is used to manage the build process of a software project
+- In the project directory, running `make` shows you a list of commands to use.
+- Run `make start` to start the application and required services.
+- Run `make connect-to-container` to connect to the Flask application container after running `make start`.
 
-- In the project directory, when you type `make`, it shows you a list of commands to use
-- Run `make start` to start the application and services required
-- Run `make connect-to-container` to connect to the flask application container after running make start
 
+---
+> Application should be running on http://localhost:5000 and apidocs on http://localhost:5000/apidocs/#/
+<!-- --- -->
 ## Finishing up
->
-> Running with Docker, you have to ssh in the container first by running `make connect-to-container` then execute the following commands.
->
+
+>To run with Docker, you have to ssh into the container first by running `make connect-to-container`, and then execute the following commands.
+
 ### Running Migrations
 
-The application uses sqlalchemy ORM to manange and run database migrations
+The application uses SQLAlchemy ORM to manage and run database migrations.
 
-Run `python manage.py db upgrade` command to run migration upgrade against the database relations
+To run migration upgrade against the database relations, use the following command:
 
-Run `python manage.py db migrate` command to run migrations incase there are changes in the schema
+```bash
+python manage.py db upgrade
+```
+
+To run migrations in case there are changes in the schema, use the following command:
+
+```bash
+python manage.py db migrate
+```
 
 ### Testing and Coverage
 
 This app uses `nose` to run tests.
 
-`nosetests --with-coverage --cover-package=routes` to run with coverage
+To run tests with coverage:
 
-or `nosetests` to run without coverage
+```bash
+nosetests --with-coverage --cover-package=routes
+```
+
+To run tests without coverage:
+
+```bash
+nosetests
+```
 
 ### Creating default roles
 
-To create the default roles
+To create the default roles, run:
 
-`python manage.py create_roles`
+```bash
+python manage.py create_roles
+```
 
 ### Creating default admin account
 
-To create an admin account run
+To create an admin account, run:
 
-`python manage.py admin_user --email=<an email> --password=<the password> --confirm_password=<the password>`
+```bash
+python manage.py admin_user --email=<email> --password=<password> --confirm_password=<password>
+```
 
 ### To add clusters locally
 
-Run the application using `flask run` and visit `http://127.0.0.1:5000/apidocs/#/clusters/post_clusters`
+Run the application using `flask run` and visit [http://127.0.0.1:5000/apidocs/#/clusters/post_clusters](http://127.0.0.1:5000/apidocs/#/clusters/post_clusters)
 
-`{ "description": "string", "host": "string", "name": "string", "token": "string" }`
-Reach out to backend team to get token and host values
+Use the following JSON payload:
 
+```json
+{
+  "description": "string",
+  "host": "string",
+  "name": "string",
+  "token": "string"
+}
+```
+
+Reach out to the backend team to get token and host values.
+
+## Optional things
 ### Add image repositories
 
-To add image repositories to the database run
+To add image repositories to the database, run:
 
-`python manage.py create_registries`
+```bash
+python manage.py create_registries
+```
+### Starting celery workers 
+#### Run celery worker and beat on Linux
 
-### Run celery worker and beat on linux with
+```bash
+celery -A server.celery worker --loglevel=info
+celery -A server.celery beat --loglevel=info
+```
 
-`celery -A server.celery worker --loglevel=info`
-`celery -A server.celery beat --loglevel=info`
+#### Run celery worker and beat on Windows
 
-### Run celery worker and beat on windows with
-
-`celery -A server.celery worker --pool=solo --loglevel=info`
-`celery -A server.celery beat --loglevel=info`
+```bash
+celery -A server.celery worker --pool=solo --loglevel=info
+celery -A server.celery beat --loglevel=info
+```

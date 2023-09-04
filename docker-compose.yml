@@ -5,13 +5,13 @@ services:
     image: postgres:10.8-alpine
     container_name: postgres-db
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_USER: postgres
       POSTGRES_DB: cranecloud
     ports:
       - "4200:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-  
+
   crane-mongo-db:
     restart: always
     image: mongo:4.2.3
@@ -32,14 +32,24 @@ services:
     image: ckwagaba/osprey-backend:latest
     container_name: flask-api
     environment:
-      DATABASE_URI:
-      FLASK_APP_SECRET:
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
-      MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
+      FLASK_APP_SECRET:
+      FLASK_APP_SALT:
+      FLASK_VERIFY_SALT:
+      APP_MAIL_USERNAME:
+      APP_MAIL_PASSWORD:
+      REDIS_URL:
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+      FLASK_ENV: development
+      DATABASE_USER: postgres
+      MONGO_URI: ${MONGO_URI:-mongodb://crane:password@crane-mongo-db:27017/admin}
+      DATABASE_URI: ${DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud}
+      TEST_DATABASE_URI: ${TEST_DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud_test}
     ports:
-      - "4100:5000"
+      - "5000:5000"
     volumes:
       - .:/app
     depends_on:
@@ -59,6 +69,7 @@ services:
     environment:
       REDIS_URL: ${REDIS_URL}
       MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
+      DATABASE_URI: postgresql://postgres:postgres@database:5432/cranecloud
     ports:
       - "4500:5000"
     volumes:
@@ -66,7 +77,6 @@ services:
     links:
       - database
       - crane-mongo-db
-  
 
 volumes:
   db-data:
