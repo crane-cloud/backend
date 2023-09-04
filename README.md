@@ -90,13 +90,13 @@ The application uses SQLAlchemy ORM to manage and run database migrations.
 To run migration upgrade against the database relations, use the following command:
 
 ```bash
-python manage.py db upgrade
+flask db upgrade
 ```
 
 To run migrations in case there are changes in the schema, use the following command:
 
 ```bash
-python manage.py db migrate
+flask db migrate
 ```
 
 ### Testing and Coverage
@@ -120,7 +120,7 @@ nosetests
 To create the default roles, run:
 
 ```bash
-python manage.py create_roles
+flask create_roles
 ```
 
 ### Creating default admin account
@@ -128,7 +128,7 @@ python manage.py create_roles
 To create an admin account, run:
 
 ```bash
-python manage.py admin_user --email=<email> --password=<password> --confirm_password=<password>
+flask admin_user --email=<email> --password=<password> --confirm_password=<password>
 ```
 
 ### To add clusters locally
@@ -154,7 +154,7 @@ Reach out to the backend team to get token and host values.
 To add image repositories to the database, run:
 
 ```bash
-python manage.py create_registries
+flask create_registries
 ```
 ### Starting celery workers 
 #### Run celery worker and beat on Linux
