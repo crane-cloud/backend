@@ -24,6 +24,15 @@ services:
       - "27010:27017"
     volumes:
       - cranemongodbdata:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: crane-redis-db
+    ports:
+      - "6379:6379"
+    volumes:
+      - craneredisdbdata:/data
+
   api:
     restart: always
     build:
@@ -40,12 +49,12 @@ services:
       FLASK_VERIFY_SALT:
       APP_MAIL_USERNAME:
       APP_MAIL_PASSWORD:
-      REDIS_URL:
       PYTHONDONTWRITEBYTECODE: 1
       PYTHONUNBUFFERED: 1
       FLASK_ENV: development
-      DATABASE_USER: postgres
       MONGO_URI: ${MONGO_URI:-mongodb://crane:password@crane-mongo-db:27017/admin}
+      REDIS_URL: ${REDIS_URL:-redis://crane-redis-db:6379}
+      DATABASE_USER: postgres
       DATABASE_URI: ${DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud}
       TEST_DATABASE_URI: ${TEST_DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud_test}
     ports:
@@ -67,7 +76,7 @@ services:
     container_name: celery-worker
     command: celery -A server.celery worker --loglevel=info
     environment:
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: ${REDIS_URL:-redis://crane-redis-db:6379}
       MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
       DATABASE_URI: postgresql://postgres:postgres@database:5432/cranecloud
     ports:
@@ -77,7 +86,8 @@ services:
     links:
       - database
       - crane-mongo-db
-
+  
 volumes:
   db-data:
   cranemongodbdata:
+  craneredisdbdata:

@@ -18,7 +18,6 @@ Follow these steps to have a local running copy of the app.
 git clone https://github.com/crane-cloud/backend.git
 ```
 
-If `master` is not up to date, switch to the `develop` branch. However, note that code on `develop` could have some minor issues to sort out.
 
 ### Directly on your machine
 ---
