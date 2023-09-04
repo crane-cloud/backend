@@ -6,6 +6,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
+from flask_migrate import Migrate, MigrateCommand
 
 # import ORM
 from app.routes import api
@@ -15,6 +16,7 @@ from app.models import db, mongo
 from app.helpers.email import mail
 
 from app.tasks import update_celery
+from manage import admin_user, create_registries, create_roles
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -50,6 +52,9 @@ def create_app(config_name):
     # initialize mail
     mail.init_app(app)
 
+    #initialise migrate
+    Migrate(app, db)
+
     # swagger
     app.config['SWAGGER'] = {
         'title': 'Crane Cloud API',
@@ -57,6 +62,11 @@ def create_app(config_name):
     }
 
     Swagger(app, template_file='api_docs.yml')
+    
+    # add flask commands
+    app.cli.add_command(create_roles)
+    app.cli.add_command(create_registries)
+    app.cli.add_command(admin_user)
 
     # handle default 404 exceptions with a custom response
     @app.errorhandler(404)
