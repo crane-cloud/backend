@@ -1,5 +1,3 @@
-To optimize the provided code, you can make a few formatting improvements to enhance readability. Here's an optimized version of the code:
-
 # Crane Cloud
 
 [![Test](https://github.com/crane-cloud/backend/actions/workflows/test.yml/badge.svg)](https://github.com/crane-cloud/backend/actions/workflows/test.yml)
