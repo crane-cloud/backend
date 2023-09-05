@@ -24,7 +24,7 @@ from .project import (
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView, ProjectDisableView, ProjectEnableView, ProjectAdminDisableView, ProjectAdminEnableView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
-                  AppRevertView, AppReviseView, AppRedeployView)
+                  AppRevertView, AppReviseView, AppRedeployView, AppDisableView, AppEnableView)
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
@@ -32,5 +32,5 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
 from .billing_invoice import (
     BillingInvoiceView, BillingInvoiceNotificationView)
-from .system_status import SystemStatusView , SystemSummaryView
+from .system_status import SystemStatusView, SystemSummaryView
 from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView

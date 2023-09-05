@@ -16,9 +16,9 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
-    BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView ,SystemSummaryView , CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
+    BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectAdminDisableView, ProjectAdminEnableView,
-    AppRedeployView, ProjectDatabaseGraphAdminView)
+    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -166,6 +166,10 @@ api.add_resource(
 api.add_resource(
     AppRedeployView, '/apps/<string:app_id>/redeploy')
 api.add_resource(
+    AppDisableView, '/apps/<string:app_id>/disable')
+api.add_resource(
+    AppEnableView, '/apps/<string:app_id>/enable')
+api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
                  '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
@@ -210,4 +214,4 @@ api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
 # system status
 api.add_resource(SystemStatusView, '/system_status')
-api.add_resource(SystemSummaryView , '/system_summary')
+api.add_resource(SystemSummaryView, '/system_summary')

@@ -3658,7 +3658,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-
   "/apps/{app_id}":
     get:
       tags:
@@ -3828,6 +3827,62 @@ paths:
   "/apps/{app_id}/redeploy":
     post:
       description: "redeploys app that doesnt exist on the cluster"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/disable":
+    post:
+      description: "Disables application"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/enable":
+    post:
+      description: "Enables application"
       tags:
         - apps
       consumes:
@@ -4031,7 +4086,7 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
-        
+
       responses:
         200:
           description: "Success"
@@ -4039,9 +4094,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
-
-  
 
   "/system_status":
     get:
@@ -4068,5 +4120,3 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-  

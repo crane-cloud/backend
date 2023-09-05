@@ -11,7 +11,7 @@ from prometheus_http_client import Prometheus
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app
+from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app, disable_user_app, enable_user_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -1776,6 +1776,64 @@ class AppRedeployView(Resource):
                          a_cluster_id=project.cluster_id,
                          )
             return dict(status='fail', message=str(e)), 500
+
+
+class AppDisableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already disabled'), 409
+
+        # Disable app
+        disabled_app = disable_user_app(app)
+        if type(disabled_app) == SimpleNamespace:
+            status_code = disabled_app.status_code if disabled_app.status_code else 500
+            return dict(status='fail', message=disabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been disabled successfully'), 201
+
+
+class AppEnableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+        if app.project.disabled:
+            return dict(status='fail', message=f'Apps project with id {app.project.id} is disabled, please enable it first'), 409
+
+        if not app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already enabled'), 409
+
+        # Enable app
+        enabled_app = enable_user_app(app)
+        if type(enabled_app) == SimpleNamespace:
+            status_code = enabled_app.status_code if enabled_app.status_code else 500
+            return dict(status='fail', message=enabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been enabled successfully'), 201
 
 
 class AppMemoryUsageView(Resource):
