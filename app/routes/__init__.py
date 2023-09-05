@@ -17,7 +17,7 @@ from app.controllers import (
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
-    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectAdminDisableView, ProjectAdminEnableView,
+    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView,
     AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -150,10 +150,6 @@ api.add_resource(ProjectDisableView,
                  '/projects/<string:project_id>/disable')
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
-api.add_resource(ProjectAdminDisableView,
-                 '/projects/<string:project_id>/admin_disable')
-api.add_resource(ProjectAdminEnableView,
-                 '/projects/<string:project_id>/admin_enable')
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 
