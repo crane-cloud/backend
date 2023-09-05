@@ -900,6 +900,10 @@ class ProjectAppsView(Resource):
             apps_data_list = json.loads(apps_data)
             for app in apps_data_list:
                 try:
+                    # Dont check status of disabled apps
+                    if app['disabled']:
+                        app['app_running_status'] = "disabled"
+                        continue
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
                             app['alias'] + "-deployment", project.alias)
@@ -1042,7 +1046,10 @@ class AppDetailView(Resource):
 
             except client.rest.ApiException:
                 app_db_status = None
-            if app_deployment_status and not app_db_status:
+            if app.disabled:
+                # Dont check status of disabled apps
+                app_list['app_running_status'] = "disabled"
+            elif app_deployment_status and not app_db_status:
                 if app_deployment_status == "True":
                     app_list['app_running_status'] = "running"
                 else:
