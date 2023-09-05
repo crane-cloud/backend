@@ -6,7 +6,7 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_user_app, enable_user_app
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
@@ -1094,25 +1094,7 @@ class ProjectDisableView(Resource):
 
             # scale apps down to 0
             for app in project.apps:
-                try:
-                    app_name = f'{app.alias}-deployment'
-                    deployment = kube_client.appsv1_api.read_namespaced_deployment(
-                        name=app_name,
-                        namespace=project.alias
-                    )
-                    deployment.spec.replicas = 0
-
-                    # Apply the updated Deployment spec
-                    kube_client.appsv1_api.replace_namespaced_deployment(
-                        name=app_name,
-                        namespace=project.alias,
-                        body=deployment
-                    )
-                except:
-                    pass
-                # save app
-                app.disabled = True
-                app.save()
+                disable_user_app(app)
 
             # Add resource quota
             quota = client.V1ResourceQuota(
@@ -1288,25 +1270,8 @@ class ProjectEnableView(Resource):
             try:
                 # scale apps down to 0
                 for app in project.apps:
-                    try:
-                        app_name = f'{app.alias}-deployment'
-                        deployment = kube_client.appsv1_api.read_namespaced_deployment(
-                            name=app_name,
-                            namespace=project.alias
-                        )
-                        deployment.spec.replicas = app.replicas
+                    enable_user_app(app)
 
-                        # Apply the updated Deployment spec
-                        kube_client.appsv1_api.replace_namespaced_deployment(
-                            name=app_name,
-                            namespace=project.alias,
-                            body=deployment
-                        )
-                    except:
-                        pass
-                    # save app
-                    app.disabled = False
-                    app.save()
                 # Delete the ResourceQuota
                 kube_client.kube.delete_namespaced_resource_quota(
                     name='disable-quota', namespace=project.alias

@@ -425,7 +425,10 @@ class AppsView(Resource):
         filter_schema = AppGraphSchema()
         apps_schema = AppSchema(many=True)
 
-        total_apps = App.query.count()
+        metadata = {
+            'disabled': App.query.filter_by(disabled=True).count(),
+            'total_apps': App.query.count()
+        }
 
         if not series:
             apps = App.find_all(paginate=True, page=page, per_page=per_page)
@@ -438,7 +441,7 @@ class AppsView(Resource):
             return dict(
                 status='success',
                 data=dict(
-                    metadata=dict(total_apps=total_apps),
+                    metadata=metadata,
                     pagination=pagination,
                     apps=json.loads(apps_data))
             ), 200
@@ -456,7 +459,7 @@ class AppsView(Resource):
         return dict(
             status='success',
             data=dict(
-                metadata=dict(total_apps=total_apps),
+                metadata=metadata,
                 graph_data=app_info)
         ), 200
 
