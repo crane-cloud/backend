@@ -220,10 +220,12 @@ class ProjectsView(Resource):
         # count items per project category
         project_metadata = {}
         for category in filter_mapping.keys():
-            distinct_counts = (Project.query.with_entities(getattr(Project, category), func.count(
-                getattr(Project, category))).group_by(getattr(Project, category)).all())
-            project_metadata[category] = {
-                key: value for key, value in distinct_counts}
+            distinct_counts = Project.query.with_entities(getattr(Project, category), func.count(
+                getattr(Project, category))).group_by(getattr(Project, category)).all()
+            if category == 'disabled':
+                project_metadata[category] = distinct_counts[0][1] if distinct_counts else 0
+            else:
+                project_metadata[category] = dict(distinct_counts)
 
         # Identify which attribute to filter on
         attribute, attribute_value = next(
@@ -1109,8 +1111,8 @@ class ProjectDisableView(Resource):
                 except:
                     pass
                 # save app
-                # app.disabled = True
-                # app.save()
+                app.disabled = True
+                app.save()
 
             # Add resource quota
             quota = client.V1ResourceQuota(
