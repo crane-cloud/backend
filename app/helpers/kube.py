@@ -430,3 +430,108 @@ def create_user_app(
             message=str(e),
             status_code=500
         )
+
+
+def disable_user_app(app):
+    try:
+        kube_host = app.project.cluster.host
+        kube_token = app.project.cluster.token
+
+        kube_client = create_kube_clients(kube_host, kube_token)
+
+        # scale apps down to 0
+        try:
+            app_name = f'{app.alias}-deployment'
+            deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=app_name,
+                namespace=app.project.alias
+            )
+            deployment.spec.replicas = 0
+
+            # Apply the updated Deployment spec
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=app_name,
+                namespace=app.project.alias,
+                body=deployment
+            )
+        except:
+            pass
+        # save app
+        app.disabled = True
+        app.save()
+
+        log_activity('App', status='Success',
+                     operation='Disable',
+                     description='Disabled app Successfully',
+                     a_project_id=app.project.id,
+                     a_cluster_id=app.project.cluster_id)
+        return True
+
+    except client.rest.ApiException as e:
+        log_activity('App', status='Failed',
+                     operation='Disable',
+                     description='Error disabling application',
+                     a_project_id=app.project.id,
+                     a_cluster_id=app.project.cluster_id)
+        return SimpleNamespace(
+            message=json.loads(e.body),
+            status_code=500
+        )
+
+    except Exception as err:
+        return SimpleNamespace(
+            message=str(err),
+            status_code=500
+        )
+
+
+def enable_user_app(app):
+    try:
+        kube_host = app.project.cluster.host
+        kube_token = app.project.cluster.token
+
+        kube_client = create_kube_clients(kube_host, kube_token)
+
+        try:
+            app_name = f'{app.alias}-deployment'
+            deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=app_name,
+                namespace=app.project.alias
+            )
+            deployment.spec.replicas = app.replicas
+
+            # Apply the updated Deployment spec
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=app_name,
+                namespace=app.project.alias,
+                body=deployment
+            )
+        except:
+            pass
+        # save app
+        app.disabled = False
+        app.save()
+
+        log_activity('App', status='Success',
+                     operation='Enable',
+                     description='Enabled app Successfully',
+                     a_project_id=app.project.id,
+                     a_cluster_id=app.project.cluster_id)
+        return True
+
+    except client.rest.ApiException as e:
+        log_activity('App', status='Failed',
+                     operation='Enable',
+                     description='Error enabling application',
+                     a_project_id=app.project.id,
+                     a_cluster_id=app.project.cluster_id)
+        return SimpleNamespace(
+            message=json.loads(e.body),
+            status_code=500
+        )
+
+    except Exception as err:
+        return SimpleNamespace(
+            message=str(err),
+            status_code=500
+        )

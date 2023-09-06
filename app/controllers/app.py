@@ -11,7 +11,7 @@ from prometheus_http_client import Prometheus
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app
+from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app, disable_user_app, enable_user_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -320,15 +320,16 @@ class AppsView(Resource):
                         name=ingress_name
                     )
 
-                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                        # backend=ingress_backend,
-                        rules=[new_ingress_rule]
-                    )
+                    ingress_spec = {
+                        'rules': [new_ingress_rule]
+                    }
 
-                    ingress_body = client.ExtensionsV1beta1Ingress(
-                        metadata=ingress_meta,
-                        spec=ingress_spec
-                    )
+                    ingress_body = {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "kind": "Ingress",
+                        "metadata": ingress_meta,
+                        "spec": ingress_spec
+                    }
 
                     kube_client.networking_api.create_namespaced_ingress(
                         namespace=namespace,
@@ -424,7 +425,10 @@ class AppsView(Resource):
         filter_schema = AppGraphSchema()
         apps_schema = AppSchema(many=True)
 
-        total_apps = App.query.count()
+        metadata = {
+            'disabled': App.query.filter_by(disabled=True).count(),
+            'total_apps': App.query.count()
+        }
 
         if not series:
             apps = App.find_all(paginate=True, page=page, per_page=per_page)
@@ -437,7 +441,7 @@ class AppsView(Resource):
             return dict(
                 status='success',
                 data=dict(
-                    metadata=dict(total_apps=total_apps),
+                    metadata=metadata,
                     pagination=pagination,
                     apps=json.loads(apps_data))
             ), 200
@@ -455,7 +459,7 @@ class AppsView(Resource):
         return dict(
             status='success',
             data=dict(
-                metadata=dict(total_apps=total_apps),
+                metadata=metadata,
                 graph_data=app_info)
         ), 200
 
@@ -494,6 +498,11 @@ class ProjectAppsView(Resource):
             project_id=project_id)
 
         if existing_app:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=f'App {app_name} already exists',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status='fail',
                 message=f'App with name {validated_app_data["name"]} already exists'
@@ -533,20 +542,6 @@ class ProjectAppsView(Resource):
 
         if not cluster:
             return dict(status='fail', message="Invalid Cluster"), 500
-
-        # check if app already exists
-        app = App.find_first(**{'name': app_name})
-
-        if app:
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=f'App {app_name} already exists',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return dict(
-                status='fail',
-                message=f'App {app_name} already exists'
-            ), 409
 
         kube_host = cluster.host
         kube_token = cluster.token
@@ -769,15 +764,16 @@ class ProjectAppsView(Resource):
                     name=ingress_name
                 )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                ingress_spec = {
+                    'rules': [new_ingress_rule]
+                }
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                ingress_body = {
+                    "apiVersion": "networking.k8s.io/v1",
+                    "kind": "Ingress",
+                    "metadata": ingress_meta,
+                    "spec": ingress_spec
+                }
 
                 kube_client.networking_api.create_namespaced_ingress(
                     namespace=namespace,
@@ -907,6 +903,10 @@ class ProjectAppsView(Resource):
             apps_data_list = json.loads(apps_data)
             for app in apps_data_list:
                 try:
+                    # Dont check status of disabled apps
+                    if app['disabled']:
+                        app['app_running_status'] = "disabled"
+                        continue
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
                             app['alias'] + "-deployment", project.alias)
@@ -1049,7 +1049,10 @@ class AppDetailView(Resource):
 
             except client.rest.ApiException:
                 app_db_status = None
-            if app_deployment_status and not app_db_status:
+            if app.disabled:
+                # Dont check status of disabled apps
+                app_list['app_running_status'] = "disabled"
+            elif app_deployment_status and not app_db_status:
                 if app_deployment_status == "True":
                     app_list['app_running_status'] = "running"
                 else:
@@ -1776,6 +1779,64 @@ class AppRedeployView(Resource):
                          a_cluster_id=project.cluster_id,
                          )
             return dict(status='fail', message=str(e)), 500
+
+
+class AppDisableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already disabled'), 409
+
+        # Disable app
+        disabled_app = disable_user_app(app)
+        if type(disabled_app) == SimpleNamespace:
+            status_code = disabled_app.status_code if disabled_app.status_code else 500
+            return dict(status='fail', message=disabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been disabled successfully'), 201
+
+
+class AppEnableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+        if app.project.disabled:
+            return dict(status='fail', message=f'Apps project with id {app.project.id} is disabled, please enable it first'), 409
+
+        if not app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already enabled'), 409
+
+        # Enable app
+        enabled_app = enable_user_app(app)
+        if type(enabled_app) == SimpleNamespace:
+            status_code = enabled_app.status_code if enabled_app.status_code else 500
+            return dict(status='fail', message=enabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been enabled successfully'), 201
 
 
 class AppMemoryUsageView(Resource):

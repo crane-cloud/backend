@@ -31,7 +31,7 @@ def resource_clean_up(registry, app_alias, namespace, kube_client):
         except Exception:
             pass
 
-    if 'app_deloyment' in resources:
+    if 'app_deployment' in resources:
         # delete app deployment
         name = f'{app_alias}-deployment'
         try:

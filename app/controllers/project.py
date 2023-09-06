@@ -6,7 +6,7 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_user_app, enable_user_app
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
@@ -24,6 +24,7 @@ from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, func
 from app.models.project_database import ProjectDatabase
+
 
 class ProjectsView(Resource):
 
@@ -207,31 +208,35 @@ class ProjectsView(Resource):
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
 
-
         project_schema = ProjectSchema(many=True)
         projects = []
         pagination_data = {}
 
         filter_mapping = {
-        'disabled': disabled,
-        'project_type': project_type
+            'disabled': disabled,
+            'project_type': project_type
         }
 
-        # count items per project category 
+        # count items per project category
         project_metadata = {}
         for category in filter_mapping.keys():
-            distinct_counts = (Project.query.with_entities(getattr(Project, category), func.count(getattr(Project, category))).group_by(getattr(Project, category)).all())
-            project_metadata[category] = {key: value for key, value in distinct_counts}
-
+            distinct_counts = Project.query.with_entities(getattr(Project, category), func.count(
+                getattr(Project, category))).group_by(getattr(Project, category)).all()
+            if category == 'disabled':
+                project_metadata[category] = distinct_counts[0][1] if distinct_counts else 0
+            else:
+                project_metadata[category] = dict(distinct_counts)
 
         # Identify which attribute to filter on
-        attribute, attribute_value = next(((k, v) for k, v in filter_mapping.items() if v), (None, None))
+        attribute, attribute_value = next(
+            ((k, v) for k, v in filter_mapping.items() if v), (None, None))
 
         if has_role(current_user_roles, 'administrator'):
 
             if (keywords == ''):
                 if attribute:
-                    paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
+                    paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(
+                        Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
                     projects = paginated.items
                     pagination_data = {
                         'total': paginated.total,
@@ -241,15 +246,15 @@ class ProjectsView(Resource):
                         'next': paginated.next_num,
                         'prev': paginated.prev_num
                     }
-                
+
                 else:
                     paginated = Project.find_all(
                         paginate=True, page=page, per_page=per_page)
                     projects = paginated.items
                     pagination_data = paginated.pagination
-            else :
+            else:
                 paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).order_by(Project.date_created.desc()).paginate(
-                        page=page, per_page=per_page, error_out=False)
+                    page=page, per_page=per_page, error_out=False)
                 projects = paginated.items
                 pagination_data = {
                     'total': paginated.total,
@@ -264,7 +269,8 @@ class ProjectsView(Resource):
 
                 if (keywords == ''):
                     if attribute:
-                        paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
+                        paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(
+                            Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
                         projects = paginated.items
                         pagination = {
                             'total': paginated.total,
@@ -278,12 +284,12 @@ class ProjectsView(Resource):
                         pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
                             ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
                             page=page, per_page=per_page, error_out=False)
-                else :
+                else:
 
                     pagination = Project.query.filter(Project.owner_id == current_user_id, Project.name.ilike('%'+keywords+'%'), Project.users.any(
                         ProjectUser.user_id == current_user_id)).order_by(Project.date_created.desc()).paginate(
                         page=page, per_page=per_page, error_out=False)
-                    
+
                 projects = pagination.items
                 if pagination:
                     pagination_data = {
@@ -311,7 +317,7 @@ class ProjectsView(Resource):
 
         return dict(status='success',
                     data=dict(
-                        metadata= project_metadata,
+                        metadata=project_metadata,
                         pagination=pagination_data,
                         projects=json.loads(project_data))), 200
 
@@ -967,6 +973,7 @@ class ProjectGetCostsView(Resource):
 
         return dict(status='success', data=dict(cost_data=cost_data)), 200
 
+
 class ProjectDisableView(Resource):
     @jwt_required
     def post(self, project_id):
@@ -982,118 +989,161 @@ class ProjectDisableView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id, 'admin'):
                 return dict(status='fail', message='unauthorised'), 403
-        
+
         if project.disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already disabled'), 409
 
-
-        #get postgres project databases
+        # get postgres project databases
         db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        psql_project_databases = ProjectDatabase.find_all(
+            project_id=project_id, database_flavour_name=db_flavour)
 
         if psql_project_databases:
 
-            #get connection
+            # get connection
             db_flavour = get_db_flavour(db_flavour)
             database_service = db_flavour['class']
             database_connection = database_service.check_db_connection()
 
             if not database_connection:
                 log_activity('Database', status='Failed',
-                            operation='Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
+                             operation='Disable',
+                             description='Failed to connect to the database service, Internal Server Error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id
+                             )
                 return dict(
                     status="fail",
                     message=f"Failed to connect to the database service"
                 ), 500
-            
+
             # Disable the postgres databases
             for database in psql_project_databases:
 
                 # check if disabled
                 if not database.disabled:
-                    disable_database = database_service.disable_user_log_in(database.user)
+                    disable_database = database_service.disable_user_log_in(
+                        database.user)
 
                     if not disable_database:
                         log_activity('Database', status='Failed',
-                                    operation='Disable',
-                                    description='Unable to disable postgres database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id
-                                    )
+                                     operation='Disable',
+                                     description='Unable to disable postgres database, Internal Server Error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id
+                                     )
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
                         ), 500
                     database.disabled = True
                     database.save()
-                    print('postgres databases:')
-                    print(database.name)
 
-        #get mysql project databases
+        # get mysql project databases
         db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        mysql_project_databases = ProjectDatabase.find_all(
+            project_id=project_id, database_flavour_name=db_flavour)
 
         if mysql_project_databases:
 
-            #get connection
+            # get connection
             db_flavour = get_db_flavour(db_flavour)
             database_service = db_flavour['class']
             database_connection = database_service.check_db_connection()
 
             if not database_connection:
                 log_activity('Database', status='Failed',
-                            operation='Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
+                             operation='Disable',
+                             description='Failed to connect to the database service, Internal Server Error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id
+                             )
                 return dict(
                     status="fail",
                     message=f"Failed to connect to the database service"
                 ), 500
-            
+
             # Disable mysql databases
             for database in mysql_project_databases:
-                
+
                 # check if disabled
                 if not database.disabled:
 
-                    disable_database = database_service.disable_user_log_in(database.user, database.password)
+                    disable_database = database_service.disable_user_log_in(
+                        database.user, database.password)
 
                     if not disable_database:
                         log_activity('Database', status='Failed',
-                                    operation='Disable',
-                                    description='Unable to disable mysql database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id)
+                                     operation='Disable',
+                                     description='Unable to disable mysql database, Internal Server Error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
                         ), 500
                     database.disabled = True
                     database.save()
-                    print('mysql databases:')
-                    print(database.name)
-        
-        # TODO: Disable project apps
 
-        #save project
-        project.disabled = True
-        project.save()
+        # Disable apps
+        try:
+            kube_host = project.cluster.host
+            kube_token = project.cluster.token
 
-        log_activity('Project', status='Success',
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            # scale apps down to 0
+            for app in project.apps:
+                disable_user_app(app)
+
+            # Add resource quota
+            quota = client.V1ResourceQuota(
+                api_version="v1",
+                kind="ResourceQuota",
+                metadata=client.V1ObjectMeta(
+                    name="disable-quota", namespace=project.alias),
+                spec=client.V1ResourceQuotaSpec(
+                    hard={
+                        "requests.cpu": "0",
+                        "requests.memory": "0",
+                        "limits.cpu": "0",
+                        "limits.memory": "0"
+                    }
+                )
+            )
+
+            kube_client.kube.create_namespaced_resource_quota(
+                project.alias, quota)
+
+            # save project
+            project.disabled = True
+            project.save()
+
+            log_activity('Project', status='Success',
                          operation='Disable',
                          description='Disabled project Successfully',
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} disabled successfully'
-        ), 200
+            return dict(
+                status='success',
+                message=f'project {project_id} disabled successfully'
+            ), 200
+
+        except client.rest.ApiException as e:
+            log_activity('Project', status='Failed',
+                         operation='Disable',
+                         description='Error disabling application',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
+            return dict(status='fail', message=str(e.body)), e.status
+
+        except Exception as err:
+            log_activity('Project', status='Failed',
+                         operation='Disable',
+                         description=err.body,
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
+            return dict(status='fail', message=str(err)), 500
 
 
 class ProjectEnableView(Resource):
@@ -1111,393 +1161,150 @@ class ProjectEnableView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id, 'admin'):
                 return dict(status='fail', message='unauthorised'), 403
-        
+
         if project.admin_disabled:
             return dict(status='fail', message=f'Project with id {project_id} is admin disabled'), 409
 
         if not project.disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 409
 
-        #get postgres project databases
+        # get postgres project databases
         db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        psql_project_databases = ProjectDatabase.find_all(
+            project_id=project_id, database_flavour_name=db_flavour)
 
         if psql_project_databases:
 
-            #get connection
+            # get connection
             db_flavour = get_db_flavour(db_flavour)
             database_service = db_flavour['class']
             database_connection = database_service.check_db_connection()
 
             if not database_connection:
                 log_activity('Database', status='Failed',
-                            operation='Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
+                             operation='Disable',
+                             description='Failed to connect to the database service, Internal Server Error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id
+                             )
                 return dict(
                     status="fail",
                     message=f"Failed to connect to the database service"
                 ), 500
-            
+
             # Enable the postgres databases
             for database in psql_project_databases:
-                
+
                 # check if disabled
                 if database.disabled:
 
-                    disable_database = database_service.enable_user_log_in(database.user)
+                    disable_database = database_service.enable_user_log_in(
+                        database.user)
 
                     if not disable_database:
                         log_activity('Database', status='Failed',
-                                    operation='Disable',
-                                    description='Unable to disable postgres database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id)
+                                     operation='Disable',
+                                     description='Unable to disable postgres database, Internal Server Error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id)
                         return dict(
                             status="fail",
                             message=f"Unable to disable database"
                         ), 500
                     database.disabled = False
                     database.save()
-                    print('postgres databases:')
-                    print(database.name)
 
-        #get mysql project databases
+        # get mysql project databases
         db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
+        mysql_project_databases = ProjectDatabase.find_all(
+            project_id=project_id, database_flavour_name=db_flavour)
 
         if mysql_project_databases:
 
-            #get connection
+            # get connection
             db_flavour = get_db_flavour(db_flavour)
             database_service = db_flavour['class']
             database_connection = database_service.check_db_connection()
 
             if not database_connection:
                 log_activity('Database', status='Failed',
-                            operation='Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
+                             operation='Disable',
+                             description='Failed to connect to the database service, Internal Server Error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id
+                             )
                 return dict(
                     status="fail",
                     message=f"Failed to connect to the database service"
                 ), 500
-            
+
             # Enable mysql databases
             for database in mysql_project_databases:
 
                 # check if disabled
                 if database.disabled:
 
-                    disable_database = database_service.enable_user_log_in(database.user, database.password)
+                    disable_database = database_service.enable_user_log_in(
+                        database.user, database.password)
 
                     if not disable_database:
                         log_activity('Database', status='Failed',
-                                    operation='Disable',
-                                    description='Unable to disable mysql database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id
-                                    )
+                                     operation='Disable',
+                                     description='Unable to disable mysql database, Internal Server Error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id
+                                     )
                         return dict(
                             status="fail",
                             message=f"Unable to Enable database"
                         ), 500
                     database.disabled = False
                     database.save()
-                    print('mysql databases:')
-                    print(database.name)
-        
-        # TODO: Disable project apps
 
-        #save project
-        project.disabled = False
-        project.save()
+        # Disable apps
+        try:
+            kube_host = project.cluster.host
+            kube_token = project.cluster.token
 
-        log_activity('Project', status='Success',
+            kube_client = create_kube_clients(kube_host, kube_token)
+            try:
+                # scale apps down to 0
+                for app in project.apps:
+                    enable_user_app(app)
+
+                # Delete the ResourceQuota
+                kube_client.kube.delete_namespaced_resource_quota(
+                    name='disable-quota', namespace=project.alias
+                )
+            except client.rest.ApiException as e:
+                if e.status != 404:
+                    log_activity('Project', status='Failed',
+                                 operation='Enable',
+                                 description=f'Error enabling the project. {e.body}',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id)
+                    return dict(status='fail', message=str(e.body)), e.status\
+
+
+            # save project
+            project.disabled = False
+            project.save()
+
+            log_activity('Project', status='Success',
                          operation='Enable',
                          description='Enabled project Successfully',
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} Enabled successfully'
-        ), 200
-
-class ProjectAdminDisableView(Resource):
-    @admin_required
-    def post(self, project_id):
-
-
-
-        #check if admin
-        current_user_roles = get_jwt_claims()['roles']
-
-        if not is_admin(current_user_roles):
-            return dict(status='fail', message='user unauthorised'), 403
-
-        project = Project.get_by_id(project_id)
-        if not project:
-            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
-
-        
-        if project.admin_disabled:
-            return dict(status='fail', message=f'Project with id {project_id} is already admin disabled'), 409
-
-        if project.disabled:
-            #save project
-            project.admin_disabled = True
-            project.save()
-
-            log_activity('Project', status='Success',
-                            operation='Admin_Disable',
-                            description='Disabled project Successfully',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
-                message=f'project {project_id} admin_disabled successfully'
+                message=f'project {project_id} Enabled successfully'
             ), 200
 
-        #get postgres project databases
-        db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
-
-        if psql_project_databases:
-
-            #get connection
-            db_flavour = get_db_flavour(db_flavour)
-            database_service = db_flavour['class']
-            database_connection = database_service.check_db_connection()
-
-            if not database_connection:
-                log_activity('Database', status='Failed',
-                            operation='Admin_Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
-                return dict(
-                    status="fail",
-                    message=f"Failed to connect to the database service"
-                ), 500
-            
-            # Disable the postgres databases
-            for database in psql_project_databases:
-
-                # check if disabled
-                if not database.disabled:
-                    disable_database = database_service.disable_user_log_in(database.user)
-
-                    if not disable_database:
-                        log_activity('Database', status='Failed',
-                                    operation='Admin_Disable',
-                                    description='Unable to disable postgres database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id
-                                    )
-                        return dict(
-                            status="fail",
-                            message=f"Unable to disable database"
-                        ), 500
-                    database.disabled = True
-                    database.save()
-                    print('postgres databases:')
-                    print(database.name)
-
-        #get mysql project databases
-        db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
-
-        if mysql_project_databases:
-
-            #get connection
-            db_flavour = get_db_flavour(db_flavour)
-            database_service = db_flavour['class']
-            database_connection = database_service.check_db_connection()
-
-            if not database_connection:
-                log_activity('Database', status='Failed',
-                            operation='Admin_Disable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
-                return dict(
-                    status="fail",
-                    message=f"Failed to connect to the database service"
-                ), 500
-            
-            # Disable mysql databases
-            for database in mysql_project_databases:
-                
-                # check if disabled
-                if not database.disabled:
-
-                    disable_database = database_service.disable_user_log_in(database.user, database.password)
-
-                    if not disable_database:
-                        log_activity('Database', status='Failed',
-                                    operation='Admin_Disable',
-                                    description='Unable to disable mysql database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Unable to disable database"
-                        ), 500
-                    database.disabled = True
-                    database.save()
-                    print('mysql databases:')
-                    print(database.name)
-        
-        # TODO: Disable project apps
-
-        #save project
-        project.disabled = True
-        project.admin_disabled = True
-        project.save()
-
-        log_activity('Project', status='Success',
-                         operation='Admin_disable',
-                         description='Admin disabled project Successfully',
+        except Exception as err:
+            log_activity('Project', status='Failed',
+                         operation='Enable',
+                         description=err.body,
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} admin disabled successfully'
-        ), 200
+            return dict(status='fail', message=str(err)), 500
 
-class ProjectAdminEnableView(Resource):
-    @admin_required
-    def post(self, project_id):
-
-
-
-         #check if admin
-        current_user_roles = get_jwt_claims()['roles']
-
-        if not is_admin(current_user_roles):
-            return dict(status='fail', message='user unauthorised'), 403
-        project = Project.get_by_id(project_id)
-        if not project:
-            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
-
-        
-        if not project.admin_disabled and not project.disabled:
-            return dict(status='fail', message=f'Project with id {project_id} is already admin enabled'), 409
-
-        #get postgres project databases
-        db_flavour = 'postgres'
-        psql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
-
-        if psql_project_databases:
-
-            #get connection
-            db_flavour = get_db_flavour(db_flavour)
-            database_service = db_flavour['class']
-            database_connection = database_service.check_db_connection()
-
-            if not database_connection:
-                log_activity('Database', status='Failed',
-                            operation='Admin_Enable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
-                return dict(
-                    status="fail",
-                    message=f"Failed to connect to the database service"
-                ), 500
-            
-            # Enable the postgres databases
-            for database in psql_project_databases:
-                
-                # check if disabled
-                if database.disabled:
-
-                    enable_database = database_service.enable_user_log_in(database.user)
-
-                    if not enable_database:
-                        log_activity('Database', status='Failed',
-                                    operation='Admin_Enable',
-                                    description='Unable to enable postgres database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Unable to enable database"
-                        ), 500
-                    database.disabled = False
-                    database.save()
-                    print('postgres databases:')
-                    print(database.name)
-
-        #get mysql project databases
-        db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.query.filter_by(project_id = project_id, database_flavour_name = db_flavour)
-
-        if mysql_project_databases:
-
-            #get connection
-            db_flavour = get_db_flavour(db_flavour)
-            database_service = db_flavour['class']
-            database_connection = database_service.check_db_connection()
-
-            if not database_connection:
-                log_activity('Database', status='Failed',
-                            operation='Admin_Enable',
-                            description='Failed to connect to the database service, Internal Server Error',
-                            a_project_id=project.id,
-                            a_cluster_id=project.cluster_id
-                            )
-                return dict(
-                    status="fail",
-                    message=f"Failed to connect to the database service"
-                ), 500
-            
-            # Enable mysql databases
-            for database in mysql_project_databases:
-
-                # check if disabled
-                if database.disabled:
-
-                    enable_database = database_service.enable_user_log_in(database.user, database.password)
-
-                    if not enable_database:
-                        log_activity('Database', status='Failed',
-                                    operation='Admin_Enable',
-                                    description='Unable to enable mysql database, Internal Server Error',
-                                    a_project_id=project.id,
-                                    a_cluster_id=project.cluster_id
-                                    )
-                        return dict(
-                            status="fail",
-                            message=f"Unable to Enable database"
-                        ), 500
-                    database.disabled = False
-                    database.save()
-                    print('mysql databases:')
-                    print(database.name)
-        
-        # TODO: Disable project apps
-
-        #save project
-        project.disabled = False
-        project.admin_disabled = False
-        project.save()
-
-        log_activity('Project', status='Success',
-                         operation='Admin_Enable',
-                         description='Enabled project Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-        return dict(
-            status='success',
-            message=f'project {project_id} Enabled successfully'
-        ), 200
