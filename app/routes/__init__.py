@@ -209,5 +209,4 @@ api.add_resource(ProjectUsersTransferView,
 api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
 # system status
-api.add_resource(SystemStatusView, '/system_status')
 api.add_resource(SystemSummaryView, '/system_summary')
