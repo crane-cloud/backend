@@ -58,7 +58,7 @@ services:
       DATABASE_URI: ${DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud}
       TEST_DATABASE_URI: ${TEST_DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud_test}
     ports:
-      - "5000:5000"
+      - "${FLASK_PORT:-5000}:5000"
     volumes:
       - .:/app
     depends_on:

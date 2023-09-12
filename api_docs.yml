@@ -5,9 +5,10 @@ paths:
   "/users":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Create a new user account"
       parameters:
         - in: body
           name: user
@@ -237,9 +238,10 @@ paths:
   "/users/login":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login as normal user"
       parameters:
         - in: body
           name: user
@@ -266,9 +268,10 @@ paths:
   "/users/admin_login":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login as an admin"
       parameters:
         - in: body
           name: user
@@ -296,9 +299,9 @@ paths:
     post:
       tags:
         - auth
-        - users
       consumes:
         - application/json
+      description: "Get verification token after creating an account"
       parameters:
         - in: body
           name: email
@@ -325,9 +328,9 @@ paths:
     get:
       tags:
         - auth
-        - users
       consumes:
         - application/json
+      description: "Verify token after creating an account"
       parameters:
         - in: path
           name: token
@@ -346,7 +349,6 @@ paths:
   "/users/forgot_password":
     post:
       tags:
-        - users
         - auth
       consumes:
         - application/json
@@ -375,7 +377,6 @@ paths:
   "/users/reset_password/{token}":
     post:
       tags:
-        - users
         - auth
       consumes:
         - application/json
@@ -435,9 +436,10 @@ paths:
   "/users/oauth":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login with github oauth"
       parameters:
         - in: body
           name: git code
