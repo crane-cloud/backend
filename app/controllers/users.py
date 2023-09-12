@@ -1030,6 +1030,7 @@ class InActiveUsersView(Resource):
         created_date = request.args.get("created")
         range = request.args.get("range", 0, type=int)
         today = datetime.now().date()
+        keywords = request.args.get('keywords' , None)
         
         if (start_date is not None and end_date is not None):
             if range:
@@ -1064,16 +1065,29 @@ class InActiveUsersView(Resource):
             returned_users = self.computed_results[date_range]
 
         else:
-            query = User.query.filter(
-                cast(User.last_seen, Date) <= start_date,
-                cast(User.last_seen, Date) >= end_date,
-                User.verified == True
-            )
-            if created_date is not None:
-                query = query.filter(
-                    cast(User.date_created, Date) <= today,
-                    cast(User.date_created, Date) >= created_date,
+            if (keywords) :
+                query = User.query.filter(
+                    cast(User.last_seen, Date) <= start_date,
+                    cast(User.last_seen, Date) >= end_date,
+                    User.verified == True,
+                ).filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')))
+            else :
+                query = User.query.filter(
+                    cast(User.last_seen, Date) <= start_date,
+                    cast(User.last_seen, Date) >= end_date,
+                    User.verified == True
                 )
+            if created_date is not None:
+                if (keywords) :
+                    query = query.filter(
+                        cast(User.date_created, Date) <= today,
+                        cast(User.date_created, Date) >= created_date,
+                    ).filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')))
+                else :
+                    query = query.filter(
+                        cast(User.date_created, Date) <= today,
+                        cast(User.date_created, Date) >= created_date,
+                    )
             returned_users = query
             self.computed_results[date_range] = returned_users
 
