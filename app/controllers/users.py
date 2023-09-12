@@ -1065,7 +1065,23 @@ class InActiveUsersView(Resource):
             returned_users = self.computed_results[date_range]
 
         else:
-            if (keywords) :
+query = User.query.filter(
+    cast(User.last_seen, Date) <= start_date,
+    cast(User.last_seen, Date) >= end_date,
+    User.verified == True
+   )
+
+if keywords:
+    keyword_filter = (User.name.ilike('%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
+    query = query.filter(keyword_filter)
+
+if created_date:
+    date_created_filter = (
+        cast(User.date_created, Date) <= today,
+        cast(User.date_created, Date) >= created_date
+    )
+    query = query.filter(date_created_filter)
+
                 query = User.query.filter(
                     cast(User.last_seen, Date) <= start_date,
                     cast(User.last_seen, Date) >= end_date,
