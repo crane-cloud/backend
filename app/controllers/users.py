@@ -1065,45 +1065,23 @@ class InActiveUsersView(Resource):
             returned_users = self.computed_results[date_range]
 
         else:
-query = User.query.filter(
-    cast(User.last_seen, Date) <= start_date,
-    cast(User.last_seen, Date) >= end_date,
-    User.verified == True
-   )
+            
+            query = User.query.filter(
+                cast(User.last_seen, Date) <= start_date,
+                cast(User.last_seen, Date) >= end_date,
+                User.verified == True
+            )
 
-if keywords:
-    keyword_filter = (User.name.ilike('%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
-    query = query.filter(keyword_filter)
+            if keywords:
+                keyword_filter = (User.name.ilike('%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
+                query = query.filter(keyword_filter)
 
-if created_date:
-    date_created_filter = (
-        cast(User.date_created, Date) <= today,
-        cast(User.date_created, Date) >= created_date
-    )
-    query = query.filter(date_created_filter)
-
-                query = User.query.filter(
-                    cast(User.last_seen, Date) <= start_date,
-                    cast(User.last_seen, Date) >= end_date,
-                    User.verified == True,
-                ).filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')))
-            else :
-                query = User.query.filter(
-                    cast(User.last_seen, Date) <= start_date,
-                    cast(User.last_seen, Date) >= end_date,
-                    User.verified == True
+            if created_date:
+                date_created_filter = (
+                    cast(User.date_created, Date) <= today,
+                    cast(User.date_created, Date) >= created_date
                 )
-            if created_date is not None:
-                if (keywords) :
-                    query = query.filter(
-                        cast(User.date_created, Date) <= today,
-                        cast(User.date_created, Date) >= created_date,
-                    ).filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')))
-                else :
-                    query = query.filter(
-                        cast(User.date_created, Date) <= today,
-                        cast(User.date_created, Date) >= created_date,
-                    )
+                query = query.filter(date_created_filter)
             returned_users = query
             self.computed_results[date_range] = returned_users
 
