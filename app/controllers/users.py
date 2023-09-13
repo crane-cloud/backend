@@ -133,24 +133,14 @@ class UsersView(Resource):
 
         users = []
 
-        meta_data = {}
-        beta_count = User.query.with_entities(User.is_beta_user, func.count(
-            User.is_beta_user)).group_by(User.is_beta_user).all()
-        verified_count = User.query.with_entities(
-            User.verified, func.count(User.verified)).group_by(User.verified).all()
+        meta_data = dict()
         meta_data['total_users'] = total_users
-        meta_data['is_beta_user'] = 0
-        meta_data['verified'] = 0
-
-        for key, value in beta_count:
-            if key:
-                meta_data['is_beta_user'] = value
-                break
-
-        for key, value in verified_count:
-            if key:
-                meta_data['verified'] = value
-                break
+        meta_data['beta_users'] = User.query.filter_by(
+            is_beta_user=True).count()
+        meta_data['none_verified'] = User.query.filter_by(
+            verified=False).count()
+        meta_data['disabled'] = User.query.filter_by(
+            disabled=True).count()
 
         if (keywords == ''):
             if (verified != None or is_beta != None):
