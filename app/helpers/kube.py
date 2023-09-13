@@ -675,6 +675,16 @@ def disable_project(project):
                      a_cluster_id=project.cluster_id)
         return True
     except client.rest.ApiException as e:
+        if e.status == 404:
+            # save project
+            project.disabled = True
+            project.save()
+            log_activity('Project', status='Success',
+                         operation='Disable',
+                         description='Disabled project but doesnt exist in the cluster',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
+            return True
         log_activity('Project', status='Failed',
                      operation='Disable',
                      description='Error disabling application',
@@ -747,100 +757,100 @@ def enable_project(project):
                 database.disabled = False
                 database.save()
 
-        # get mysql project databases
-        db_flavour = 'mysql'
-        mysql_project_databases = ProjectDatabase.find_all(
-            project_id=project.id, database_flavour_name=db_flavour)
+    # get mysql project databases
+    db_flavour = 'mysql'
+    mysql_project_databases = ProjectDatabase.find_all(
+        project_id=project.id, database_flavour_name=db_flavour)
 
-        if mysql_project_databases:
+    if mysql_project_databases:
 
-            # get connection
-            db_flavour = get_db_flavour(db_flavour)
-            database_service = db_flavour['class']
-            database_connection = database_service.check_db_connection()
+        # get connection
+        db_flavour = get_db_flavour(db_flavour)
+        database_service = db_flavour['class']
+        database_connection = database_service.check_db_connection()
 
-            if not database_connection:
-                log_activity('Database', status='Failed',
-                             operation='Enable',
-                             description='Failed to connect to the database service, Internal Server Error',
-                             a_project_id=project.id,
-                             a_cluster_id=project.cluster_id
-                             )
-
-                return SimpleNamespace(
-                    message=f"Failed to connect to the database service",
-                    status_code=500
-                )
-
-            # Enable mysql databases
-            for database in mysql_project_databases:
-
-                # check if disabled
-                if database.disabled:
-
-                    disable_database = database_service.enable_user_log_in(
-                        database.user, database.password)
-
-                    if not disable_database:
-                        log_activity('Database', status='Failed',
-                                     operation='Enable',
-                                     description='Unable to disable mysql database, Internal Server Error',
-                                     a_project_id=project.id,
-                                     a_cluster_id=project.cluster_id
-                                     )
-
-                        return SimpleNamespace(
-                            message=f"Unable to enable database",
-                            status_code=500
-                        )
-
-                    database.disabled = False
-                    database.save()
-
-        # Enable apps
-        try:
-            kube_host = project.cluster.host
-            kube_token = project.cluster.token
-
-            kube_client = create_kube_clients(kube_host, kube_token)
-            try:
-                for app in project.apps:
-                    enable_user_app(app)
-
-                # Delete the ResourceQuota
-                kube_client.kube.delete_namespaced_resource_quota(
-                    name='disable-quota', namespace=project.alias
-                )
-            except client.rest.ApiException as e:
-                if e.status != 404:
-                    log_activity('Project', status='Failed',
-                                 operation='Enable',
-                                 description=f'Error enabling the project. {e.body}',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id)
-                    return SimpleNamespace(
-                        message=str(e.body),
-                        status_code=e.status
-                    )
-
-            # save project
-            project.disabled = False
-            project.save()
-
-            log_activity('Project', status='Success',
+        if not database_connection:
+            log_activity('Database', status='Failed',
                          operation='Enable',
-                         description='Enabled project Successfully',
+                         description='Failed to connect to the database service, Internal Server Error',
                          a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return True
+                         a_cluster_id=project.cluster_id
+                         )
 
-        except Exception as err:
-            log_activity('Project', status='Failed',
-                         operation='Enable',
-                         description=err.body,
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
             return SimpleNamespace(
-                message=str(err),
+                message=f"Failed to connect to the database service",
                 status_code=500
             )
+
+        # Enable mysql databases
+        for database in mysql_project_databases:
+
+            # check if disabled
+            if database.disabled:
+
+                disable_database = database_service.enable_user_log_in(
+                    database.user, database.password)
+
+                if not disable_database:
+                    log_activity('Database', status='Failed',
+                                 operation='Enable',
+                                 description='Unable to disable mysql database, Internal Server Error',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id
+                                 )
+
+                    return SimpleNamespace(
+                        message=f"Unable to enable database",
+                        status_code=500
+                    )
+
+                database.disabled = False
+                database.save()
+
+    # Enable apps
+    try:
+        kube_host = project.cluster.host
+        kube_token = project.cluster.token
+
+        kube_client = create_kube_clients(kube_host, kube_token)
+        try:
+            for app in project.apps:
+                enable_user_app(app)
+
+            # Delete the ResourceQuota
+            kube_client.kube.delete_namespaced_resource_quota(
+                name='disable-quota', namespace=project.alias
+            )
+        except client.rest.ApiException as e:
+            if e.status != 404:
+                log_activity('Project', status='Failed',
+                             operation='Enable',
+                             description=f'Error enabling the project. {e.body}',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id)
+                return SimpleNamespace(
+                    message=str(e.body),
+                    status_code=e.status
+                )
+
+        # save project
+        project.disabled = False
+        project.save()
+
+        log_activity('Project', status='Success',
+                     operation='Enable',
+                     description='Enabled project Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id)
+        return True
+
+    except Exception as err:
+        log_activity('Project', status='Failed',
+                     operation='Enable',
+                     description=err.body,
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id)
+        return SimpleNamespace(
+            message=str(err),
+            status_code=500
+        )

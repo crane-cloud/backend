@@ -1028,6 +1028,7 @@ class ProjectEnableView(Resource):
             return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 409
 
         enabled_project = enable_project(project)
+        print(enabled_project)
         if type(enabled_project) == SimpleNamespace:
             status_code = enabled_project.status_code if enabled_project.status_code else 500
             return dict(status='fail', message=enabled_project.message), status_code
@@ -1035,4 +1036,4 @@ class ProjectEnableView(Resource):
         return dict(
             status='success',
             message=f'project {project_id} enabled successfully'
-        ), 200
+        ), 201

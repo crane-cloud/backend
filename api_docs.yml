@@ -583,6 +583,62 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/users/{user_id}/disable":
+    post:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully disabled user"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/{user_id}/enable":
+    post:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully enabled user"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/clusters":
     post:
       tags:
