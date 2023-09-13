@@ -282,6 +282,12 @@ class UserLoginView(Resource):
         if not user:
             return dict(status='fail', message="login failed"), 401
 
+        if user.disabled:
+            return dict(
+                status='fail',
+                message=f'User with id {user.id} is disabled, please contact an admin'
+            ), 401
+
         if not user.verified:
             return dict(
                 status='fail',
@@ -1186,7 +1192,7 @@ class UserEnableView(Resource):
                 status='success',
                 message=f'user {user_id} Enabled successfully'
             ), 200
-        
+
         except Exception as err:
             log_activity('User', status='Failed',
                          operation='Enable',
