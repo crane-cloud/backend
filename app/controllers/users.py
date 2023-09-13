@@ -1097,3 +1097,6 @@ class InActiveUsersView(Resource):
             status='success',
             data=dict(pagination=pagination, users=json.loads(users_data))
         ), 200
+
+
+
