@@ -25,7 +25,12 @@ class ProjectUsersView(Resource):
 
         project_user_schema = ProjectUserSchema()
 
-        project_user_data = request.get_json()
+        invitation_data = request.get_json()
+        resend_invite = (invitation_data).get('resend' , False)
+
+        del invitation_data['resend']
+
+        project_user_data = invitation_data
 
         validated_project_user_data, errors = project_user_schema.load(
             project_user_data)
@@ -58,12 +63,13 @@ class ProjectUsersView(Resource):
             role = validated_project_user_data.get('role', None)
             if role == 'owner':
                 return dict(status='fail', message='User cannot be added as owner'), 400
+            
+            if not resend_invite :
+                new_anonymous_user = AnonymousUser(email=anonymous_user_email, project_id=project.id, role=role)
+                saved_anonymous_user = new_anonymous_user.save()
 
-            new_anonymous_user = AnonymousUser(email=anonymous_user_email, project_id=project.id, role=role)
-            saved_anonymous_user = new_anonymous_user.save()
-
-            if not saved_anonymous_user:
-                return dict(status='fail', message='Internal Server Error'), 500
+                if not saved_anonymous_user:
+                    return dict(status='fail', message='Internal Server Error'), 500
             
             # send anonymous user an invite email.
             inviting_user = User.get_by_id(current_user_id)
@@ -90,23 +96,31 @@ class ProjectUsersView(Resource):
 
 
             return dict(status='success', message='Anymous user successfully added to project'), 201
+        
 
         existing_user = ProjectUser.find_first(user_id=user.id, project_id=project.id)
-        if existing_user:
-            return dict(status='fail', message='User already exists'), 409
 
+
+        if (existing_user and not resend_invite):
+            return dict(status='fail', message='User already exists'), 409
+        
+        if (existing_user):
+            if (existing_user.accepted_collaboration_invite) :
+                return dict(status = 'fail' , message = 'User already accepted the invitation') , 409
+        
         # adding user to project users
         role = validated_project_user_data.get('role', None)
         if role == 'owner':
             return dict(status='fail', message='User cannot be added as owner'), 400
-            
-        new_role = ProjectUser(role=role, user_id=user.id, accepted_collaboration_invite=False)
-        project.users.append(new_role)
+        
+        if not resend_invite :
+            new_role = ProjectUser(role=role, user_id=user.id, accepted_collaboration_invite=False)
+            project.users.append(new_role)
 
-        saved_project_user = project.save()
+            saved_project_user = project.save()
 
-        if not saved_project_user:
-            return dict(status='fail', message='Internal Server Error'), 500
+            if not saved_project_user:
+                return dict(status='fail', message='Internal Server Error'), 500
 
          # send email variable
         name = user.name

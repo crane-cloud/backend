@@ -3103,6 +3103,8 @@ paths:
                 type: string
               role:
                 type: string
+              resend:
+                type: string
       produces:
         - application/json
       responses:
