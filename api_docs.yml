@@ -566,6 +566,10 @@ paths:
             The created date for inactive users from the `current date`.
             This parameter is `optional`.
         - in: query
+          name: keywords
+          type: string
+          description: Enter the keywords if searching by either email or name
+        - in: query
           name: page
           type: integer
           description: Page number
