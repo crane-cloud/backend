@@ -3,7 +3,7 @@
 from .index import IndexView
 from .users import (
     UsersView, UserLoginView, UserEmailVerificationView,
-    EmailVerificationRequest, ForgotPasswordView, ResetPasswordView,
+    EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, UserDisableView, UserEnableView,
     UserDetailView, AdminLoginView, OAuthView, UserDataSummaryView, UserAdminUpdateView, UserActivitesView, InActiveUsersView)
 from .deployments import DeploymentsView
 from .clusters import (
