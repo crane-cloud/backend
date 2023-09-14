@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView, SendInactiveUserMailReminder,
     RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -43,7 +43,8 @@ api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
 api.add_resource(InActiveUsersView, '/users/inactive_users',
                  endpoint='inactive_users')
-
+api.add_resource(SendInactiveUserMailReminder, '/users/inactive_user_reminder',
+                 endpoint='inactive_user_reminder')
 
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
