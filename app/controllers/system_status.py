@@ -1,7 +1,6 @@
 import os
 from flask_restful import Resource
 from sqlalchemy import null
-from app.controllers.statuses import get_client_status_infor, get_cluster_status_info, get_database_status_infor, get_prometheus_status_info
 from app.models.clusters import Cluster
 from flask import request
 from app.helpers.decorators import admin_required
