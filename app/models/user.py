@@ -32,6 +32,7 @@ class User(ModelMixin):
     is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
     credits = db.relationship('Credit', backref='user', lazy=True)
     credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
+    disabled = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, name, password, organisation = None):
         """ initialize with email, username and password """

@@ -18,7 +18,7 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView,
-    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView)
+    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -43,6 +43,12 @@ api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
 api.add_resource(InActiveUsersView, '/users/inactive_users',
                  endpoint='inactive_users')
+
+api.add_resource(UserEnableView, '/users/<string:user_id>/enable')
+api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
+
+
+
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
 
