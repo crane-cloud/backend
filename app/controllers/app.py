@@ -13,7 +13,7 @@ from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app, disable_user_app, enable_user_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
 from app.helpers.clean_up import resource_clean_up
@@ -1801,7 +1801,7 @@ class AppDisableView(Resource):
             return dict(status='fail', message=f'App with id {app_id} is already disabled'), 409
 
         # Disable app
-        disabled_app = disable_user_app(app)
+        disabled_app = disable_user_app(app, is_admin(current_user_roles))
         if type(disabled_app) == SimpleNamespace:
             status_code = disabled_app.status_code if disabled_app.status_code else 500
             return dict(status='fail', message=disabled_app.message), status_code
@@ -1829,6 +1829,10 @@ class AppEnableView(Resource):
 
         if not app.disabled:
             return dict(status='fail', message=f'App with id {app_id} is already enabled'), 409
+        
+        # Prevent users from enabling admin disabled apps
+        if app.admin_disabled and not is_admin(current_user_roles):
+            return dict(status='fail', message=f'You are not authorised to disable App with id {app_id}, please contact an admin'), 403
 
         # Enable app
         enabled_app = enable_user_app(app)

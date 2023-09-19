@@ -1022,11 +1022,11 @@ class ProjectEnableView(Resource):
                 return dict(status='fail', message='unauthorised'), 403
 
         if not project.disabled:
-            return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 403
+            return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 409
 
         # Prevent users from enabling admin disabled projects
         if project.admin_disabled and not is_admin(current_user_roles):
-            return dict(status='fail', message=f'You are not authorised to disable Project with id {project_id}, please contact an admin'), 409
+            return dict(status='fail', message=f'You are not authorised to disable Project with id {project_id}, please contact an admin'), 403
 
         enabled_project = enable_project(project)
 
