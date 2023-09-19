@@ -25,3 +25,4 @@ class App(ModelMixin):
     replicas = db.Column(db.Integer, nullable=True)
     private_image = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
+    admin_disabled = db.Column(db.Boolean, default=False)

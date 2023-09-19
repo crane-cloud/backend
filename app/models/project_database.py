@@ -23,6 +23,7 @@ class ProjectDatabase(ModelMixin):
     database_flavour_name = db.Column(db.String(256))
     deleted = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
+    admin_disabled = db.Column(db.Boolean, default=False)
     # TODO: make database_flavour_name nullable=false
 
     def password_is_valid(self, password):

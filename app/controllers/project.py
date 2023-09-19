@@ -994,7 +994,7 @@ class ProjectDisableView(Resource):
         if project.disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already disabled'), 409
 
-        disabled_project = disable_project(project)
+        disabled_project = disable_project(project, is_admin(current_user_roles))
         if type(disabled_project) == SimpleNamespace:
             status_code = disabled_project.status_code if disabled_project.status_code else 500
             return dict(status='fail', message=disabled_project.message), status_code
@@ -1022,10 +1022,14 @@ class ProjectEnableView(Resource):
                 return dict(status='fail', message='unauthorised'), 403
 
         if not project.disabled:
-            return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 409
+            return dict(status='fail', message=f'Project with id {project_id} is already enabled'), 403
+
+        # Prevent users from enabling admin disabled projects
+        if project.admin_disabled and not is_admin(current_user_roles):
+            return dict(status='fail', message=f'You are not authorised to disable Project with id {project_id}, please contact an admin'), 409
 
         enabled_project = enable_project(project)
-        print(enabled_project)
+
         if type(enabled_project) == SimpleNamespace:
             status_code = enabled_project.status_code if enabled_project.status_code else 500
             return dict(status='fail', message=enabled_project.message), status_code

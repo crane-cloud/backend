@@ -44,7 +44,8 @@ class AppSchema(Schema):
     date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     has_custom_domain = fields.Boolean()
-    disabled = fields.Boolean()
+    disabled = fields.Boolean(dump_only=True)
+    admin_disabled = fields.Boolean(dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
