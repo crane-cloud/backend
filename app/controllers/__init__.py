@@ -33,5 +33,5 @@ from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, P
                                ProjectDatabaseDisableView, ProjectDatabaseEnableView)
 from .billing_invoice import (
     BillingInvoiceView, BillingInvoiceNotificationView)
-from .system_status import SystemStatusView, SystemSummaryView
+from .system_status import SystemSummaryView
 from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView
