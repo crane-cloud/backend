@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from types import SimpleNamespace
 from app.schemas.monitoring_metrics import UserGraphSchema
 from flask import current_app
 from flask_restful import Resource, request
@@ -10,7 +11,7 @@ from app.helpers.database_service import MysqlDbService, PostgresqlDbService, ge
 from app.models.project import Project
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
-from app.helpers.db_flavor import get_db_flavour, database_flavours
+from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour, database_flavours
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from app.helpers.activity_logger import log_activity
 from sqlalchemy import Date, func, column, cast, and_, select
@@ -1183,3 +1184,63 @@ class DatabaseStatsView(Resource):
 
         return dict(status='Success',
                     data=dict(databases=data)), 200
+
+
+class ProjectDatabaseDisableView(Resource):
+    @jwt_required
+    def post(self, database_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        database = ProjectDatabase.get_by_id(database_id)
+        if not database:
+            return dict(status='fail', message=f'Database with id {database_id} not found'), 404
+
+        if not is_owner_or_admin(database.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(database.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if database.disabled:
+            return dict(status='fail', message=f'Database with id {database_id} is already disabled'), 409
+
+        diabled_database = disable_database(database)
+        if type(diabled_database) == SimpleNamespace:
+            status_code = diabled_database.status_code if diabled_database.status_code else 500
+            return dict(status='fail', message=diabled_database.message), status_code
+
+        return dict(
+            status='success',
+            message=f'database {database_id} disabled successfully'
+        ), 201
+
+
+class ProjectDatabaseEnableView(Resource):
+    @jwt_required
+    def post(self, database_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        database = ProjectDatabase.get_by_id(database_id)
+        if not database:
+            return dict(status='fail', message=f'Project with id {database_id} not found'), 404
+
+        if not is_owner_or_admin(database.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(database.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if not database.disabled:
+            return dict(status='fail', message=f'Project with id {database_id} is already enabled'), 409
+
+        enabled_database = enable_database(database)
+        if type(enabled_database) == SimpleNamespace:
+            status_code = enabled_database.status_code if enabled_database.status_code else 500
+            return dict(status='fail', message=enabled_database.message), status_code
+
+        return dict(
+            status='success',
+            message=f'database {database_id} enabled successfully'
+        ), 201
