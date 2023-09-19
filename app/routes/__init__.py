@@ -16,7 +16,7 @@ from app.controllers import (
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
-    BillingInvoiceView, BillingInvoiceNotificationView, SystemStatusView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
+    BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView,
     AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
@@ -43,8 +43,10 @@ api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
 api.add_resource(InActiveUsersView, '/users/inactive_users',
                  endpoint='inactive_users')
+
 api.add_resource(UserEnableView, '/users/<string:user_id>/enable')
 api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
+
 
 
 # Deployments
@@ -211,5 +213,4 @@ api.add_resource(ProjectUsersTransferView,
 api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
 # system status
-api.add_resource(SystemStatusView, '/system_status')
 api.add_resource(SystemSummaryView, '/system_summary')
