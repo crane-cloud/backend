@@ -1,6 +1,8 @@
 import os
 from types import SimpleNamespace
 from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour
+from app.models.app import App
+from app.models.project import Project
 from app.models.project_database import ProjectDatabase
 from kubernetes import client
 from kubernetes.client.rest import ApiException
@@ -434,7 +436,7 @@ def create_user_app(
         )
 
 
-def disable_user_app(app, is_admin=False):
+def disable_user_app(app: App, is_admin=False):
     try:
         kube_host = app.project.cluster.host
         kube_token = app.project.cluster.token
@@ -489,7 +491,7 @@ def disable_user_app(app, is_admin=False):
         )
 
 
-def enable_user_app(app):
+def enable_user_app(app: App):
     try:
         kube_host = app.project.cluster.host
         kube_token = app.project.cluster.token
@@ -542,7 +544,7 @@ def enable_user_app(app):
         )
 
 
-def disable_project(project, is_admin=False):
+def disable_project(project: Project, is_admin=False):
     # Disable databases
     for database in project.project_databases:
         disable_database(database, is_admin)
@@ -624,7 +626,7 @@ def disable_project(project, is_admin=False):
         )
 
 
-def enable_project(project):
+def enable_project(project: Project):
     # Enable databases
     for database in project.project_databases:
         enable_database(database)
