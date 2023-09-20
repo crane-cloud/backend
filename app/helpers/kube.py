@@ -1,6 +1,6 @@
 import os
 from types import SimpleNamespace
-from app.helpers.db_flavor import get_db_flavour
+from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour
 from app.models.project_database import ProjectDatabase
 from kubernetes import client
 from kubernetes.client.rest import ApiException
@@ -540,99 +540,9 @@ def enable_user_app(app):
 
 
 def disable_project(project):
-    # get postgres project databases
-    db_flavour = 'postgres'
-    psql_project_databases = ProjectDatabase.find_all(
-        project_id=project.id, database_flavour_name=db_flavour)
-
-    if psql_project_databases:
-
-        # get connection
-        db_flavour = get_db_flavour(db_flavour)
-        database_service = db_flavour['class']
-        database_connection = database_service.check_db_connection()
-
-        if not database_connection:
-            log_activity('Database', status='Failed',
-                         operation='Disable',
-                         description='Failed to connect to the database service, Internal Server Error',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id
-                         )
-            return SimpleNamespace(
-                message="Failed to connect to the database service",
-                status_code=500
-            )
-
-        # Disable the postgres databases
-        for database in psql_project_databases:
-
-            # check if disabled
-            if not database.disabled:
-                disable_database = database_service.disable_user_log_in(
-                    database.user)
-
-                if not disable_database:
-                    log_activity('Database', status='Failed',
-                                 operation='Disable',
-                                 description='Unable to disable postgres database, Internal Server Error',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id
-                                 )
-
-                    return SimpleNamespace(
-                        message="Unable to disable database",
-                        status_code=500
-                    )
-                database.disabled = True
-                database.save()
-
-    # get mysql project databases
-    db_flavour = 'mysql'
-    mysql_project_databases = ProjectDatabase.find_all(
-        project_id=project.id, database_flavour_name=db_flavour)
-
-    if mysql_project_databases:
-
-        # get connection
-        db_flavour = get_db_flavour(db_flavour)
-        database_service = db_flavour['class']
-        database_connection = database_service.check_db_connection()
-
-        if not database_connection:
-            log_activity('Database', status='Failed',
-                         operation='Disable',
-                         description='Failed to connect to the database service, Internal Server Error',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id
-                         )
-
-            return SimpleNamespace(
-                message="Failed to connect to the database service",
-                status_code=500
-            )
-
-        # Disable mysql databases
-        for database in mysql_project_databases:
-            # check if disabled
-            if not database.disabled:
-
-                disable_database = database_service.disable_user_log_in(
-                    database.user, database.password)
-
-                if not disable_database:
-                    log_activity('Database', status='Failed',
-                                 operation='Disable',
-                                 description='Unable to disable mysql database, Internal Server Error',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id)
-
-                    return SimpleNamespace(
-                        message="Unable to disable database",
-                        status_code=500
-                    )
-                database.disabled = True
-                database.save()
+    # Disable databases
+    for database in project.databases:
+        disable_database(database)
 
     # Disable apps
     try:
@@ -708,104 +618,9 @@ def disable_project(project):
 
 
 def enable_project(project):
-    # get postgres project databases
-    db_flavour = 'postgres'
-    psql_project_databases = ProjectDatabase.find_all(
-        project_id=project.id, database_flavour_name=db_flavour)
-
-    if psql_project_databases:
-
-        # get connection
-        db_flavour = get_db_flavour(db_flavour)
-        database_service = db_flavour['class']
-        database_connection = database_service.check_db_connection()
-
-        if not database_connection:
-            log_activity('Database', status='Failed',
-                         operation='Enable',
-                         description='Failed to connect to the database service, Internal Server Error',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id
-                         )
-
-            return SimpleNamespace(
-                message=f"Failed to connect to the database service",
-                status_code=500
-            )
-
-        # Enable the postgres databases
-        for database in psql_project_databases:
-
-            # check if disabled
-            if database.disabled:
-
-                disable_database = database_service.enable_user_log_in(
-                    database.user)
-
-                if not disable_database:
-                    log_activity('Database', status='Failed',
-                                 operation='Enable',
-                                 description='Unable to enable postgres database, Internal Server Error',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id)
-
-                    return SimpleNamespace(
-                        message=f"Unable to enable database",
-                        status_code=500
-                    )
-
-                database.disabled = False
-                database.save()
-
-    # get mysql project databases
-    db_flavour = 'mysql'
-    mysql_project_databases = ProjectDatabase.find_all(
-        project_id=project.id, database_flavour_name=db_flavour)
-
-    if mysql_project_databases:
-
-        # get connection
-        db_flavour = get_db_flavour(db_flavour)
-        database_service = db_flavour['class']
-        database_connection = database_service.check_db_connection()
-
-        if not database_connection:
-            log_activity('Database', status='Failed',
-                         operation='Enable',
-                         description='Failed to connect to the database service, Internal Server Error',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id
-                         )
-
-            return SimpleNamespace(
-                message=f"Failed to connect to the database service",
-                status_code=500
-            )
-
-        # Enable mysql databases
-        for database in mysql_project_databases:
-
-            # check if disabled
-            if database.disabled:
-
-                disable_database = database_service.enable_user_log_in(
-                    database.user, database.password)
-
-                if not disable_database:
-                    log_activity('Database', status='Failed',
-                                 operation='Enable',
-                                 description='Unable to disable mysql database, Internal Server Error',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id
-                                 )
-
-                    return SimpleNamespace(
-                        message=f"Unable to enable database",
-                        status_code=500
-                    )
-
-                database.disabled = False
-                database.save()
+     # Enable databases
+    for database in project.databases:
+        enable_database(database)
 
     # Enable apps
     try:
