@@ -544,7 +544,7 @@ def enable_user_app(app):
 
 def disable_project(project, is_admin=False):
     # Disable databases
-    for database in project.databases:
+    for database in project.project_databases:
         disable_database(database, is_admin)
 
     # Disable apps
@@ -626,7 +626,7 @@ def disable_project(project, is_admin=False):
 
 def enable_project(project):
     # Enable databases
-    for database in project.databases:
+    for database in project.project_databases:
         enable_database(database)
 
     # Enable apps

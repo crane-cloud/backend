@@ -1824,6 +1824,7 @@ class AppEnableView(Resource):
         if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
             if not is_authorised_project_user(app.project, current_user_id, 'admin'):
                 return dict(status='fail', message='unauthorised'), 403
+            
         if app.project.disabled:
             return dict(status='fail', message=f'Apps project with id {app.project.id} is disabled, please enable it first'), 409
 

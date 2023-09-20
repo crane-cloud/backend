@@ -51,7 +51,7 @@ def get_all_db_flavours():
     return database_flavours
 
 
-def disable_database(database):
+def disable_database(database, is_admin=False):
     if database.disabled:
         return SimpleNamespace(
             message="Database is already disabled",
@@ -93,6 +93,8 @@ def disable_database(database):
         )
     try:
         database.disabled = True
+        if is_admin:
+            database.admin_disabled = True
         database.save()
         log_activity('Database', status='Success',
                      operation='Disable',
@@ -154,6 +156,7 @@ def enable_database(database):
         )
     try:
         database.disabled = False
+        database.admin_disabled = False
         database.save()
         log_activity('Database', status='Success',
                      operation='Enable',

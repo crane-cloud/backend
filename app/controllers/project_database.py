@@ -12,7 +12,7 @@ from app.models.project import Project
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
 from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour, database_flavours
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.activity_logger import log_activity
 from sqlalchemy import Date, func, column, cast, and_, select
 
@@ -1205,7 +1205,8 @@ class ProjectDatabaseDisableView(Resource):
         if database.disabled:
             return dict(status='fail', message=f'Database with id {database_id} is already disabled'), 409
 
-        diabled_database = disable_database(database)
+        diabled_database = disable_database(
+            database, is_admin(current_user_roles))
         if type(diabled_database) == SimpleNamespace:
             status_code = diabled_database.status_code if diabled_database.status_code else 500
             return dict(status='fail', message=diabled_database.message), status_code
@@ -1232,8 +1233,15 @@ class ProjectDatabaseEnableView(Resource):
             if not is_authorised_project_user(database.project, current_user_id, 'admin'):
                 return dict(status='fail', message='unauthorised'), 403
 
+        if database.project.disabled:
+            return dict(status='fail', message=f'Databases project with id {database.project.id} is disabled, please enable it first'), 409
+
         if not database.disabled:
             return dict(status='fail', message=f'Project with id {database_id} is already enabled'), 409
+
+        # Prevent users from enabling admin disabled apps
+        if database.admin_disabled and not is_admin(current_user_roles):
+            return dict(status='fail', message=f'You are not authorised to disable Database with id {database_id}, please contact an admin'), 403
 
         enabled_database = enable_database(database)
         if type(enabled_database) == SimpleNamespace:
