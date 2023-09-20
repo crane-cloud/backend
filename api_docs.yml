@@ -3563,6 +3563,62 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/databases/{database_id}/disable":
+    post:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: database_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully disabled Project Database"
+        404:
+          description: "Project database not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/databases/{database_id}/enable":
+    post:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: database_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully enabled Project Database"
+        404:
+          description: "Project database not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/apps":
     post:
       tags:

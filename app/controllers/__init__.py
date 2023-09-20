@@ -29,7 +29,8 @@ from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
                                ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView, ProjectDatabaseGraphAdminView,
-                               ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView)
+                               ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
+                               ProjectDatabaseDisableView, ProjectDatabaseEnableView)
 from .billing_invoice import (
     BillingInvoiceView, BillingInvoiceNotificationView)
 from .system_status import SystemSummaryView
