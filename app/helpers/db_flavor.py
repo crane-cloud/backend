@@ -3,6 +3,8 @@ from app.helpers.activity_logger import log_activity
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService
 import os
 
+from app.models.project_database import ProjectDatabase
+
 db_flavors = {
     'postgres': {
         'name': 'postgres',
@@ -51,7 +53,7 @@ def get_all_db_flavours():
     return database_flavours
 
 
-def disable_database(database):
+def disable_database(database: ProjectDatabase, is_admin=False):
     if database.disabled:
         return SimpleNamespace(
             message="Database is already disabled",
@@ -93,6 +95,8 @@ def disable_database(database):
         )
     try:
         database.disabled = True
+        if is_admin:
+            database.admin_disabled = True
         database.save()
         log_activity('Database', status='Success',
                      operation='Disable',
@@ -112,7 +116,7 @@ def disable_database(database):
         )
 
 
-def enable_database(database):
+def enable_database(database: ProjectDatabase):
     if not database.disabled:
         return SimpleNamespace(
             message="Database is not disabled",
@@ -154,6 +158,7 @@ def enable_database(database):
         )
     try:
         database.disabled = False
+        database.admin_disabled = False
         database.save()
         log_activity('Database', status='Success',
                      operation='Enable',

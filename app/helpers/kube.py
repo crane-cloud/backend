@@ -1,6 +1,8 @@
 import os
 from types import SimpleNamespace
 from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour
+from app.models.app import App
+from app.models.project import Project
 from app.models.project_database import ProjectDatabase
 from kubernetes import client
 from kubernetes.client.rest import ApiException
@@ -434,7 +436,7 @@ def create_user_app(
         )
 
 
-def disable_user_app(app):
+def disable_user_app(app: App, is_admin=False):
     try:
         kube_host = app.project.cluster.host
         kube_token = app.project.cluster.token
@@ -460,6 +462,8 @@ def disable_user_app(app):
             pass
         # save app
         app.disabled = True
+        if is_admin:
+            app.admin_disabled = True
         app.save()
 
         log_activity('App', status='Success',
@@ -487,7 +491,7 @@ def disable_user_app(app):
         )
 
 
-def enable_user_app(app):
+def enable_user_app(app: App):
     try:
         kube_host = app.project.cluster.host
         kube_token = app.project.cluster.token
@@ -512,6 +516,7 @@ def enable_user_app(app):
             pass
         # save app
         app.disabled = False
+        app.admin_disabled = False
         app.save()
 
         log_activity('App', status='Success',
@@ -539,10 +544,10 @@ def enable_user_app(app):
         )
 
 
-def disable_project(project):
+def disable_project(project: Project, is_admin=False):
     # Disable databases
-    for database in project.databases:
-        disable_database(database)
+    for database in project.project_databases:
+        disable_database(database, is_admin)
 
     # Disable apps
     try:
@@ -553,7 +558,7 @@ def disable_project(project):
 
         # scale apps down to 0
         for app in project.apps:
-            disable_user_app(app)
+            disable_user_app(app, is_admin)
 
         # Add resource quota
         quota = client.V1ResourceQuota(
@@ -576,6 +581,8 @@ def disable_project(project):
 
         # save project
         project.disabled = True
+        if is_admin:
+            project.admin_disabled = True
         project.save()
 
         log_activity('Project', status='Success',
@@ -588,6 +595,8 @@ def disable_project(project):
         if e.status == 404:
             # save project
             project.disabled = True
+            if is_admin:
+                project.admin_disabled = True
             project.save()
             log_activity('Project', status='Success',
                          operation='Disable',
@@ -617,9 +626,9 @@ def disable_project(project):
         )
 
 
-def enable_project(project):
-     # Enable databases
-    for database in project.databases:
+def enable_project(project: Project):
+    # Enable databases
+    for database in project.project_databases:
         enable_database(database)
 
     # Enable apps
@@ -650,6 +659,7 @@ def enable_project(project):
 
         # save project
         project.disabled = False
+        project.admin_disabled = False
         project.save()
 
         log_activity('Project', status='Success',
