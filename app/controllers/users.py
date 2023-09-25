@@ -334,9 +334,10 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
-        projects = user.projects
         new_user_data = json.loads(user_data)
-        new_user_data['projects_count'] = len(projects)
+        new_user_data['projects_count'] = len(user.projects)
+        new_user_data['apps_count'] = sum(len(project.apps) for project in user.projects)
+        new_user_data['database_count'] = sum(len(project.project_databases) for project in user.projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
