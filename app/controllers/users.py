@@ -11,6 +11,7 @@ from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
+from app.helpers.Enable_Disable_email import SendEmail
 from app.helpers.token import validate_token
 from app.schemas import ProjectSchema, AppSchema
 from app.helpers.decorators import admin_required
@@ -1120,7 +1121,8 @@ class InActiveUsersView(Resource):
 class UserDisableView(Resource):
     @admin_required
     def post(self, user_id):
-
+        
+    
         user = User.get_by_id(user_id)
         if not user:
             return dict(status='fail', message=f'User with id {user_id} not found'), 404
@@ -1142,8 +1144,17 @@ class UserDisableView(Resource):
             log_activity('User', status='Success',
                          operation='Disable',
                          description='Disabled user Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
+                         )
+            #send email
+            SendEmail(
+                    user.email ,
+                    user.name ,
+                    'disabled' ,
+                    'Status of your account' ,
+                    current_app.config["MAIL_DEFAULT_SENDER"] ,
+                    "user/user_disable_enable.html",
+                    current_app._get_current_object(),
+                           )
             return dict(
                 status='success',
                 message=f'user {user_id} disabled successfully'
@@ -1152,8 +1163,8 @@ class UserDisableView(Resource):
             log_activity('User', status='Failed',
                          operation='Disable',
                          description=err.body,
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
+                         
+                         )
             return dict(
                 status='fail',
                 message=str(err)
@@ -1184,8 +1195,18 @@ class UserEnableView(Resource):
             log_activity('User', status='Success',
                          operation='Enable',
                          description='Enabled user Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
+                         
+                         )
+            
+            SendEmail(
+                    user.email ,
+                    user.name ,
+                    'enabled' ,
+                    'Status of your account' ,
+                    current_app.config["MAIL_DEFAULT_SENDER"] ,
+                    "user/user_disable_enable.html",
+                    current_app._get_current_object(),
+                           )
             return dict(
                 status='success',
                 message=f'user {user_id} Enabled successfully'
@@ -1195,8 +1216,8 @@ class UserEnableView(Resource):
             log_activity('User', status='Failed',
                          operation='Enable',
                          description=err.body,
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
+                         
+                         )
             return dict(
                 status='fail',
                 message=str(err)
