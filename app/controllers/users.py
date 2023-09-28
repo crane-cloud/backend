@@ -1167,7 +1167,7 @@ class UserDisableView(Resource):
             log_activity('User', status='Failed',
                          operation='Disable',
                          description=err.body,
-                         
+                         a_user_id=user.id
                          )
             return dict(
                 status='fail',
@@ -1199,7 +1199,7 @@ class UserEnableView(Resource):
             log_activity('User', status='Success',
                          operation='Enable',
                          description='Enabled user Successfully',
-                         
+                         a_user_id=user.id
                          )
             html_layout = render_template(
                 'user/user_disable_enable.html',
