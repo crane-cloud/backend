@@ -4,14 +4,14 @@ import os
 from types import SimpleNamespace
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import disable_project, enable_project
-from flask import current_app
+from flask import current_app , render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
-from app.helpers.Enable_Disable_email import SendEmail
+from app.helpers.email import send_email
 from app.helpers.token import validate_token
 from app.schemas import ProjectSchema, AppSchema
 from app.helpers.decorators import admin_required
@@ -1146,15 +1146,19 @@ class UserDisableView(Resource):
                          description='Disabled user Successfully',
                          )
             #send email
-            SendEmail(
-                    user.email ,
-                    user.name ,
-                    'disabled' ,
-                    'Status of your account' ,
-                    current_app.config["MAIL_DEFAULT_SENDER"] ,
-                    "user/user_disable_enable.html",
-                    current_app._get_current_object(),
-                           )
+            html_layout = render_template(
+                'user/user_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                status='disabled')
+            send_email(
+                'lanternnassi@gmail.com',
+                'Status of your account',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
+            
             return dict(
                 status='success',
                 message=f'user {user_id} disabled successfully'
@@ -1197,16 +1201,18 @@ class UserEnableView(Resource):
                          description='Enabled user Successfully',
                          
                          )
-            
-            SendEmail(
-                    user.email ,
-                    user.name ,
-                    'enabled' ,
-                    'Status of your account' ,
-                    current_app.config["MAIL_DEFAULT_SENDER"] ,
-                    "user/user_disable_enable.html",
-                    current_app._get_current_object(),
-                           )
+            html_layout = render_template(
+                'user/user_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                status='enabled')
+            send_email(
+                'lanternnassi@gmail.com',
+                'Status of your account',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
             return dict(
                 status='success',
                 message=f'user {user_id} Enabled successfully'
