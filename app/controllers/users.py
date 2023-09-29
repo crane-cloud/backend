@@ -1152,7 +1152,7 @@ class UserDisableView(Resource):
                 name=user.name,
                 status='disabled')
             send_email(
-                'lanternnassi@gmail.com',
+                user.email,
                 'Status of your account',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
@@ -1207,7 +1207,7 @@ class UserEnableView(Resource):
                 name=user.name,
                 status='enabled')
             send_email(
-                'lanternnassi@gmail.com',
+                user.email,
                 'Status of your account',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
