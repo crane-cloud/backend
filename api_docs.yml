@@ -3918,7 +3918,7 @@ paths:
 
   "/apps/docker_listener":
     post:
-      description: "redeploys app by getting notifiation from docker"
+      description: "redeploys apps by getting webhook notifiations from docker"
       tags:
         - apps
       consumes:

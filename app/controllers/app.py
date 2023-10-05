@@ -1804,7 +1804,6 @@ class AppDockerListenerView(Resource):
                 project = app.project
 
                 if not project:
-                    # TODO: recreate project
                     log_activity('App', status='Failed',
                                  operation='Update',
                                  description='project not found',
