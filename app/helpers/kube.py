@@ -144,7 +144,7 @@ def create_user_app(
     kube_client = create_kube_clients(kube_host, kube_token)
 
     try:
-        # check if namespace exisits
+        # check if namespace exists
         try:
             kube_client.kube.read_namespace(namespace)
         except ApiException as e:
