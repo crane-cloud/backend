@@ -1144,6 +1144,7 @@ class UserDisableView(Resource):
             log_activity('User', status='Success',
                          operation='Disable',
                          description='Disabled user Successfully',
+                         a_user_id=user.id
                          )
             #send email
             html_layout = render_template(
@@ -1222,7 +1223,7 @@ class UserEnableView(Resource):
             log_activity('User', status='Failed',
                          operation='Enable',
                          description=err.body,
-                         
+                         a_user_id=user.id
                          )
             return dict(
                 status='fail',
