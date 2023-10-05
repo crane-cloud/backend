@@ -3916,6 +3916,24 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/apps/docker_listener":
+    post:
+      description: "redeploys app by getting notifiation from docker"
+      tags:
+        - apps
+      consumes:
+        - application/json
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/apps/{app_id}/disable":
     post:
       description: "Disables application"
@@ -4159,7 +4177,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-  
 components:
   securitySchemes:
     bearerAuth:

@@ -1781,6 +1781,120 @@ class AppRedeployView(Resource):
             return dict(status='fail', message=str(e)), 500
 
 
+class AppDockerListenerView(Resource):
+    def post(self):
+        """
+        Redeploy application from the Docker Hub webhook payload 
+        """
+        payload = request.get_json()
+        repository = payload['repository']['repo_name']
+
+        app_image = f"{repository}:{payload['push_data']['tag']}"
+
+        apps = App.find_all(image=repository)
+        if not apps:
+            return dict(
+                status="fail",
+                message=f"App with image {app_image} not found"
+            ), 404
+        try:
+            for app in apps:
+                project = app.project
+
+                if not project:
+                    # todo: recreate project
+                    log_activity('App', status='Failed',
+                                 operation='Update',
+                                 description='project not found',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id,
+                                 a_app_id=app.id)
+                    continue
+
+                cluster = project.cluster
+                namespace = project.alias
+
+                if not cluster or not namespace:
+                    log_activity('App', status='Failed',
+                                 operation='Update',
+                                 description='Cluster or namespace not found',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id,
+                                 a_app_id=app.id)
+                    continue
+
+                kube_host = cluster.host
+                kube_token = cluster.token
+
+                kube_client = create_kube_clients(kube_host, kube_token)
+
+                dep_name = f'{app.alias}-deployment'
+
+                cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                    name=dep_name,
+                    namespace=namespace
+                )
+                if app.private_image:
+                    try:
+                        app_secret = kube_client.kube.read_namespaced_secret(
+                            namespace=namespace,
+                            name=app.alias
+                        )
+
+                    except Exception as e:
+                        if e.status != 404:
+                            log_activity('App', status='Failed',
+                                         operation='Update',
+                                         description='Internal server error',
+                                         a_project_id=project.id,
+                                         a_cluster_id=project.cluster_id,
+                                         a_app_id=app.id)
+
+                    cluster_deployment.spec.template.spec.image_pull_secrets.append(
+                        app_secret)
+
+                cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+                # Update the application image
+                kube_client.appsv1_api.replace_namespaced_deployment(
+                    name=dep_name,
+                    namespace=namespace,
+                    body=cluster_deployment
+                )
+
+                # update the app in database
+                updated_app = App.update(app, image=app_image)
+
+                if not updated_app:
+                    log_activity('App', status='Failed',
+                                 operation='Update',
+                                 description='Internal server error',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id,
+                                 a_app_id=app.id)
+                    continue
+
+                log_activity('App', status='Success',
+                             operation='Update',
+                             description=f'App {app.id} updated successfully',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id,
+                             a_app_id=app.id)
+            return dict(
+                status='success',
+                message=f'Apps updated successfully'
+            ), 200
+
+        except Exception as e:
+            log_activity('App', status='Failed',
+                         operation='Update',
+                         description=str(e),
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         )
+            return dict(status='fail', message=str(e)), 500
+
+
 class AppDisableView(Resource):
     @jwt_required
     def post(self, app_id):
@@ -1824,13 +1938,13 @@ class AppEnableView(Resource):
         if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
             if not is_authorised_project_user(app.project, current_user_id, 'admin'):
                 return dict(status='fail', message='unauthorised'), 403
-            
+
         if app.project.disabled:
             return dict(status='fail', message=f'Apps project with id {app.project.id} is disabled, please enable it first'), 409
 
         if not app.disabled:
             return dict(status='fail', message=f'App with id {app_id} is already enabled'), 409
-        
+
         # Prevent users from enabling admin disabled apps
         if app.admin_disabled and not is_admin(current_user_roles):
             return dict(status='fail', message=f'You are not authorised to disable App with id {app_id}, please contact an admin'), 403

@@ -1,0 +1,27 @@
+{
+    "callback_url": "https://registry.hub.docker.com/u/mubangizi/triangle-checker/hook/98f3c5f907a1490a8aee518889933493/",
+    "push_data": {
+       "pusher": "mubangizi",
+       "pushed_at": 1696464946,
+       "tag": "latest",
+       "images": [],
+       "media_type": "application/vnd.docker.container.image.v1+json"
+    },
+    "repository": {
+       "status": "Active",
+       "namespace": "mubangizi",
+       "name": "triangle-checker",
+       "repo_name": "mubangizi/triangle-checker",
+       "repo_url": "https://hub.docker.com/r/mubangizi/triangle-checker",
+       "description": "Running on port 50000, no need of an entry command",
+       "full_description": "[![CircleCI](https://circleci.com/gh/Mubangizi/triangle-checker/tree/master.svg?style=svg)](https://github.com/Mubangizi/triangle-checker/tree/master)\n\n# Triangle Checker\nA node app that returns the triangle type depending on the input\n### Table of API routes\n| URL | HTTP Method | Description |\n| ----------- | -------------------- | ------------------- |\n| /triangle | POST | Returns type of triangle |\n\n## How to setup the project:\n#### Clone the repository\n ` git clone https://github.com/Mubangizi/triangle-checker.git`\n\n * If `master` is not up to date, `git checkout develop` for it is the default base branch for this project.\n\n#### Install a package manager \n    Install `npm`\n * Navigate to this page and get instructions on how to download `npm` for your OS. [click here.](https://www.npmjs.com/get-npm)\n * Navigate to the project root directory and to install dependencies by running\n > `npm install`\n\n*  Run  `npm start` to start the application.\n\n*  Run  `npm test` to run tests for the Application.\n\n*  When running application, go to a browser input  `<server-url>/api-docs` to access the api documentation\n",
+       "star_count": 0,
+       "dockerfile": "FROM node:12\n\n# Create app directory\nWORKDIR /usr/src/app\n\n# Install app dependencies\n# A wildcard is used to ensure both package.json AND package-lock.json are copied\n# where available (npm@5+)\nCOPY package*.json ./\n\nRUN npm install\n\n# Bundle app source\nCOPY . .\n\n# Expose port 5000 and start node server\nEXPOSE 50000\nCMD [ \"npm\", \"start\" ]\n",
+       "is_private": false,
+       "is_trusted": false,
+       "is_official": false,
+       "owner": "mubangizi",
+       "date_created": 1589065396
+    }
+ }
+ 
