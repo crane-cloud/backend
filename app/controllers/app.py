@@ -1799,10 +1799,12 @@ class AppDockerListenerView(Resource):
             ), 404
         try:
             for app in apps:
+                if app.disabled or app.project.disabled:
+                    continue
                 project = app.project
 
                 if not project:
-                    # todo: recreate project
+                    # TODO: recreate project
                     log_activity('App', status='Failed',
                                  operation='Update',
                                  description='project not found',
@@ -1842,6 +1844,7 @@ class AppDockerListenerView(Resource):
                         )
 
                     except Exception as e:
+                        print(e)
                         if e.status != 404:
                             log_activity('App', status='Failed',
                                          operation='Update',
@@ -1886,11 +1889,10 @@ class AppDockerListenerView(Resource):
             ), 200
 
         except Exception as e:
+            print(e)
             log_activity('App', status='Failed',
                          operation='Update',
                          description=str(e),
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
                          )
             return dict(status='fail', message=str(e)), 500
 

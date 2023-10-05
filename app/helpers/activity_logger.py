@@ -17,8 +17,8 @@ except Exception as e:
 def log_activity(model: str, status: str, operation: str, description: str, a_user_id=None, a_db_id=None, a_app_id=None, a_project_id=None, a_cluster_id=None):
     user_id = get_jwt_identity()
     user = User.get_by_id(user_id)
-    user_email = user.email
-    user_name = user.name
+    user_email = user.email if user else None
+    user_name = user.name if user else None
     date = str(datetime.datetime.now())
     data = {
         'user_id': user_id,
