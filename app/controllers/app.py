@@ -1805,8 +1805,8 @@ class AppDockerListenerView(Resource):
 
                 if not project:
                     log_activity('App', status='Failed',
-                                 operation='Update',
-                                 description='project not found',
+                                 operation='Auto Update',
+                                 description=f'{app_image}: project not found',
                                  a_project_id=project.id,
                                  a_cluster_id=project.cluster_id,
                                  a_app_id=app.id)
@@ -1817,8 +1817,8 @@ class AppDockerListenerView(Resource):
 
                 if not cluster or not namespace:
                     log_activity('App', status='Failed',
-                                 operation='Update',
-                                 description='Cluster or namespace not found',
+                                 operation='Auto Update',
+                                 description=f'{app_image}: Cluster or namespace not found',
                                  a_project_id=project.id,
                                  a_cluster_id=project.cluster_id,
                                  a_app_id=app.id)
@@ -1846,8 +1846,8 @@ class AppDockerListenerView(Resource):
                         print(e)
                         if e.status != 404:
                             log_activity('App', status='Failed',
-                                         operation='Update',
-                                         description='Internal server error',
+                                         operation='Auto Update',
+                                         description=f'{app_image}: Internal server error',
                                          a_project_id=project.id,
                                          a_cluster_id=project.cluster_id,
                                          a_app_id=app.id)
@@ -1869,16 +1869,16 @@ class AppDockerListenerView(Resource):
 
                 if not updated_app:
                     log_activity('App', status='Failed',
-                                 operation='Update',
-                                 description='Internal server error',
+                                 operation='Auto Update',
+                                 description=f'{app_image}: Internal server error',
                                  a_project_id=project.id,
                                  a_cluster_id=project.cluster_id,
                                  a_app_id=app.id)
                     continue
 
                 log_activity('App', status='Success',
-                             operation='Update',
-                             description=f'App {app.id} updated successfully',
+                             operation='Auto Update',
+                             description=f'{app_image}: App {app.id} updated successfully',
                              a_project_id=project.id,
                              a_cluster_id=project.cluster_id,
                              a_app_id=app.id)
@@ -1890,8 +1890,8 @@ class AppDockerListenerView(Resource):
         except Exception as e:
             print(e)
             log_activity('App', status='Failed',
-                         operation='Update',
-                         description=str(e),
+                         operation='Auto Update',
+                         description=f'{app_image}: {str(e)}',
                          )
             return dict(status='fail', message=str(e)), 500
 
