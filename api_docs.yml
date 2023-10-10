@@ -3916,13 +3916,27 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/apps/docker_listener":
+  "/apps/{app_id}/{user_id}/docker/{tag}/webhook":
     post:
       description: "redeploys apps by getting webhook notifiations from docker"
       tags:
         - apps
       consumes:
         - application/json
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+        - in: path
+          name: tag
+          required: true
+          type: string
+          
 
       responses:
         201:

@@ -169,7 +169,7 @@ api.add_resource(
 api.add_resource(
     AppEnableView, '/apps/<string:app_id>/enable')
 api.add_resource(
-    AppDockerWebhookListenerView, '/apps/docker_listener')
+    AppDockerWebhookListenerView, '/apps/<string:app_id>/<string:user_id>/docker/<string:tag>/webhook')
 api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
