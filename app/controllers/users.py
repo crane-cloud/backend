@@ -4,7 +4,7 @@ import os
 from types import SimpleNamespace
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import disable_project, enable_project
-from flask import current_app , render_template
+from flask import current_app, render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
@@ -30,6 +30,7 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.project_database import ProjectDatabase
 from app.models.app import App
+from app.helpers.crane_app_logger import logger
 
 
 class UsersView(Resource):
@@ -337,8 +338,10 @@ class UserDetailView(Resource):
 
         new_user_data = json.loads(user_data)
         new_user_data['projects_count'] = len(user.projects)
-        new_user_data['apps_count'] = sum(len(project.apps) for project in user.projects)
-        new_user_data['database_count'] = sum(len(project.project_databases) for project in user.projects)
+        new_user_data['apps_count'] = sum(
+            len(project.apps) for project in user.projects)
+        new_user_data['database_count'] = sum(
+            len(project.project_databases) for project in user.projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
@@ -1039,8 +1042,8 @@ class InActiveUsersView(Resource):
         created_date = request.args.get("created")
         range = request.args.get("range", 0, type=int)
         today = datetime.now().date()
-        keywords = request.args.get('keywords' , None)
-        
+        keywords = request.args.get('keywords', None)
+
         if (start_date is not None and end_date is not None):
             if range:
                 return dict(status='fail', message="Either pass `range` or `start` and `end` but not all the three."), 400
@@ -1076,7 +1079,7 @@ class InActiveUsersView(Resource):
             returned_users = self.computed_results[date_range]
 
         else:
-            
+
             query = User.query.filter(
                 cast(User.last_seen, Date) <= start_date,
                 cast(User.last_seen, Date) >= end_date,
@@ -1084,7 +1087,8 @@ class InActiveUsersView(Resource):
             )
 
             if keywords:
-                keyword_filter = (User.name.ilike('%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
+                keyword_filter = (User.name.ilike(
+                    '%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
                 query = query.filter(keyword_filter)
 
             if created_date:
@@ -1122,8 +1126,7 @@ class InActiveUsersView(Resource):
 class UserDisableView(Resource):
     @admin_required
     def post(self, user_id):
-        
-    
+
         user = User.get_by_id(user_id)
         if not user:
             return dict(status='fail', message=f'User with id {user_id} not found'), 404
@@ -1147,7 +1150,7 @@ class UserDisableView(Resource):
                          description='Disabled user Successfully',
                          a_user_id=user.id
                          )
-            #send email
+            # send email
             html_layout = render_template(
                 'user/user_disable_enable.html',
                 email=user.email,
@@ -1160,7 +1163,7 @@ class UserDisableView(Resource):
                 current_app.config["MAIL_DEFAULT_SENDER"],
                 current_app._get_current_object(),
             )
-            
+
             return dict(
                 status='success',
                 message=f'user {user_id} disabled successfully'

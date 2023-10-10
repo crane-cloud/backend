@@ -54,6 +54,7 @@ mysql-connector==2.2.9
 newrelic==7.0.0.166
 nose==1.3.7
 oauthlib==3.0.2
+orjson==3.6.1
 packaging==21.3
 pluggy==1.0.0
 prometheus-http-client==1.0.0
