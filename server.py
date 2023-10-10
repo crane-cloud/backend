@@ -6,7 +6,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
-from flask_migrate import Migrate, MigrateCommand
+from flask_migrate import Migrate
+from manage import admin_user, create_registries, create_roles
 
 # import ORM
 from app.routes import api
@@ -16,7 +17,8 @@ from app.models import db, mongo
 from app.helpers.email import mail
 
 from app.tasks import update_celery
-from manage import admin_user, create_registries, create_roles
+
+from app.helpers.crane_app_logger import configure_logger
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -54,6 +56,9 @@ def create_app(config_name):
 
     #initialise migrate
     Migrate(app, db)
+
+    # Initialize the logger with the app
+    configure_logger(app) 
 
     # swagger
     app.config['SWAGGER'] = {

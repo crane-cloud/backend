@@ -995,6 +995,7 @@ class ProjectDisableView(Resource):
             return dict(status='fail', message=f'Project with id {project_id} is already disabled'), 409
 
         disabled_project = disable_project(project, is_admin(current_user_roles))
+        
         if type(disabled_project) == SimpleNamespace:
             status_code = disabled_project.status_code if disabled_project.status_code else 500
             return dict(status='fail', message=disabled_project.message), status_code
