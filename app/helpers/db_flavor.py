@@ -1,8 +1,8 @@
+import os
 from types import SimpleNamespace
 from app.helpers.activity_logger import log_activity
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService
-import os
-
+from app.helpers.crane_app_logger import logger
 from app.models.project_database import ProjectDatabase
 
 db_flavors = {
@@ -82,9 +82,11 @@ def disable_database(database: ProjectDatabase, is_admin=False):
         database.user)
 
     if not disable_database:
+        log_message = f'Unable to disable {database.database_flavour_name} database, Internal Server Error'
+        logger.error(log_message)
         log_activity('Database', status='Failed',
                      operation='Disable',
-                     description=f'Unable to disable {database.database_flavour_name} database, Internal Server Error',
+                     description=log_message,
                      a_project_id=database.project.id,
                      a_db_id=database.id
                      )
@@ -105,6 +107,7 @@ def disable_database(database: ProjectDatabase, is_admin=False):
                      a_db_id=database.id)
         return True
     except Exception as err:
+        logger.exception('Exception occurred')
         log_activity('Database', status='Failed',
                      operation='Disable',
                      description=err.body,
@@ -145,9 +148,11 @@ def enable_database(database: ProjectDatabase):
         database.user)
 
     if not enable_database:
+        log_message = f'Unable to enable {database.database_flavour_name} database, Internal Server Error'
+        logger.error(log_message)
         log_activity('Database', status='Failed',
                      operation='Enable',
-                     description=f'Unable to enable {database.database_flavour_name} database, Internal Server Error',
+                     description=log_message,
                      a_project_id=database.project.id,
                      a_db_id=database.id
                      )
@@ -167,6 +172,7 @@ def enable_database(database: ProjectDatabase):
                      a_db_id=database.id)
         return True
     except Exception as err:
+        logger.exception('Exception occurred')
         log_activity('Database', status='Failed',
                      operation='Enable',
                      description=err.body,

@@ -6,17 +6,14 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
-from flask_migrate import Migrate, MigrateCommand
+from flask_migrate import Migrate
 
-# import ORM
 from app.routes import api
-
-from app.models import db, mongo
-
-from app.helpers.email import mail
-
-from app.tasks import update_celery
 from manage import admin_user, create_registries, create_roles
+from app.models import db, mongo
+from app.helpers.email import mail
+from app.tasks import update_celery
+from app.helpers.crane_app_logger import logger
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -42,7 +39,7 @@ def create_app(config_name):
 
     # register app with the mongo db
     mongo.init_app(app)
-    
+
     # initialize api resources
     api.init_app(app)
 
@@ -52,7 +49,7 @@ def create_app(config_name):
     # initialize mail
     mail.init_app(app)
 
-    #initialise migrate
+    # initialise migrate
     Migrate(app, db)
 
     # swagger
@@ -61,8 +58,11 @@ def create_app(config_name):
         'uiversion': 3
     }
 
+    # set logging level
+    logger.setLevel(app.config['LOG_LEVEL'])
+
     Swagger(app, template_file='api_docs.yml')
-    
+
     # add flask commands
     app.cli.add_command(create_roles)
     app.cli.add_command(create_registries)

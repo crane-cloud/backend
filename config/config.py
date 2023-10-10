@@ -32,6 +32,9 @@ class Base:
     # celery
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
+    #Log level
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
+
 
 class Development(Base):
     """ development config """

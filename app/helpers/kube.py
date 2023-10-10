@@ -1,9 +1,8 @@
 import os
 from types import SimpleNamespace
-from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour
+from app.helpers.db_flavor import disable_database, enable_database
 from app.models.app import App
 from app.models.project import Project
-from app.models.project_database import ProjectDatabase
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 import base64
@@ -11,7 +10,7 @@ import json
 from app.helpers.activity_logger import log_activity
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.url import get_app_subdomain
-
+from app.helpers.crane_app_logger import logger
 
 def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('KUBE_TOKEN')):
     # configure client
@@ -81,6 +80,7 @@ def delete_cluster_app(kube_client, namespace, app):
             namespace=namespace
         )
     except Exception as e:
+        logger.exception('Exception occurred')
         if e.status != 404:
             return dict(status='fail', message=str(e)), 500
 
@@ -164,6 +164,7 @@ def create_user_app(
                 status_code=409
             )
         except:
+            logger.exception('Exception occurred')
             pass
 
         if private_repo:
@@ -369,8 +370,10 @@ def create_user_app(
                     body=ingress
                 )
         except client.rest.ApiException as e:
+            logger.exception('Exception occurred')
             print(e)
         except Exception:
+            logger.exception('Exception occurred')
             pass
 
         service_url = f'https://{sub_domain}'
@@ -399,6 +402,7 @@ def create_user_app(
         return new_app
 
     except client.rest.ApiException as e:
+        logger.exception('Exception occurred')
         resource_clean_up(
             resource_registry,
             app_alias,
@@ -418,6 +422,7 @@ def create_user_app(
         )
 
     except Exception as e:
+        logger.exception('Exception occurred')
         resource_clean_up(
             resource_registry,
             app_alias,
@@ -474,6 +479,7 @@ def disable_user_app(app: App, is_admin=False):
         return True
 
     except client.rest.ApiException as e:
+        logger.exception('Exception occurred')
         log_activity('App', status='Failed',
                      operation='Disable',
                      description='Error disabling application',
@@ -485,6 +491,7 @@ def disable_user_app(app: App, is_admin=False):
         )
 
     except Exception as err:
+        logger.exception('Exception occurred')
         return SimpleNamespace(
             message=str(err),
             status_code=500
@@ -527,6 +534,7 @@ def enable_user_app(app: App):
         return True
 
     except client.rest.ApiException as e:
+        logger.exception('Exception occurred')
         log_activity('App', status='Failed',
                      operation='Enable',
                      description='Error enabling application',
@@ -538,6 +546,7 @@ def enable_user_app(app: App):
         )
 
     except Exception as err:
+        logger.exception('Exception occurred')
         return SimpleNamespace(
             message=str(err),
             status_code=500
@@ -592,6 +601,7 @@ def disable_project(project: Project, is_admin=False):
                      a_cluster_id=project.cluster_id)
         return True
     except client.rest.ApiException as e:
+        logger.exception('Exception occurred')
         if e.status == 404:
             # save project
             project.disabled = True
@@ -615,6 +625,7 @@ def disable_project(project: Project, is_admin=False):
         )
 
     except Exception as err:
+        logger.exception('Exception occurred')
         log_activity('Project', status='Failed',
                      operation='Disable',
                      description=err.body,
@@ -646,6 +657,7 @@ def enable_project(project: Project):
                 name='disable-quota', namespace=project.alias
             )
         except client.rest.ApiException as e:
+            logger.exception('Exception occurred')
             if e.status != 404:
                 log_activity('Project', status='Failed',
                              operation='Enable',
@@ -670,6 +682,7 @@ def enable_project(project: Project):
         return True
 
     except Exception as err:
+        logger.exception('Exception occurred')
         log_activity('Project', status='Failed',
                      operation='Enable',
                      description=err.body,
