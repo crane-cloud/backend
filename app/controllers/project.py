@@ -24,7 +24,7 @@ from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, func
-from app.models.project_database import ProjectDatabase
+from app.helpers.crane_app_logger import logger
 
 
 class ProjectsView(Resource):
@@ -989,13 +989,16 @@ class ProjectDisableView(Resource):
 
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id, 'admin'):
+                logger.warning(
+                    f'User with id {current_user_id} is not authorized to access Project with id {project_id}')
                 return dict(status='fail', message='unauthorised'), 403
 
         if project.disabled:
             return dict(status='fail', message=f'Project with id {project_id} is already disabled'), 409
 
-        disabled_project = disable_project(project, is_admin(current_user_roles))
-        
+        disabled_project = disable_project(
+            project, is_admin(current_user_roles))
+
         if type(disabled_project) == SimpleNamespace:
             status_code = disabled_project.status_code if disabled_project.status_code else 500
             return dict(status='fail', message=disabled_project.message), status_code

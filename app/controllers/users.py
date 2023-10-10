@@ -13,7 +13,6 @@ from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.email import send_email
 from app.helpers.token import validate_token
-from app.schemas import ProjectSchema, AppSchema
 from app.helpers.decorators import admin_required
 import requests
 import secrets
@@ -288,10 +287,7 @@ class UserLoginView(Resource):
 
         # Updating user's last login
         user.last_seen = datetime.now()
-        updated_user = user.save()
-
-        if not updated_user:
-            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
+        user.save()
 
         user_dict, errors = token_schema.dump(user)
         if user and user.password_is_valid(password):
@@ -299,6 +295,7 @@ class UserLoginView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
+                logger.error('Unable to generate access token')
                 return dict(
                     status="fail",
                     message="Internal Server Error"
