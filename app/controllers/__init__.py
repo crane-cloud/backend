@@ -24,7 +24,7 @@ from .project import (
     ProjectCPUView, ProjectMemoryUsageView, ProjectNetworkRequestView, ProjectStorageUsageView, ProjectDisableView, ProjectEnableView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppCpuUsageView, AppMemoryUsageView, AppNetworkUsageView, AppStorageUsageView,
-                  AppRevertView, AppReviseView, AppRedeployView, AppDisableView, AppEnableView, AppDockerListenerView)
+                  AppRevertView, AppReviseView, AppRedeployView, AppDisableView, AppEnableView, AppDockerWebhookListenerView)
 from .registry import RegistriesView
 from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
                                ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,

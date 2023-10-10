@@ -1781,7 +1781,7 @@ class AppRedeployView(Resource):
             return dict(status='fail', message=str(e)), 500
 
 
-class AppDockerListenerView(Resource):
+class AppDockerWebhookListenerView(Resource):
     def post(self):
         """
         Redeploy application from the Docker Hub webhook payload 
