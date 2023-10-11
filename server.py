@@ -34,6 +34,9 @@ def create_app(config_name):
     app.config.from_object(app_config[config_name])
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # set logging level
+    logger.setLevel(app.config['LOG_LEVEL'])
+
     # register app with the db
     db.init_app(app)
 
@@ -58,8 +61,6 @@ def create_app(config_name):
         'uiversion': 3
     }
 
-    # set logging level
-    logger.setLevel(app.config['LOG_LEVEL'])
 
     Swagger(app, template_file='api_docs.yml')
 

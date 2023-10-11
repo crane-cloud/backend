@@ -25,6 +25,7 @@ from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+from app.helpers.crane_app_logger import logger
 
 
 class AppsView(Resource):
@@ -1781,114 +1782,151 @@ class AppRedeployView(Resource):
             return dict(status='fail', message=str(e)), 500
 
 
-class AppDockerListenerView(Resource):
-    def post(self):
+class AppDockerWebhookListenerView(Resource):
+    def post(self, app_id, user_id, tag):
         """
         Redeploy application from the Docker Hub webhook payload 
         """
+        if not tag:
+            tag = 'latest'
         payload = request.get_json()
+
         repository = payload['repository']['repo_name']
 
-        app_image = f"{repository}:{payload['push_data']['tag']}"
-
-        apps = App.find_all(image=repository)
-        if not apps:
+        app_image = f"{repository}:{tag}"
+        # Get User
+        user = User.get_by_id(user_id)
+        if not user:
+            logger.error(f"User with id {user_id} not found")
             return dict(
                 status="fail",
-                message=f"App with image {app_image} not found"
+                message=f"User with id {user} not found"
             ), 404
+
+        # Get application
+        app = App.get_by_id(app_id)
+        if not app:
+            logger.error(f"App with id {app_id} not found")
+            return dict(
+                status="fail",
+                message=f"App with id {app_id} not found"
+            ), 404
+
+        # Get project
+        project = app.project
+        if not project:
+            log_activity('App', status='Failed',
+                         operation='Auto Update',
+                         description=f'project for app {app_id} not found',
+                         a_app_id=app.id)
+
+            logger.error(
+                f"App update for app id {app_id} is doesnot have a project")
+            return dict(
+                status="fail",
+                message='Internal Server Error'
+            ), 500
+        user_roles = user.roles
+        current_user_roles = [{'name': role.name} for role in user_roles]
+
+        if not is_owner_or_admin(project, user_id, current_user_roles):
+            if not is_authorised_project_user(project, user_id, 'admin'):
+                return dict(status='fail', message='Unauthorised'), 403
+
+        if app.disabled or app.project.disabled:
+            logger.warning('app is disabled or project is disabled')
+            return dict(
+                status="fail",
+                message=f"App with id {app_id} is disabled"
+            ), 409
+
         try:
-            for app in apps:
-                if app.disabled or app.project.disabled:
-                    continue
-                project = app.project
 
-                if not project:
-                    log_activity('App', status='Failed',
-                                 operation='Auto Update',
-                                 description=f'{app_image}: project not found',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id,
-                                 a_app_id=app.id)
-                    continue
+            cluster = project.cluster
+            namespace = project.alias
 
-                cluster = project.cluster
-                namespace = project.alias
-
-                if not cluster or not namespace:
-                    log_activity('App', status='Failed',
-                                 operation='Auto Update',
-                                 description=f'{app_image}: Cluster or namespace not found',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id,
-                                 a_app_id=app.id)
-                    continue
-
-                kube_host = cluster.host
-                kube_token = cluster.token
-
-                kube_client = create_kube_clients(kube_host, kube_token)
-
-                dep_name = f'{app.alias}-deployment'
-
-                cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
-                    name=dep_name,
-                    namespace=namespace
-                )
-                if app.private_image:
-                    try:
-                        app_secret = kube_client.kube.read_namespaced_secret(
-                            namespace=namespace,
-                            name=app.alias
-                        )
-
-                    except Exception as e:
-                        print(e)
-                        if e.status != 404:
-                            log_activity('App', status='Failed',
-                                         operation='Auto Update',
-                                         description=f'{app_image}: Internal server error',
-                                         a_project_id=project.id,
-                                         a_cluster_id=project.cluster_id,
-                                         a_app_id=app.id)
-
-                    cluster_deployment.spec.template.spec.image_pull_secrets.append(
-                        app_secret)
-
-                cluster_deployment.spec.template.spec.containers[0].image = app_image
-
-                # Update the application image
-                kube_client.appsv1_api.replace_namespaced_deployment(
-                    name=dep_name,
-                    namespace=namespace,
-                    body=cluster_deployment
-                )
-
-                # update the app in database
-                updated_app = App.update(app, image=app_image)
-
-                if not updated_app:
-                    log_activity('App', status='Failed',
-                                 operation='Auto Update',
-                                 description=f'{app_image}: Internal server error',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id,
-                                 a_app_id=app.id)
-                    continue
-
-                log_activity('App', status='Success',
+            if not cluster or not namespace:
+                log_activity('App', status='Failed',
                              operation='Auto Update',
-                             description=f'{app_image}: App {app.id} updated successfully',
+                             description=f'{app_image}: Cluster or namespace not found',
                              a_project_id=project.id,
                              a_cluster_id=project.cluster_id,
                              a_app_id=app.id)
+                logger.error('Cluster or namespace not found')
+                return dict(
+                    status='fail',
+                    message="Internal Server Error"
+                ), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            dep_name = f'{app.alias}-deployment'
+
+            cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace
+            )
+            if app.private_image:
+                try:
+                    app_secret = kube_client.kube.read_namespaced_secret(
+                        namespace=namespace,
+                        name=app.alias
+                    )
+
+                except Exception as e:
+                    logger.exception('Exception occcured')
+                    if e.status != 404:
+                        log_activity('App', status='Failed',
+                                     operation='Auto Update',
+                                     description=f'{app_image}: Internal server error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id,
+                                     a_app_id=app.id)
+
+                cluster_deployment.spec.template.spec.image_pull_secrets.append(
+                    app_secret)
+
+            cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+            # Update the application image
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace,
+                body=cluster_deployment
+            )
+
+            # update the app in database
+            updated_app = App.update(app, image=app_image)
+
+            if not updated_app:
+                log_activity('App', status='Failed',
+                             operation='Auto Update',
+                             description=f'{app_image}: Internal server error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id,
+                             a_app_id=app.id)
+                logger.error('Unable to update app in database')
+                return dict(
+                    status="fail",
+                    message="Internal Server Error"
+                ), 500
+
+            log_activity('App', status='Success',
+                         operation='Auto Update',
+                         description=f'{app_image}: App {app.id} updated successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_app_id=app.id)
             return dict(
                 status='success',
                 message=f'Apps updated successfully'
             ), 200
 
         except Exception as e:
-            print(e)
+            logger.exception('Exception occcured')
             log_activity('App', status='Failed',
                          operation='Auto Update',
                          description=f'{app_image}: {str(e)}',
