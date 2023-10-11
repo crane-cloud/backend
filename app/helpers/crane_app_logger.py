@@ -15,6 +15,14 @@ logger = logging.getLogger()
 logger_handler = logging.StreamHandler()
 logger.handlers = []
 logger.addHandler(logger_handler)
+
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+# logging.getLogger("websockets.client").setLevel(logging.ERROR)
+# logging.getLogger("websockets.server").setLevel(logging.ERROR)
+# logging.getLogger("websockets.protocol").setLevel(logging.ERROR)
+# logging.getLogger("kubernetes.client.rest").setLevel(logging.WARNING)
+# logging.getLogger("sqlalchemy.engine.base.Engine").setLevel(logging.WARNING)
+
 logger_handler.setFormatter(
     GoogleCloudStructuredLogging(
         f"%(asctime)s %(levelname)s\t%(message)s [%(name)s:%(filename)s:%(lineno)d]",
