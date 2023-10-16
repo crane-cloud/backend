@@ -51,7 +51,7 @@ MarkupSafe==2.0.1
 marshmallow==2.19.2
 mistune==2.0.3
 mysql-connector==2.2.9
-newrelic==7.0.0.166
+newrelic==7.16.0.178
 nose==1.3.7
 oauthlib==3.0.2
 orjson==3.6.1
