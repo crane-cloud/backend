@@ -8,11 +8,12 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
 from prometheus_http_client import Prometheus
+from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app, disable_user_app, enable_user_app
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
 from app.helpers.clean_up import resource_clean_up
@@ -24,6 +25,7 @@ from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+from app.helpers.crane_app_logger import logger
 
 
 class AppsView(Resource):
@@ -67,7 +69,7 @@ class AppsView(Resource):
         app_name = validated_app_data['name']
         app_alias = create_alias(validated_app_data['name'])
         app_image = validated_app_data['image']
-        command = validated_app_data.get('command', None)
+        command_string = validated_app_data.get('command', None)
         project_id = validated_app_data['project_id']
         # env_vars = validated_app_data['env_vars']
         env_vars = validated_app_data.get('env_vars', None)
@@ -80,7 +82,7 @@ class AppsView(Resource):
         app_port = validated_app_data.get('port')
         image_pull_secret = None
 
-        command = command.split() if command else None
+        command = command_string.split() if command_string else None
 
         project = Project.get_by_id(project_id)
 
@@ -118,7 +120,10 @@ class AppsView(Resource):
                 image=app_image,
                 project_id=project_id,
                 alias=app_alias,
-                port=app_port
+                port=app_port,
+                command=command_string,
+                replicas=replicas,
+                private_image=private_repo
             )
 
             if private_repo:
@@ -316,15 +321,16 @@ class AppsView(Resource):
                         name=ingress_name
                     )
 
-                    ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                        # backend=ingress_backend,
-                        rules=[new_ingress_rule]
-                    )
+                    ingress_spec = {
+                        'rules': [new_ingress_rule]
+                    }
 
-                    ingress_body = client.ExtensionsV1beta1Ingress(
-                        metadata=ingress_meta,
-                        spec=ingress_spec
-                    )
+                    ingress_body = {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "kind": "Ingress",
+                        "metadata": ingress_meta,
+                        "spec": ingress_spec
+                    }
 
                     kube_client.networking_api.create_namespaced_ingress(
                         namespace=namespace,
@@ -400,6 +406,64 @@ class AppsView(Resource):
                          )
             return dict(status='fail', message=str(e)), 500
 
+    @admin_required
+    def get(self):
+        """
+        Get overal app information
+        """
+        graph_filter_data = {
+            'start': request.args.get('start', '2018-01-01'),
+            'end': request.args.get('end', datetime.datetime.now().strftime('%Y-%m-%d')),
+            'set_by': request.args.get('set_by', 'month')
+        }
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        series = request.args.get('series', False)
+
+        if isinstance(series, str):
+            series = series.lower() == 'true'
+
+        filter_schema = AppGraphSchema()
+        apps_schema = AppSchema(many=True)
+
+        metadata = {
+            'disabled': App.query.filter_by(disabled=True).count(),
+            'total_apps': App.query.count()
+        }
+
+        if not series:
+            apps = App.find_all(paginate=True, page=page, per_page=per_page)
+            apps_data, errors = apps_schema.dumps(apps.items)
+            pagination = apps.pagination
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            return dict(
+                status='success',
+                data=dict(
+                    metadata=metadata,
+                    pagination=pagination,
+                    apps=json.loads(apps_data))
+            ), 200
+
+        validated_query_data, errors = filter_schema.load(graph_filter_data)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start')
+        end = validated_query_data.get('end')
+        set_by = validated_query_data.get('set_by')
+
+        app_info = App.graph_data(start=start, end=end, set_by=set_by)
+
+        return dict(
+            status='success',
+            data=dict(
+                metadata=metadata,
+                graph_data=app_info)
+        ), 200
+
 
 class ProjectAppsView(Resource):
 
@@ -435,6 +499,11 @@ class ProjectAppsView(Resource):
             project_id=project_id)
 
         if existing_app:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=f'App {app_name} already exists',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
             return dict(
                 status='fail',
                 message=f'App with name {validated_app_data["name"]} already exists'
@@ -445,7 +514,7 @@ class ProjectAppsView(Resource):
         app_name = validated_app_data['name']
         app_alias = create_alias(validated_app_data['name'])
         app_image = validated_app_data['image']
-        command = validated_app_data.get('command', None)
+        command_string = validated_app_data.get('command', None)
         # env_vars = validated_app_data['env_vars']
         env_vars = validated_app_data.get('env_vars', None)
         private_repo = validated_app_data.get('private_image', False)
@@ -458,7 +527,7 @@ class ProjectAppsView(Resource):
         custom_domain = validated_app_data.get('custom_domain', None)
         image_pull_secret = None
 
-        command = command.split() if command else None
+        command = command_string.split() if command_string else None
 
         project = Project.get_by_id(project_id)
 
@@ -475,20 +544,6 @@ class ProjectAppsView(Resource):
         if not cluster:
             return dict(status='fail', message="Invalid Cluster"), 500
 
-        # check if app already exists
-        app = App.find_first(**{'name': app_name})
-
-        if app:
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=f'App {app_name} already exists',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return dict(
-                status='fail',
-                message=f'App {app_name} already exists'
-            ), 409
-
         kube_host = cluster.host
         kube_token = cluster.token
         service_host = urlsplit(kube_host).hostname
@@ -503,7 +558,10 @@ class ProjectAppsView(Resource):
                 image=app_image,
                 project_id=project_id,
                 alias=app_alias,
-                port=app_port
+                port=app_port,
+                command=command_string,
+                replicas=replicas,
+                private_image=private_repo
             )
 
             if private_repo:
@@ -707,15 +765,16 @@ class ProjectAppsView(Resource):
                     name=ingress_name
                 )
 
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
+                ingress_spec = {
+                    'rules': [new_ingress_rule]
+                }
 
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
+                ingress_body = {
+                    "apiVersion": "networking.k8s.io/v1",
+                    "kind": "Ingress",
+                    "metadata": ingress_meta,
+                    "spec": ingress_spec
+                }
 
                 kube_client.networking_api.create_namespaced_ingress(
                     namespace=namespace,
@@ -797,7 +856,7 @@ class ProjectAppsView(Resource):
             current_user_roles = get_jwt_claims()['roles']
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
-            keywords = request.args.get('keywords' , '')
+            keywords = request.args.get('keywords', '')
             app_schema = AppSchema(many=True)
 
             project = Project.get_by_id(project_id)
@@ -825,8 +884,9 @@ class ProjectAppsView(Resource):
                 apps = paginated.items
                 apps_data, errors = app_schema.dumps(apps)
 
-            else :
-                paginated = App.query.filter(App.name.ilike('%'+keywords+'%') , App.project_id == project_id).paginate(page=page, per_page=per_page, error_out=False)
+            else:
+                paginated = App.query.filter(App.name.ilike('%'+keywords+'%'), App.project_id == project_id).order_by(
+                    App.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
                 pagination = {
                     'total': paginated.total,
                     'pages': paginated.pages,
@@ -844,13 +904,17 @@ class ProjectAppsView(Resource):
             apps_data_list = json.loads(apps_data)
             for app in apps_data_list:
                 try:
+                    # Dont check status of disabled apps
+                    if app['disabled']:
+                        app['app_running_status'] = "disabled"
+                        continue
                     app_status_object = \
                         kube_client.appsv1_api.read_namespaced_deployment_status(
                             app['alias'] + "-deployment", project.alias)
                     app_deployment_status_conditions = app_status_object.status.conditions
 
                     app_deployment_status = None
-                    if app_deployment_status_conditions: 
+                    if app_deployment_status_conditions:
                         for deplyoment_status_condition in app_deployment_status_conditions:
                             if deplyoment_status_condition.type == "Available":
                                 app_deployment_status = deplyoment_status_condition.status
@@ -986,7 +1050,10 @@ class AppDetailView(Resource):
 
             except client.rest.ApiException:
                 app_db_status = None
-            if app_deployment_status and not app_db_status:
+            if app.disabled:
+                # Dont check status of disabled apps
+                app_list['app_running_status'] = "disabled"
+            elif app_deployment_status and not app_db_status:
                 if app_deployment_status == "True":
                     app_list['app_running_status'] = "running"
                 else:
@@ -1035,6 +1102,10 @@ class AppDetailView(Resource):
                         data=dict(apps=app_list, revisions=revisions)), 200
 
         except client.rest.ApiException as exc:
+
+            if exc.status == 404:
+                return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
+
             return dict(status='fail', message=exc.reason), exc.status
 
         except Exception as exc:
@@ -1639,6 +1710,293 @@ class AppReviseView(Resource):
             return dict(status='fail', message=str(exc)), 500
 
 
+class AppRedeployView(Resource):
+    @jwt_required
+    def post(self, app_id):
+        """
+        Redeploy application
+        """
+        # TODO: handle private login
+        app_schema = AppSchema()
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(
+                    status="fail",
+                    message=f"App with id {app_id} not found"
+                ), 404
+
+            project = app.project
+
+            if not project:
+                # todo: recreate project
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                if not is_authorised_project_user(project, current_user_id, 'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+            new_app = create_user_app(
+                app,
+                app.alias,
+                app.image,
+                project,
+                command_string=app.command,
+                env_vars=None,
+                private_repo=app.private_image,
+                docker_server=None,
+                docker_username=None,
+                docker_password=None,
+                docker_email=None,
+                replicas=app.replicas if app.replicas else 1,
+                app_port=app.port
+            )
+            if type(new_app) == SimpleNamespace:
+                status_code = new_app.status_code if new_app.status_code else 500
+                return dict(status='fail', message=new_app.message), status_code
+
+            new_app_data, _ = app_schema.dump(new_app)
+            log_activity('App', status='Success',
+                         operation='Create',
+                         description='Redeployed app Successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_app_id=new_app.id)
+            return dict(status='success', data=dict(app=new_app_data)), 201
+        except Exception as e:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=str(e),
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         )
+            return dict(status='fail', message=str(e)), 500
+
+
+class AppDockerWebhookListenerView(Resource):
+    def post(self, app_id, user_id, tag):
+        """
+        Redeploy application from the Docker Hub webhook payload 
+        """
+        if not tag:
+            tag = 'latest'
+        payload = request.get_json()
+
+        repository = payload['repository']['repo_name']
+
+        app_image = f"{repository}:{tag}"
+        # Get User
+        user = User.get_by_id(user_id)
+        if not user:
+            logger.error(f"User with id {user_id} not found")
+            return dict(
+                status="fail",
+                message=f"User with id {user} not found"
+            ), 404
+
+        # Get application
+        app = App.get_by_id(app_id)
+        if not app:
+            logger.error(f"App with id {app_id} not found")
+            return dict(
+                status="fail",
+                message=f"App with id {app_id} not found"
+            ), 404
+
+        # Get project
+        project = app.project
+        if not project:
+            log_activity('App', status='Failed',
+                         operation='Auto Update',
+                         description=f'project for app {app_id} not found',
+                         a_app_id=app.id)
+
+            logger.error(
+                f"App update for app id {app_id} is doesnot have a project")
+            return dict(
+                status="fail",
+                message='Internal Server Error'
+            ), 500
+        user_roles = user.roles
+        current_user_roles = [{'name': role.name} for role in user_roles]
+
+        if not is_owner_or_admin(project, user_id, current_user_roles):
+            if not is_authorised_project_user(project, user_id, 'admin'):
+                return dict(status='fail', message='Unauthorised'), 403
+
+        if app.disabled or app.project.disabled:
+            logger.warning('app is disabled or project is disabled')
+            return dict(
+                status="fail",
+                message=f"App with id {app_id} is disabled"
+            ), 409
+
+        try:
+
+            cluster = project.cluster
+            namespace = project.alias
+
+            if not cluster or not namespace:
+                log_activity('App', status='Failed',
+                             operation='Auto Update',
+                             description=f'{app_image}: Cluster or namespace not found',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id,
+                             a_app_id=app.id)
+                logger.error('Cluster or namespace not found')
+                return dict(
+                    status='fail',
+                    message="Internal Server Error"
+                ), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            dep_name = f'{app.alias}-deployment'
+
+            cluster_deployment = kube_client.appsv1_api.read_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace
+            )
+            if app.private_image:
+                try:
+                    app_secret = kube_client.kube.read_namespaced_secret(
+                        namespace=namespace,
+                        name=app.alias
+                    )
+
+                except Exception as e:
+                    logger.exception('Exception occcured')
+                    if e.status != 404:
+                        log_activity('App', status='Failed',
+                                     operation='Auto Update',
+                                     description=f'{app_image}: Internal server error',
+                                     a_project_id=project.id,
+                                     a_cluster_id=project.cluster_id,
+                                     a_app_id=app.id)
+
+                cluster_deployment.spec.template.spec.image_pull_secrets.append(
+                    app_secret)
+
+            cluster_deployment.spec.template.spec.containers[0].image = app_image
+
+            # Update the application image
+            kube_client.appsv1_api.replace_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace,
+                body=cluster_deployment
+            )
+
+            # update the app in database
+            updated_app = App.update(app, image=app_image)
+
+            if not updated_app:
+                log_activity('App', status='Failed',
+                             operation='Auto Update',
+                             description=f'{app_image}: Internal server error',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id,
+                             a_app_id=app.id)
+                logger.error('Unable to update app in database')
+                return dict(
+                    status="fail",
+                    message="Internal Server Error"
+                ), 500
+
+            log_activity('App', status='Success',
+                         operation='Auto Update',
+                         description=f'{app_image}: App {app.id} updated successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_app_id=app.id)
+            return dict(
+                status='success',
+                message=f'Apps updated successfully'
+            ), 200
+
+        except Exception as e:
+            logger.exception('Exception occcured')
+            log_activity('App', status='Failed',
+                         operation='Auto Update',
+                         description=f'{app_image}: {str(e)}',
+                         )
+            return dict(status='fail', message=str(e)), 500
+
+
+class AppDisableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already disabled'), 409
+
+        # Disable app
+        disabled_app = disable_user_app(app, is_admin(current_user_roles))
+        if type(disabled_app) == SimpleNamespace:
+            status_code = disabled_app.status_code if disabled_app.status_code else 500
+            return dict(status='fail', message=disabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been disabled successfully'), 201
+
+
+class AppEnableView(Resource):
+    @jwt_required
+    def post(self, app_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        app = App.get_by_id(app_id)
+        if not app:
+            return dict(status='fail', message=f'App with id {app_id} not found'), 404
+
+        if not is_owner_or_admin(app.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(app.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if app.project.disabled:
+            return dict(status='fail', message=f'Apps project with id {app.project.id} is disabled, please enable it first'), 409
+
+        if not app.disabled:
+            return dict(status='fail', message=f'App with id {app_id} is already enabled'), 409
+
+        # Prevent users from enabling admin disabled apps
+        if app.admin_disabled and not is_admin(current_user_roles):
+            return dict(status='fail', message=f'You are not authorised to disable App with id {app_id}, please contact an admin'), 403
+
+        # Enable app
+        enabled_app = enable_user_app(app)
+        if type(enabled_app) == SimpleNamespace:
+            status_code = enabled_app.status_code if enabled_app.status_code else 500
+            return dict(status='fail', message=enabled_app.message), status_code
+
+        return dict(status='success', message=f'App has been enabled successfully'), 201
+
+
 class AppMemoryUsageView(Resource):
 
     @jwt_required
@@ -2038,33 +2396,3 @@ class AppStorageUsageView(Resource):
 
         return dict(status='success',
                     data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
-
-
-class AppDataSummaryView(Resource):
-
-    @admin_required
-    def post(self):
-        """
-        Aggregate apps per month or year
-        """
-        app_filter_data = request.get_json()
-        filter_schema = AppGraphSchema()
-
-        validated_query_data, errors = filter_schema.load(app_filter_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        start = validated_query_data.get('start', '2018-01-01')
-        end = validated_query_data.get('end', datetime.datetime.now())
-        set_by = validated_query_data.get('set_by', 'month')
-        total_apps = len(App.find_all())
-
-        app_info = App.graph_data(start=start, end=end, set_by=set_by)
-
-        return dict(
-            status='success',
-            data=dict(
-                metadata=dict(total_apps=total_apps),
-                graph_data=app_info)
-        ), 200

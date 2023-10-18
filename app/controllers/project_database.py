@@ -1,5 +1,8 @@
+from datetime import datetime
 import json
 import os
+from types import SimpleNamespace
+from app.schemas.monitoring_metrics import UserGraphSchema
 from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
@@ -8,9 +11,12 @@ from app.helpers.database_service import MysqlDbService, PostgresqlDbService, ge
 from app.models.project import Project
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.decorators import admin_required
-from app.helpers.db_flavor import get_db_flavour, database_flavours
-from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
+from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour, database_flavours
+from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.activity_logger import log_activity
+from sqlalchemy import Date, func, column, cast, and_, select
+
+from app.models import db
 
 
 class ProjectDatabaseView(Resource):
@@ -165,7 +171,7 @@ class ProjectDatabaseView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
-        page = request.args.get('page', 1,type=int)
+        page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
 
         database_schema = ProjectDatabaseSchema(many=True)
@@ -178,7 +184,8 @@ class ProjectDatabaseView(Resource):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
-        databases = ProjectDatabase.find_all(project_id=project_id, paginate=True, page=page, per_page=per_page)
+        databases = ProjectDatabase.find_all(
+            project_id=project_id, paginate=True, page=page, per_page=per_page)
 
         database_data, errors = database_schema.dumps(databases.items)
 
@@ -217,7 +224,7 @@ class ProjectDatabaseView(Resource):
 
             database['db_status'] = db_status
 
-        return dict(status='success', data=dict(pagination=pagination,databases=database_data_list)), 200
+        return dict(status='success', data=dict(pagination=pagination, databases=database_data_list)), 200
 
 
 class ProjectDatabaseDetailView(Resource):
@@ -649,10 +656,34 @@ class ProjectDatabaseAdminView(Resource):
         """
         database_schema = ProjectDatabaseSchema(many=True)
 
-        page = request.args.get('page', 1,type=int)
+        page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
+        flavour = request.args.get('db_flavour', None)
+        if flavour:
+            valid_flavour = get_db_flavour(flavour)
+            if not valid_flavour:
+                return dict(status='fail', message='Not a valid database flavour use mysql or postgres'), 401
+            databases = ProjectDatabase.find_all(
+                database_flavour_name=flavour, paginate=True, page=page, per_page=per_page)
+        else:
+            databases = ProjectDatabase.find_all(
+                paginate=True, page=page, per_page=per_page)
 
-        databases = ProjectDatabase.find_all(paginate=True, page=page, per_page=per_page)
+        pagination = databases.pagination
+
+        # Metadata
+        metadata = dict()
+        query = ProjectDatabase.query
+        metadata['total'] = query.count()
+        metadata['postgres_total'] = query.filter_by(
+            database_flavour_name='postgres').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        db_user = ProjectDatabase.user
+        metadata['users_number'] = query.with_entities(
+            db_user, func.count(db_user)).group_by(db_user).distinct().count()
 
         database_data, errors = database_schema.dumps(databases.items)
 
@@ -662,7 +693,88 @@ class ProjectDatabaseAdminView(Resource):
         database_data_list = json.loads(database_data)
         pagination = databases.pagination
 
-        return dict(status='success', data=dict(pagination=pagination,databases=database_data_list)), 200
+        return dict(status='success',  data=dict(metadata=metadata, pagination=pagination, databases=database_data_list)), 200
+
+
+class ProjectDatabaseGraphAdminView(Resource):
+
+    @admin_required
+    def get(self):
+        """
+        Shows databases graph data
+        """
+        graph_filter_data = {
+            'start': request.args.get('start', '2018-01-01'),
+            'end': request.args.get('end', datetime.now().strftime('%Y-%m-%d')),
+            'set_by': request.args.get('set_by', 'month')
+        }
+        flavour = request.args.get('db_flavour', None)
+        if flavour:
+            valid_flavour = get_db_flavour(flavour)
+            if not valid_flavour:
+                return dict(status='fail', message='Not a valid database flavour use mysql or postgres'), 401
+
+        filter_schema = UserGraphSchema()
+
+        validated_query_data, errors = filter_schema.load(graph_filter_data)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        start = validated_query_data.get('start')
+        end = validated_query_data.get('end')
+        set_by = validated_query_data.get('set_by')
+
+        if set_by == 'month':
+            date_list = func.generate_series(
+                start, end, '1 month').alias('month')
+            month = column('month')
+            query = db.session.query(month, func.count(ProjectDatabase.id)).\
+                select_from(date_list).\
+                outerjoin(ProjectDatabase, func.date_trunc(
+                    'month', ProjectDatabase.date_created) == month)
+            if flavour:
+                query = query.filter(
+                    ProjectDatabase.database_flavour_name == flavour)
+
+            db_data = query.group_by(month).order_by(month).all()
+
+        else:
+            date_list = func.generate_series(
+                start, end, '1 year').alias('year')
+            year = column('year')
+            query = db.session.query(year, func.count(ProjectDatabase.id)).\
+                select_from(date_list).\
+                outerjoin(ProjectDatabase, func.date_trunc(
+                    'year', ProjectDatabase.date_created) == year)
+
+            if flavour:
+                query = query.filter(
+                    ProjectDatabase.database_flavour_name == flavour)
+
+            db_data = query.group_by(year).order_by(year).all()
+
+        db_info = []
+        for item in db_data:
+            item_dict = {
+                'year': item[0].year, 'month': item[0].month, 'value': item[1]
+            }
+            db_info.append(item_dict)
+
+        # Metadata
+        metadata = dict()
+        query = ProjectDatabase.query
+        metadata['total'] = query.count()
+        metadata['postgres_total'] = query.filter_by(
+            database_flavour_name='postgres').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        metadata['mysql_total'] = query.filter_by(
+            database_flavour_name='mysql').count()
+        db_user = ProjectDatabase.user
+        metadata['users_number'] = query.with_entities(
+            db_user, func.count(db_user)).group_by(db_user).distinct().count()
+
+        return dict(status='success',  data=dict(metadata=metadata, graph_data=db_info)), 200
 
 
 class ProjectDatabaseAdminDetailView(Resource):
@@ -1017,11 +1129,11 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
                          a_db_id=database_id)
             return dict(status='fail', message='internal server error'), 500
         log_activity('Database', status='Success',
-                         operation='Update',
-                         description='Database password reset Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
-                         a_db_id=database_id)
+                     operation='Update',
+                     description='Database password reset Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_db_id=database_id)
         return dict(status='success', message="Database password reset Successfully"), 200
 
 
@@ -1073,3 +1185,71 @@ class DatabaseStatsView(Resource):
 
         return dict(status='Success',
                     data=dict(databases=data)), 200
+
+
+class ProjectDatabaseDisableView(Resource):
+    @jwt_required
+    def post(self, database_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        database = ProjectDatabase.get_by_id(database_id)
+        if not database:
+            return dict(status='fail', message=f'Database with id {database_id} not found'), 404
+
+        if not is_owner_or_admin(database.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(database.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if database.disabled:
+            return dict(status='fail', message=f'Database with id {database_id} is already disabled'), 409
+
+        diabled_database = disable_database(
+            database, is_admin(current_user_roles))
+        if type(diabled_database) == SimpleNamespace:
+            status_code = diabled_database.status_code if diabled_database.status_code else 500
+            return dict(status='fail', message=diabled_database.message), status_code
+
+        return dict(
+            status='success',
+            message=f'database {database_id} disabled successfully'
+        ), 201
+
+
+class ProjectDatabaseEnableView(Resource):
+    @jwt_required
+    def post(self, database_id):
+
+        # check credentials
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        database = ProjectDatabase.get_by_id(database_id)
+        if not database:
+            return dict(status='fail', message=f'Project with id {database_id} not found'), 404
+
+        if not is_owner_or_admin(database.project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(database.project, current_user_id, 'admin'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        if database.project.disabled:
+            return dict(status='fail', message=f'Databases project with id {database.project.id} is disabled, please enable it first'), 409
+
+        if not database.disabled:
+            return dict(status='fail', message=f'Project with id {database_id} is already enabled'), 409
+
+        # Prevent users from enabling admin disabled apps
+        if database.admin_disabled and not is_admin(current_user_roles):
+            return dict(status='fail', message=f'You are not authorised to disable Database with id {database_id}, please contact an admin'), 403
+
+        enabled_database = enable_database(database)
+        if type(enabled_database) == SimpleNamespace:
+            status_code = enabled_database.status_code if enabled_database.status_code else 500
+            return dict(status='fail', message=enabled_database.message), status_code
+
+        return dict(
+            status='success',
+            message=f'database {database_id} enabled successfully'
+        ), 201

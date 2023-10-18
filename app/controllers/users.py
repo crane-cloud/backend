@@ -1,20 +1,25 @@
 import json
+from math import ceil
 import os
-from flask import current_app
+from types import SimpleNamespace
+from app.helpers.activity_logger import log_activity
+from app.helpers.kube import disable_project, enable_project
+from flask import current_app, render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
+from app.helpers.email import send_email
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
 import requests
 import secrets
 import string
-from sqlalchemy import func, column
+from sqlalchemy import Date, func, column, cast, and_, select
 from app.models import db
-from datetime import date, datetime
+from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
@@ -24,6 +29,8 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.project_database import ProjectDatabase
 from app.models.app import App
+from app.helpers.crane_app_logger import logger
+
 
 class UsersView(Resource):
 
@@ -117,18 +124,69 @@ class UsersView(Resource):
     def get(self):
         """
         """
-
         user_schema = UserSchema(many=True)
-        page = request.args.get('page', 1,type=int)
+        page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        keywords = request.args.get('keywords' , '')
+        keywords = request.args.get('keywords', '')
+        verified = request.args.get('verified', None)
+        is_beta = request.args.get('is_beta', None)
+        total_users = len(User.find_all())
+
+        users = []
+
+        meta_data = dict()
+        meta_data['total_users'] = total_users
+        meta_data['beta_users'] = User.query.filter_by(
+            is_beta_user=True).count()
+        meta_data['none_verified'] = User.query.filter_by(
+            verified=False).count()
+        meta_data['disabled'] = User.query.filter_by(
+            disabled=True).count()
 
         if (keywords == ''):
-            paginated = User.find_all(paginate=True, page=page, per_page=per_page)
-            users = paginated.items
-            pagination = paginated.pagination
-        else :
-            paginated = User.query.filter(User.name.ilike('%'+keywords+'%')).paginate(page=page, per_page=per_page, error_out=False)
+            if (verified != None or is_beta != None):
+                if (verified != None and is_beta != None):
+                    paginated = User.query.filter(User.verified == verified, User.is_beta_user == is_beta).order_by(
+                        User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                else:
+                    if (verified != None):
+                        paginated = User.query.filter(User.verified == verified).order_by(
+                            User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                    else:
+                        paginated = User.query.filter(User.is_beta_user == is_beta).order_by(
+                            User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+                users = paginated.items
+                pagination = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
+
+            else:
+                paginated = User.find_all(
+                    paginate=True, page=page, per_page=per_page)
+                users = paginated.items
+                pagination = paginated.pagination
+        else:
+            if (verified != None or is_beta != None):
+                if (verified != None and is_beta != None):
+                    paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')), User.verified == verified,
+                                                  User.is_beta_user == is_beta).order_by(User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                else:
+                    if (verified != None):
+                        paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')), User.verified == verified).order_by(
+                            User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+                    else:
+                        paginated = User.query.filter((User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')), User.is_beta_user == is_beta).order_by(
+                            User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+            else:
+                paginated = User.query.filter(User.name.ilike('%'+keywords+'%') | User.email.ilike('%'+keywords+'%')).order_by(
+                    User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
             users = paginated.items
             pagination = {
                 'total': paginated.total,
@@ -137,7 +195,7 @@ class UsersView(Resource):
                 'per_page': paginated.per_page,
                 'next': paginated.next_num,
                 'prev': paginated.prev_num
-            } 
+            }
 
         users_data, errors = user_schema.dumps(users)
 
@@ -146,7 +204,8 @@ class UsersView(Resource):
 
         return dict(
             status='success',
-            data=dict(pagination=pagination, users=json.loads(users_data))
+            data=dict(meta_data=meta_data, pagination=pagination,
+                      users=json.loads(users_data))
         ), 200
 
 
@@ -214,18 +273,21 @@ class UserLoginView(Resource):
         if not user:
             return dict(status='fail', message="login failed"), 401
 
+        if user.disabled:
+            return dict(
+                status='fail',
+                message=f'User with id {user.id} is disabled, please contact an admin'
+            ), 401
+
         if not user.verified:
             return dict(
                 status='fail',
                 message='email not verified', data=dict(verified=user.verified)
             ), 401
 
-        #Updating user's last login
+        # Updating user's last login
         user.last_seen = datetime.now()
-        updated_user = user.save()
-
-        if not updated_user:
-            return dict(status='fail', message='Internal Server Error(Cannot update last login time)'), 500
+        user.save()
 
         user_dict, errors = token_schema.dump(user)
         if user and user.password_is_valid(password):
@@ -233,6 +295,7 @@ class UserLoginView(Resource):
             access_token = user.generate_token(user_dict)
 
             if not access_token:
+                logger.error('Unable to generate access token')
                 return dict(
                     status="fail",
                     message="Internal Server Error"
@@ -270,11 +333,18 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
+        new_user_data = json.loads(user_data)
+        new_user_data['projects_count'] = len(user.projects)
+        new_user_data['apps_count'] = sum(
+            len(project.apps) for project in user.projects)
+        new_user_data['database_count'] = sum(
+            len(project.project_databases) for project in user.projects)
+
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            user=json.loads(user_data))), 200
+            user=new_user_data)), 200
 
     def delete(self, user_id):
         """
@@ -739,11 +809,38 @@ class ResetPasswordView(Resource):
 class UserDataSummaryView(Resource):
 
     @admin_required
-    def post(self):
+    def get(self):
         """
         Shows new users per month or year
         """
-        user_filter_data = request.get_json()
+        user_filter_data = {
+            'start': request.args.get('start', None),
+            'end': request.args.get('end', None),
+            'set_by': request.args.get('set_by', None)
+        }
+
+        verified = request.args.get('verified', None)
+        is_beta = request.args.get('is_beta', None)
+        total_users = len(User.find_all())
+
+        meta_data = {'total_users': total_users}
+        beta_count = User.query.with_entities(User.is_beta_user, func.count(
+            User.is_beta_user)).group_by(User.is_beta_user).all()
+        verified_count = User.query.with_entities(
+            User.verified, func.count(User.verified)).group_by(User.verified).all()
+        meta_data['is_beta_user'] = 0
+        meta_data['verified'] = 0
+
+        for key, value in beta_count:
+            if key:
+                meta_data['is_beta_user'] = value
+                break
+
+        for key, value in verified_count:
+            if key:
+                meta_data['verified'] = value
+                break
+
         filter_schema = UserGraphSchema()
 
         validated_query_data, errors = filter_schema.load(user_filter_data)
@@ -754,32 +851,65 @@ class UserDataSummaryView(Resource):
         start = validated_query_data.get('start', '2018-01-01')
         end = validated_query_data.get('end', datetime.now())
         set_by = validated_query_data.get('set_by', 'month')
-        total_users = len(User.find_all())
+
         if set_by == 'month':
             date_list = func.generate_series(
                 start, end, '1 month').alias('month')
             month = column('month')
+            if (verified != None or is_beta != None):
+                if (verified != None):
+                    user_data = db.session.query(month, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('month', User.date_created) == month, User.verified == verified)).\
+                        group_by(month).\
+                        order_by(month).\
+                        all()
+                else:
+                    user_data = db.session.query(month, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('month', User.date_created) == month, User.is_beta_user == is_beta)).\
+                        group_by(month).\
+                        order_by(month).\
+                        all()
 
-            user_data = db.session.query(month, func.count(User.id)).\
-                select_from(date_list).\
-                outerjoin(User, func.date_trunc('month', User.date_created) == month).\
-                group_by(month).\
-                order_by(month).\
-                all()
+            else:
+                user_data = db.session.query(month, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, func.date_trunc('month', User.date_created) == month).\
+                    group_by(month).\
+                    order_by(month).\
+                    all()
 
         else:
             date_list = func.generate_series(
                 start, end, '1 year').alias('year')
             year = column('year')
 
-            user_data = db.session.query(year, func.count(User.id)).\
-                select_from(date_list).\
-                outerjoin(User, func.date_trunc('year', User.date_created) == year).\
-                group_by(year).\
-                order_by(year).\
-                all()
+            if (verified != None or is_beta != None):
+                if (verified != None):
+                    user_data = db.session.query(year, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('year', User.date_created) == year, User.verified == verified)).\
+                        group_by(year).\
+                        order_by(year).\
+                        all()
+                else:
+                    user_data = db.session.query(year, func.count(User.id)).\
+                        select_from(date_list).\
+                        outerjoin(User, and_(func.date_trunc('year', User.date_created) == year, User.is_beta_user == is_beta)).\
+                        group_by(year).\
+                        order_by(year).\
+                        all()
+            else:
+                user_data = db.session.query(year, func.count(User.id)).\
+                    select_from(date_list).\
+                    outerjoin(User, func.date_trunc('year', User.date_created) == year).\
+                    group_by(year).\
+                    order_by(year).\
+                    all()
 
         user_info = []
+
         for item in user_data:
             item_dict = {
                 'year': item[0].year, 'month': item[0].month, 'value': item[1]
@@ -788,7 +918,7 @@ class UserDataSummaryView(Resource):
         return dict(
             status='success',
             data=dict(
-                metadata=dict(total_users=total_users),
+                metadata=meta_data,
                 graph_data=user_info)
         ), 200
 
@@ -866,8 +996,8 @@ class UserActivitesView(Resource):
             if validated_data_query.get('start') and validated_data_query.get('end'):
 
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                datetime.min.time()).isoformat(' '),
-                "$lte": datetime.combine(validated_data_query.get('end'), datetime.max.time()).isoformat(' ')}
+                                                                                  datetime.min.time()).isoformat(' '),
+                                                         "$lte": datetime.combine(validated_data_query.get('end'), datetime.max.time()).isoformat(' ')}
                 validated_data_query.pop('start', None)
                 validated_data_query.pop('end', None)
 
@@ -893,3 +1023,210 @@ class UserActivitesView(Resource):
             ), 200
         except Exception as err:
             return dict(status='fail', message=str(err)), 400
+
+
+class InActiveUsersView(Resource):
+    computed_results = {}  # Dictionary to cache computed results
+    current_date = None  # Variable to track the current date
+
+    @admin_required
+    def get(self):
+        user_schema = UserSchema(many=True)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        start_date = request.args.get("start")
+        end_date = request.args.get("end")
+        created_date = request.args.get("created")
+        range = request.args.get("range", 0, type=int)
+        today = datetime.now().date()
+        keywords = request.args.get('keywords', None)
+
+        if (start_date is not None and end_date is not None):
+            if range:
+                return dict(status='fail', message="Either pass `range` or `start` and `end` but not all the three."), 400
+            try:
+                # Standardize the date format
+                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                # Standardize the date format
+                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            except ValueError:
+                return dict(status='fail', message="Invalid date format"), 400
+
+        elif range:
+            start_date = today
+            end_date = today - timedelta(days=range)
+
+        else:
+            return dict(status='fail', message="Missing required parameters"), 400
+
+        if start_date > today:
+            return dict(status='fail', message="Entered date cannot be in the future"), 400
+
+        if end_date > start_date:
+            return dict(status='fail', message="Invalid date range: The start date must be earlier than the end date"), 400
+
+        # Clear computed results for the each new day
+        if self.current_date != today:
+            self.current_date = today
+            self.computed_results = {}
+
+        date_range = (start_date, end_date, created_date)
+
+        if date_range in self.computed_results:
+            returned_users = self.computed_results[date_range]
+
+        else:
+
+            query = User.query.filter(
+                cast(User.last_seen, Date) <= start_date,
+                cast(User.last_seen, Date) >= end_date,
+                User.verified == True
+            )
+
+            if keywords:
+                keyword_filter = (User.name.ilike(
+                    '%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
+                query = query.filter(keyword_filter)
+
+            if created_date:
+                date_created_filter = (
+                    cast(User.date_created, Date) <= today,
+                    cast(User.date_created, Date) >= created_date
+                )
+                query = query.filter(date_created_filter)
+            returned_users = query
+            self.computed_results[date_range] = returned_users
+
+        paginated = returned_users.paginate(
+            page=page, per_page=per_page, error_out=False)
+        users = paginated.items
+        pagination = {
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'page': paginated.page,
+            'per_page': paginated.per_page,
+            'next': paginated.next_num,
+            'prev': paginated.prev_num
+        }
+
+        users_data, errors = user_schema.dumps(users)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(pagination=pagination, users=json.loads(users_data))
+        ), 200
+
+
+class UserDisableView(Resource):
+    @admin_required
+    def post(self, user_id):
+
+        user = User.get_by_id(user_id)
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if user.disabled:
+            return dict(status='fail', message=f'User with id {user_id} is already disabled'), 409
+
+        for project in user.projects:
+            if not project.disabled:
+                disabled_project = disable_project(project)
+                if type(disabled_project) == SimpleNamespace:
+                    status_code = disabled_project.status_code if disabled_project.status_code else 500
+                    return dict(status='fail', message=disabled_project.message), status_code
+
+        try:
+            # save user
+            user.disabled = True
+            user.save()
+            log_activity('User', status='Success',
+                         operation='Disable',
+                         description='Disabled user Successfully',
+                         a_user_id=user.id
+                         )
+            # send email
+            html_layout = render_template(
+                'user/user_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                status='disabled')
+            send_email(
+                user.email,
+                'Status of your account',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
+
+            return dict(
+                status='success',
+                message=f'user {user_id} disabled successfully'
+            ), 200
+        except Exception as err:
+            log_activity('User', status='Failed',
+                         operation='Disable',
+                         description=err.body,
+                         a_user_id=user.id
+                         )
+            return dict(
+                status='fail',
+                message=str(err)
+            ), 500
+
+
+class UserEnableView(Resource):
+    @jwt_required
+    def post(self, user_id):
+
+        user = User.get_by_id(user_id)
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if not user.disabled:
+            return dict(status='fail', message=f'User with id {user_id} is not disabled'), 409
+
+        for project in user.projects:
+            if project.disabled:
+                enabled_project = enable_project(project)
+                if type(enabled_project) == SimpleNamespace:
+                    status_code = enabled_project.status_code if enabled_project.status_code else 500
+                    return dict(status='fail', message=enabled_project.message), status_code
+        try:
+            # save user
+            user.disabled = False
+            user.save()
+            log_activity('User', status='Success',
+                         operation='Enable',
+                         description='Enabled user Successfully',
+                         a_user_id=user.id
+                         )
+            html_layout = render_template(
+                'user/user_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                status='enabled')
+            send_email(
+                user.email,
+                'Status of your account',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
+            return dict(
+                status='success',
+                message=f'user {user_id} Enabled successfully'
+            ), 200
+
+        except Exception as err:
+            log_activity('User', status='Failed',
+                         operation='Enable',
+                         description=err.body,
+                         a_user_id=user.id
+                         )
+            return dict(
+                status='fail',
+                message=str(err)
+            ), 500

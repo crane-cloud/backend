@@ -43,7 +43,8 @@ class ProjectDatabaseSchema(Schema):
     date_created = fields.Date(dump_only=True)
     port = fields.Int()
     age = fields.Method("get_age", dump_only=True)
-    disabled = fields.Boolean()
+    disabled = fields.Boolean(dump_only=True)
+    admin_disabled = fields.Boolean(dump_only=True)
     
     
 

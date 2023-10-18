@@ -103,7 +103,7 @@ class ModelMixin(db.Model):
         try:
             if paginate:
                 result = cls.query.filter_by(
-                    **kwargs).paginate(page=page, per_page=per_page, error_out=False)
+                    **kwargs).order_by(cls.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
                 pagination = {
                     'total': result.total,
                     'pages': result.pages,

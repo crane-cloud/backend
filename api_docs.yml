@@ -5,9 +5,10 @@ paths:
   "/users":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Create a new user account"
       parameters:
         - in: body
           name: user
@@ -17,12 +18,15 @@ paths:
               - email
               - name
               - password
+              - organisation
             properties:
               email:
                 type: string
               name:
                 type: string
               password:
+                type: string
+              organisation:
                 type: string
       produces:
         - application/json
@@ -56,6 +60,15 @@ paths:
           name: per_page
           type: integer
           description: Number of items per page
+        - in: query
+          name: verified
+          type: boolean
+          description: Either True or False.
+        - in: query
+          name: is_beta
+          type: boolean
+          description: Either True or False.e
+
       produces:
         - application/json
       responses:
@@ -66,8 +79,8 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/users/summary":
-    post:
+  "/users/graph":
+    get:
       tags:
         - users
       consumes:
@@ -77,17 +90,30 @@ paths:
           name: Authorization
           required: true
           description: "Bearer [token]"
-        - in: body
-          name: user
-          schema:
-            type: object
-            properties:
-              start:
-                type: string
-              end:
-                type: string
-              set_by:
-                type: string
+        - in: query
+          name: start
+          required: true
+          type: string
+          description: Start date
+        - in: query
+          name: end
+          required: true
+          type: string
+          description: End date
+        - in: query
+          name: set_by
+          required: true
+          type: string
+          description: Either month or year
+        - in: query
+          name: verified
+          type: boolean
+          description: Either True of False.
+        - in: query
+          name: is_beta
+          type: boolean
+          description: Either True of False.
+
       produces:
         - application/json
       responses:
@@ -212,9 +238,10 @@ paths:
   "/users/login":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login as normal user"
       parameters:
         - in: body
           name: user
@@ -241,9 +268,10 @@ paths:
   "/users/admin_login":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login as an admin"
       parameters:
         - in: body
           name: user
@@ -271,9 +299,9 @@ paths:
     post:
       tags:
         - auth
-        - users
       consumes:
         - application/json
+      description: "Get verification token after creating an account"
       parameters:
         - in: body
           name: email
@@ -300,9 +328,9 @@ paths:
     get:
       tags:
         - auth
-        - users
       consumes:
         - application/json
+      description: "Verify token after creating an account"
       parameters:
         - in: path
           name: token
@@ -321,7 +349,6 @@ paths:
   "/users/forgot_password":
     post:
       tags:
-        - users
         - auth
       consumes:
         - application/json
@@ -350,7 +377,6 @@ paths:
   "/users/reset_password/{token}":
     post:
       tags:
-        - users
         - auth
       consumes:
         - application/json
@@ -410,9 +436,10 @@ paths:
   "/users/oauth":
     post:
       tags:
-        - users
+        - auth
       consumes:
         - application/json
+      description: "Login with github oauth"
       parameters:
         - in: body
           name: git code
@@ -491,6 +518,126 @@ paths:
       responses:
         200:
           description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/inactive_users":
+    get:
+      tags:
+        - users
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: query
+          name: range
+          schema:
+            type: string
+          description: >
+            A relative date range for inactive users, such as `last 14 days`.
+            For an exact range, use `start` and `end` instead.
+        - in: query
+          name: start
+          schema:
+            type: string
+            format: date
+          description: >
+            The start date for inactive users. Must be used together with `end`.
+            This parameter is incompatible with `range`.
+        - in: query
+          name: end
+          schema:
+            type: string
+            format: date
+          description: >
+            The end date for inactive users. Must be used together with `start`.
+            This parameter is incompatible with `range`.
+        - in: query
+          name: created
+          schema:
+            type: string
+            format: date
+          description: >
+            The created date for inactive users from the `current date`.
+            This parameter is `optional`.
+        - in: query
+          name: keywords
+          type: string
+          description: Enter the keywords if searching by either email or name
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/{user_id}/disable":
+    post:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully disabled user"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/{user_id}/enable":
+    post:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully enabled user"
+        404:
+          description: "User not found"
         400:
           description: "Bad request"
         500:
@@ -2177,7 +2324,7 @@ paths:
         - in: query
           name: keywords
           type: string
-          description: Enter keywords if searching 
+          description: Enter keywords if searching
         - in: query
           name: page
           type: integer
@@ -2186,6 +2333,14 @@ paths:
           name: per_page
           type: integer
           description: Number of items per page
+        - in: query
+          name: disabled
+          type: string
+          description: Shows whether or not the project is disabled. Takes either True or False value.
+        - in: query
+          name: project_type
+          type: string
+          description: Shows the type of project. Corresponds to the predifined types like Research, Student, Personal, Commercial or Other.
       responses:
         200:
           description: "Success"
@@ -2371,7 +2526,7 @@ paths:
         - in: query
           name: keywords
           type: string
-          description: Enter keywords if searching 
+          description: Enter keywords if searching
         - in: query
           name: page
           type: integer
@@ -2688,62 +2843,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/projects/{project_id}/admin_disable":
-    post:
-      tags:
-        - projects
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-      responses:
-        200:
-          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
-        404:
-          description: "Project not found"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/projects/{project_id}/admin_enable":
-    post:
-      tags:
-        - projects
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-      responses:
-        200:
-          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
-        404:
-          description: "Project not found"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
   "/projects/{project_id}/databases":
     post:
       tags:
@@ -3004,6 +3103,8 @@ paths:
                 type: string
               role:
                 type: string
+              resend:
+                type: string
       produces:
         - application/json
       responses:
@@ -3234,6 +3335,10 @@ paths:
           description: "Bearer [token]"
           type: string
         - in: query
+          name: db_flavour
+          type: string
+          description: Database flavour either mysql or postgres
+        - in: query
           name: page
           type: integer
           description: Page number
@@ -3265,6 +3370,46 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        404:
+          description: "Database stats not found"
+        500:
+          description: "Internal Server Error"
+
+  "/databases/graph":
+    get:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: query
+          name: start
+          type: string
+          description: Start date format(YYYY-MM-DD)
+        - in: query
+          name: end
+          type: string
+          description: End date format(YYYY-MM-DD)
+        - in: query
+          name: set_by
+          type: string
+          description: Either month or year
+        - in: query
+          name: db_flavour
+          type: string
+          description: Database flavour either mysql or postgres
       produces:
         - application/json
       responses:
@@ -3418,6 +3563,62 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/databases/{database_id}/disable":
+    post:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: database_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully disabled Project Database"
+        404:
+          description: "Project database not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/databases/{database_id}/enable":
+    post:
+      tags:
+        - databases
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: database_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Successfully enabled Project Database"
+        404:
+          description: "Project database not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/apps":
     post:
       tags:
@@ -3476,8 +3677,7 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/apps/summary":
-    post:
+    get:
       tags:
         - apps
       consumes:
@@ -3487,17 +3687,31 @@ paths:
           name: Authorization
           required: true
           description: "Bearer [token]"
-        - in: body
-          name: app
-          schema:
-            type: object
-            properties:
-              start:
-                type: string
-              end:
-                type: string
-              set_by:
-                type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+        - in: query
+          name: series
+          type: boolean
+          description: Returns graph data when set to true
+        - in: query
+          name: start
+          type: string
+          description: Start date format (YYYY-MM-DD)
+        - in: query
+          name: end
+          type: string
+          description: End date format (YYYY-MM-DD)
+        - in: query
+          name: set_by
+          type: string
+          description: Either month or year
+
       produces:
         - application/json
       responses:
@@ -3665,7 +3879,123 @@ paths:
           type: string
 
       responses:
-        200:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/redeploy":
+    post:
+      description: "redeploys app that doesnt exist on the cluster"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/{user_id}/docker/{tag}/webhook":
+    post:
+      description: "redeploys apps by getting webhook notifiations from docker"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+        - in: path
+          name: tag
+          required: true
+          type: string
+          
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/disable":
+    post:
+      description: "Disables application"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/apps/{app_id}/enable":
+    post:
+      description: "Enables application"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
           description: "Success"
         404:
           description: "App not found"
@@ -3840,20 +4170,22 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/system_status":
+  "/system_summary":
     get:
       tags:
         - system
       consumes:
         - application/json
-      produces:
-        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
 
       responses:
         200:
-          description: "Returns status of the system"
-        404:
-          description: "System status not found"
+          description: "Success"
         400:
           description: "Bad request"
         500:

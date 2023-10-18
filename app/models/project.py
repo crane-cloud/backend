@@ -1,10 +1,9 @@
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import relationship
-from app.models import billing_invoice, db
+from app.models import db
 from app.models.model_mixin import ModelMixin, SoftDeleteQuery
-from app.models.project_users import ProjectUser
-from app.models.anonymous_users import AnonymousUser
+
 
 
 class Project(ModelMixin):

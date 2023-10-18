@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,
     RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -14,14 +14,14 @@ from app.controllers import (
     AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView, AppDataSummaryView,
-    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView, BillingInvoiceView, BillingInvoiceNotificationView,
-    SystemStatusView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView, ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView,ProjectAdminDisableView,ProjectAdminEnableView)
+    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
+    UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
+    BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
+    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectDatabaseDisableView, ProjectDatabaseEnableView,
+    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView)
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
-
 
 api = Api()
 
@@ -38,9 +38,14 @@ api.add_resource(ForgotPasswordView, '/users/forgot_password')
 api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
-api.add_resource(UserDataSummaryView, '/users/summary')
+api.add_resource(UserDataSummaryView, '/users/graph')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(UserActivitesView, '/users/activities')
+api.add_resource(InActiveUsersView, '/users/inactive_users',
+                 endpoint='inactive_users')
+
+api.add_resource(UserEnableView, '/users/<string:user_id>/enable')
+api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
 
 
 # Deployments
@@ -148,10 +153,6 @@ api.add_resource(ProjectDisableView,
                  '/projects/<string:project_id>/disable')
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
-api.add_resource(ProjectAdminDisableView,
-                 '/projects/<string:project_id>/admin_disable')
-api.add_resource(ProjectAdminEnableView,
-                 '/projects/<string:project_id>/admin_enable')
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 
@@ -162,6 +163,14 @@ api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
 api.add_resource(
     AppReviseView, '/apps/<string:app_id>/revise/<string:revision_id>')
 api.add_resource(
+    AppRedeployView, '/apps/<string:app_id>/redeploy')
+api.add_resource(
+    AppDisableView, '/apps/<string:app_id>/disable')
+api.add_resource(
+    AppEnableView, '/apps/<string:app_id>/enable')
+api.add_resource(
+    AppDockerWebhookListenerView, '/apps/<string:app_id>/<string:user_id>/docker/<string:tag>/webhook')
+api.add_resource(
     AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
 api.add_resource(AppMemoryUsageView,
                  '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
@@ -171,7 +180,6 @@ api.add_resource(
     AppLogsView, '/projects/<string:project_id>/apps/<string:app_id>/logs')
 api.add_resource(AppStorageUsageView,
                  '/projects/<string:project_id>/apps/<string:app_id>/metrics/storage')
-api.add_resource(AppDataSummaryView, '/apps/summary')
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
@@ -182,6 +190,7 @@ api.add_resource(ProjectDatabaseView,
 api.add_resource(ProjectDatabaseDetailView,
                  '/projects/<string:project_id>/databases/<string:database_id>')
 api.add_resource(ProjectDatabaseAdminView, '/databases')
+api.add_resource(ProjectDatabaseGraphAdminView, '/databases/graph')
 api.add_resource(ProjectDatabaseAdminDetailView,
                  '/databases/<string:database_id>')
 api.add_resource(ProjectDatabaseResetView,
@@ -197,6 +206,10 @@ api.add_resource(ProjectDatabaseRetrievePasswordView,
 api.add_resource(ProjectDatabaseAdminRetrievePasswordView,
                  '/databases/<string:database_id>/password')
 api.add_resource(DatabaseStatsView, '/databases/stats')
+api.add_resource(ProjectDatabaseDisableView,
+                 '/databases/<string:database_id>/disable')
+api.add_resource(ProjectDatabaseEnableView,
+                 '/databases/<string:database_id>/enable')
 
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
@@ -205,4 +218,4 @@ api.add_resource(ProjectUsersTransferView,
 api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
 # system status
-api.add_resource(SystemStatusView, '/system_status')
+api.add_resource(SystemSummaryView, '/system_summary')

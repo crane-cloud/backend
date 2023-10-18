@@ -1,55 +1,25 @@
-import os
-from os.path import join, dirname
-from dotenv import load_dotenv
-from flask_script import Manager
-from flask_migrate import Migrate, MigrateCommand
-from app.models import db
-from server import app
-
-# import models
+import click
+from flask.cli import with_appcontext
 from app.helpers.admin import create_superuser, create_default_roles
 from app.helpers.registry import add_registries
-from app.models.user import User
-from app.models.user_role import UserRole
-from app.models.clusters import Cluster
-from app.models.project import Project
-from app.models.app import App
-from app.models.project_database import ProjectDatabase
-from app.models.project_users import ProjectUser
-from app.models.billing_invoice import BillingInvoice
-from app.models.user_payment import UserPaymentDetails
-from app.models.billing_metrics import BillingMetrics
-from app.models.transaction_record import TransactionRecord
-from app.models.credits import Credit
-from app.models.credit_assignments import CreditAssignment
-from app.models.anonymous_users import AnonymousUser
-
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
-
-# register app and db with migration class
-migrate = Migrate(app, db)
-manager = Manager(app)
-
-manager.add_command('db', MigrateCommand)
 
 
-@manager.option('-e', '--email', dest='email')
-@manager.option('-p', '--password', dest='password')
-@manager.option('-c', '--confirm_password', dest='confirm_password')
+@click.command('admin_user',help='Create an admin user')
+@click.option('-e', '--email', prompt=True, help='admin email')
+@click.option('-p', '--password', prompt=True, help='admin password')
+@click.option('-c', '--confirm_password', prompt=True, help='confirm_password')
+@with_appcontext
 def admin_user(email, password, confirm_password):
     create_superuser(email, password, confirm_password)
 
 
-@manager.command
+@click.command('create_roles', help='Create default user roles')
+@with_appcontext
 def create_roles():
     create_default_roles()
 
 
-@manager.command
+@click.command('create_registries', help='Creates registries')
+@with_appcontext
 def create_registries():
     add_registries()
-
-
-if __name__ == '__main__':
-    manager.run()

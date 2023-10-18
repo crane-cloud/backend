@@ -5,13 +5,13 @@ services:
     image: postgres:10.8-alpine
     container_name: postgres-db
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_USER: postgres
       POSTGRES_DB: cranecloud
     ports:
       - "4200:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-  
+
   crane-mongo-db:
     restart: always
     image: mongo:4.2.3
@@ -24,6 +24,15 @@ services:
       - "27010:27017"
     volumes:
       - cranemongodbdata:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: crane-redis-db
+    ports:
+      - "6379:6379"
+    volumes:
+      - craneredisdbdata:/data
+
   api:
     restart: always
     build:
@@ -32,14 +41,24 @@ services:
     image: ckwagaba/osprey-backend:latest
     container_name: flask-api
     environment:
-      DATABASE_URI:
-      FLASK_APP_SECRET:
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
-      MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
+      FLASK_APP_SECRET:
+      FLASK_APP_SALT:
+      FLASK_VERIFY_SALT:
+      APP_MAIL_USERNAME:
+      APP_MAIL_PASSWORD:
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+      FLASK_ENV: development
+      MONGO_URI: ${MONGO_URI:-mongodb://crane:password@crane-mongo-db:27017/admin}
+      REDIS_URL: ${REDIS_URL:-redis://crane-redis-db:6379}
+      DATABASE_USER: postgres
+      DATABASE_URI: ${DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud}
+      TEST_DATABASE_URI: ${TEST_DATABASE_URI:-postgresql://postgres:postgres@database:5432/cranecloud_test}
     ports:
-      - "4100:5000"
+      - "${FLASK_PORT:-5000}:5000"
     volumes:
       - .:/app
     depends_on:
@@ -57,8 +76,9 @@ services:
     container_name: celery-worker
     command: celery -A server.celery worker --loglevel=info
     environment:
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: ${REDIS_URL:-redis://crane-redis-db:6379}
       MONGO_URI: mongodb://crane:password@crane-mongo-db:27017/admin
+      DATABASE_URI: postgresql://postgres:postgres@database:5432/cranecloud
     ports:
       - "4500:5000"
     volumes:
@@ -67,7 +87,7 @@ services:
       - database
       - crane-mongo-db
   
-
 volumes:
   db-data:
   cranemongodbdata:
+  craneredisdbdata:

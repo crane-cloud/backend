@@ -1,11 +1,10 @@
 ---
 name: staging
 
-
 on:
   push:
     branches:
-      - develop-new
+      - develop
 
 jobs:
   build:
@@ -18,7 +17,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      
+
       - name: Install (Buildx)
         uses: docker/setup-buildx-action@v1
 
@@ -31,7 +30,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
-          install_components: 'gke-gcloud-auth-plugin'
+          install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (GCR)
         run: gcloud auth configure-docker
@@ -75,7 +74,6 @@ jobs:
             }
 
   Staging:
-  
     name: Deploy (Staging)
 
     needs:
@@ -96,7 +94,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
-          install_components: 'gke-gcloud-auth-plugin'
+          install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (Kubernetes Cluster)
         uses: google-github-actions/get-gke-credentials@v1
@@ -131,5 +129,4 @@ jobs:
 
       - name: Monitor Rollout
         run: |
-          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud 
-
+          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud

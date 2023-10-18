@@ -27,7 +27,8 @@
       /* RESET STYLES */
       img {
         border: 0;
-        height: auto;
+        height: 4rem;
+        width: 4rem;
         line-height: 100%;
         outline: none;
         text-decoration: none;
@@ -42,6 +43,39 @@
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
+      }
+
+      .cartoons {
+        overflow: auto;
+      }
+
+      .item {
+        width: 150; /* Adjust as needed to fit your design */
+        height : 100;
+        float: left;
+        margin: 0 8%; /* Adjust the margin for space around items */
+        text-align: center;
+        padding: 20px;
+        
+      }
+
+      .itemsmall {
+        width: 150; /* Adjust as needed to fit your design */
+        height : 100;
+        float: left;
+        margin: 0 8%; /* Adjust the margin for space around items */
+        text-align: center;
+        padding: 20px;
+      }
+
+      .cartoons:nth-child(4n) {
+        clear: both;
+      }
+
+      .cartoons::after {
+        content: "";
+        display: table;
+        clear: both;
       }
 
       /* iOS BLUE LINKS */
@@ -113,12 +147,15 @@
                   line-height: 48px;
                 "
               >
-                <img
+              
+              <img
                   src="https://raw.githubusercontent.com/crane-cloud/frontend/develop/public/favicon.png"
                   width="150"
                   height="100"
                   style="display: block; border: 0px"
                 />
+                
+                
               </td>
             </tr>
           </table>
@@ -141,12 +178,10 @@
                   line-height: 25px;
                 "
               >
-                <p style="margin: 0">Hey there,</p>
+                <p style="margin: 0">Hi {{name}},</p>
               </td>
             </tr>
             <tr>
-              {% if success ==true %}
-
               <td
                 bgcolor="#ffffff"
                 align="left"
@@ -159,23 +194,19 @@
                   line-height: 25px;
                 "
               >
-                <p style="margin: 0">This email is to inform you that you have been invited to collaborate on the {{project_name}} project by {{name}}. You've been assigned a role: {{email_role}} on this project!</p>
-                <p style="margin: 0">You are required to register with Crane Cloud in order to gain access to the project and collaborate.</p>
+              {%if status == "disabled"%}
+                <p>We regret to inform you that account associated with the address {{email}} has been disabled</p>
+              {%else%}
+                <p style="margin: 0">This is to inform you that your account associated with the address {{email}} has been reinstated. Feel free to log in and resume work. </p>
+              {%endif%}
+
+              {% if status == "disabled" %}
+              <p> This may be as a result of breach of user agreement. </p>
+              {%else%}
+              <p></p>
+              {%endif%}
               </td>
-              {% else %}
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 5px 15px 30px 15px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              ></td>
-              {% endif %}
+              
             </tr>
             <tr>
               <td bgcolor="#ffffff" align="left">
@@ -200,7 +231,7 @@
                                 border: 1px solid #008ac1;
                                 display: inline-block;
                               "
-                              >Register Here</a
+                              >Visit Dashboard</a
                             >
                           </td>
                         </tr>
@@ -224,7 +255,6 @@
                   line-height: 25px;
                 "
               >
-                <p>Click the button above to register.</p>
               </td>
             </tr>
             <tr>
@@ -241,7 +271,7 @@
                   line-height: 25px;
                 "
               >
-                <p style="margin: 0">Cheers !<br />Crane Cloud Team</p>
+                <p style="margin: 0"><br />Crane Cloud Team</p>
               </td>
             </tr>
           </table>
