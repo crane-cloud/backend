@@ -974,7 +974,6 @@ class ProjectGetCostsView(Resource):
 
         return dict(status='success', data=dict(cost_data=cost_data)), 200
 
-
 class ProjectDisableView(Resource):
     @jwt_required
     def post(self, project_id):

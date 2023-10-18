@@ -691,6 +691,7 @@ class ProjectDatabaseAdminView(Resource):
             return dict(status='fail', message=errors), 500
 
         database_data_list = json.loads(database_data)
+        pagination = databases.pagination
 
         return dict(status='success',  data=dict(metadata=metadata, pagination=pagination, databases=database_data_list)), 200
 

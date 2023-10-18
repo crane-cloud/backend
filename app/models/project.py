@@ -5,6 +5,7 @@ from app.models import db
 from app.models.model_mixin import ModelMixin, SoftDeleteQuery
 
 
+
 class Project(ModelMixin):
     __tablename__ = 'project'
     # SoftDeleteQuery is used to filter out deleted records
