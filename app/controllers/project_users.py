@@ -26,9 +26,8 @@ class ProjectUsersView(Resource):
         project_user_schema = ProjectUserSchema()
 
         invitation_data = request.get_json()
-        resend_invite = (invitation_data).get('resend' , False)
-
-        del invitation_data['resend']
+        resend_invite = invitation_data.pop('resend', False)
+        
 
         project_user_data = invitation_data
 
