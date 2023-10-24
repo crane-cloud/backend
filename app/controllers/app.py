@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
 from prometheus_http_client import Prometheus
+from flask import current_app
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
@@ -261,7 +262,7 @@ class AppsView(Resource):
             )
 
             service_port = client.V1ServicePort(
-                port=3000, target_port=app_port)
+                port=current_app.config['KUBE_SERVICE_PORT'], target_port=app_port)
 
             service_spec = client.V1ServiceSpec(
                 type='ClusterIP',
@@ -705,7 +706,8 @@ class ProjectAppsView(Resource):
 
             service_spec = client.V1ServiceSpec(
                 type='ClusterIP',
-                ports=[client.V1ServicePort(port=3000, target_port=app_port)],
+                ports=[client.V1ServicePort(
+                    port=current_app.config['KUBE_SERVICE_PORT'], target_port=app_port)],
                 selector={'app': app_alias}
             )
 

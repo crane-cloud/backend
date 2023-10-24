@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
+from flask import current_app
 
 
 class AppSchema(Schema):
@@ -29,6 +30,7 @@ class AppSchema(Schema):
     ])
     alias = fields.String()
     url = fields.Url(dump_only=True)
+    internal_url = fields.Method("get_service", dump_only=True)
     env_vars = fields.Dict()
     port = fields.Int()
     command = fields.String()
@@ -49,3 +51,13 @@ class AppSchema(Schema):
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
+    def get_service(self, obj):
+        # For more infor https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
+        KUBE_SERVICE_PORT = current_app.config['KUBE_SERVICE_PORT']
+        service_url = f'http://{obj.alias}-service.{obj.project.alias}.svc.cluster.local'
+        # Note: need to append port 3000 for preivously built apps
+        if KUBE_SERVICE_PORT != 80:
+            service_url += f':{KUBE_SERVICE_PORT}'
+
+        return service_url
