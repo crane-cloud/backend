@@ -12,7 +12,8 @@ from flask import current_app
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import create_kube_clients, create_user_app, delete_cluster_app, disable_user_app, enable_user_app
+from app.helpers.kube import (create_kube_clients, create_user_app,
+                              delete_cluster_app, disable_user_app, enable_user_app, update_app_env_vars)
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -1197,6 +1198,7 @@ class AppDetailView(Resource):
         app_image = validated_update_data.get('image', None)
         command = validated_update_data.get('command', None)
         env_vars = validated_update_data.get('env_vars', None)
+        delete_env_vars = validated_update_data.get('delete_env_vars', None)
         replicas = validated_update_data.get('replicas', None)
         app_port = validated_update_data.get('port', None)
         private_repo = validated_update_data.get('private_image', False)
@@ -1377,24 +1379,9 @@ class AppDetailView(Resource):
                 cluster_deployment.spec.template.spec.containers[0].command = command.split(
                 )
 
-            if env_vars:
-                env = []
-                env_list = cluster_deployment.spec.template.spec.containers[0].env
-                if not env_list:
-                    env_list = []
-                for key, value in env_vars.items():
-                    env.append(client.V1EnvVar(
-                        name=str(key), value=str(value)
-                    ))
-
-                # Add existing app variables
-                for env_item in env_list:
-                    if env_item.name in env_vars:
-                        continue
-                    env.append(client.V1EnvVar(
-                        name=str(env_item.name), value=str(env_item.value)
-                    ))
-                cluster_deployment.spec.template.spec.containers[0].env = env
+            if env_vars or delete_env_vars:
+                update_app_env_vars(client, cluster_deployment,
+                                    env_vars, delete_env_vars)
 
             # Update the application
             kube_client.appsv1_api.replace_namespaced_deployment(

@@ -3797,10 +3797,6 @@ paths:
           properties:
             image:
               type: string
-            env_vars:
-              type: object
-              additionalProperties:
-                type: string
             port:
               type: number
             command:
@@ -3819,6 +3815,14 @@ paths:
               type: string
             replicas:
               type: number
+            env_vars:
+              type: object
+              additionalProperties:
+                type: string
+            delete_env_vars:
+              type: array
+              items:
+                type: string
       responses:
         201:
           description: "App update successful"
@@ -3936,7 +3940,6 @@ paths:
           name: tag
           required: true
           type: string
-          
 
       responses:
         201:

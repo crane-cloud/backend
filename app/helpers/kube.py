@@ -1,3 +1,4 @@
+from kubernetes.client import V1EnvVar
 import os
 from types import SimpleNamespace
 from app.helpers.db_flavor import disable_database, enable_database
@@ -11,6 +12,7 @@ from app.helpers.activity_logger import log_activity
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.url import get_app_subdomain
 from app.helpers.crane_app_logger import logger
+
 
 def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('KUBE_TOKEN')):
     # configure client
@@ -40,6 +42,34 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
         batchv1_api=batchv1_api,
         storageV1Api=storageV1Api
     )
+
+
+def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars):
+    container = cluster_deployment.spec.template.spec.containers[0]
+
+    if env_vars:
+        env = []
+        env_list = container.env or []
+
+        # Filter out environment variables to be deleted
+        env_list = [
+            env_var for env_var in env_list if env_var.name not in delete_env_vars]
+
+        # Add new environment variables
+        for key, value in env_vars.items():
+            env.append(client.V1EnvVar(
+                name=str(key), value=str(value)
+            ))
+
+        # Add existing app variables
+        env.extend(env_list)
+
+        container.env = env
+    else:
+        # Handle case where no new environment variables are provided
+        container.env = [
+            env_var for env_var in container.env if env_var.name not in delete_env_vars]
+
 
 
 def delete_cluster_app(kube_client, namespace, app):
