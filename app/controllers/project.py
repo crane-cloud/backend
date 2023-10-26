@@ -1022,7 +1022,7 @@ class ProjectDisableView(Resource):
             status='disabled')
 
             send_email(
-                'lanternnassi@gmail.com',
+                user.email,
                 f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
@@ -1080,7 +1080,7 @@ class ProjectEnableView(Resource):
             status='enabled')
 
             send_email(
-                'lanternnassi@gmail.com',
+                user.email,
                 f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
