@@ -77,9 +77,15 @@ def disable_database(database: ProjectDatabase, is_admin=False):
             status_code=500
         )
 
-    # Disable the postgres databases
-    disable_database = database_service.disable_user_log_in(
-        database.user)
+    
+    if (db_flavour['name'] == 'postgres'):
+
+        disable_database = database_service.disable_user_log_in(
+            database.user)
+        
+    else :
+        disable_database = database_service.disable_user_log_in(
+            database.user , database.password)
 
     if not disable_database:
         log_message = f'Unable to disable {database.database_flavour_name} database, Internal Server Error'
@@ -144,8 +150,13 @@ def enable_database(database: ProjectDatabase):
         )
 
     # Enable the postgres databases
-    enable_database = database_service.enable_user_log_in(
-        database.user)
+
+    if (db_flavour['name'] == 'postgres'):
+        enable_database = database_service.enable_user_log_in(
+            database.user)
+    else :
+        enable_database = database_service.enable_user_log_in(
+            database.user , database.password)
 
     if not enable_database:
         log_message = f'Unable to enable {database.database_flavour_name} database, Internal Server Error'
