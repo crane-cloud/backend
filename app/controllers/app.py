@@ -12,15 +12,15 @@ from flask import current_app
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import (create_kube_clients, create_user_app,
-                              delete_cluster_app, disable_user_app, enable_user_app, update_app_env_vars)
+from app.helpers.kube import (create_kube_clients, delete_cluster_app,
+                              disable_user_app, enable_user_app, update_app_env_vars)
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.alias import create_alias
 from app.helpers.clean_up import resource_clean_up
 from app.helpers.decorators import admin_required
-from app.helpers.kube import create_kube_clients, delete_cluster_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, deploy_user_app
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
 from app.models.user import User
@@ -540,8 +540,9 @@ class ProjectAppsView(Resource):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='Unauthorised'), 403
 
+        user = User.get_by_id(current_user_id)
+
         cluster = project.cluster
-        namespace = project.alias
 
         if not cluster:
             return dict(status='fail', message="Invalid Cluster"), 500
@@ -552,303 +553,21 @@ class ProjectAppsView(Resource):
 
         kube_client = create_kube_clients(kube_host, kube_token)
 
-        try:
+        new_app = deploy_user_app(
+            kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
 
-            # create the app
-            new_app = App(
-                name=app_name,
-                image=app_image,
-                project_id=project_id,
-                alias=app_alias,
-                port=app_port,
-                command=command_string,
-                replicas=replicas,
-                private_image=private_repo
-            )
+        if type(new_app) == SimpleNamespace:
+            status_code = new_app.status_code if new_app.status_code else 500
+            return dict(status='fail', message=new_app.message), status_code
 
-            if private_repo:
-
-                # handle gcr credentials
-                if 'gcr' in docker_server and docker_username == '_json_key':
-                    docker_password = json.dumps(
-                        json.loads(base64.b64decode(docker_password))
-                    )
-
-                # create image pull secrets
-                authstring = base64.b64encode(
-                    f'{docker_username}:{docker_password}'.encode("utf-8"))
-
-                secret_dict = dict(auths={
-                    docker_server: {
-                        "username": docker_username,
-                        "password": docker_password,
-                        "email": docker_email,
-                        "auth": str(authstring, "utf-8")
-                    }
-                })
-
-                secret_b64 = base64.b64encode(
-                    json.dumps(secret_dict).encode("utf-8")
-                )
-
-                secret_body = client.V1Secret(
-                    metadata=client.V1ObjectMeta(name=app_alias),
-                    type='kubernetes.io/dockerconfigjson',
-                    data={'.dockerconfigjson': str(secret_b64, "utf-8")})
-
-                kube_client.kube.create_namespaced_secret(
-                    namespace=namespace,
-                    body=secret_body,
-                    _preload_content=False)
-
-                # update registry
-                resource_registry['image_pull_secret'] = True
-
-                image_pull_secret = client.V1LocalObjectReference(
-                    name=app_alias)
-
-            # create app deployment's pvc meta and spec
-            # pvc_name = f'{app_alias}-pvc'
-            # pvc_meta = client.V1ObjectMeta(name=pvc_name)
-
-            # access_modes = ['ReadWriteOnce']
-            # storage_class = 'openebs-standard'
-            # resources = client.V1ResourceRequirements(
-            #     requests=dict(storage='1Gi'))
-
-            # pvc_spec = client.V1PersistentVolumeClaimSpec(
-            #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
-
-            # Create a PVC
-            # pvc = client.V1PersistentVolumeClaim(
-            #     api_version="v1",
-            #     kind="PersistentVolumeClaim",
-            #     metadata=pvc_meta,
-            #     spec=pvc_spec
-            # )
-
-            # kube_client.kube.create_namespaced_persistent_volume_claim(
-            #     namespace=namespace,
-            #     body=pvc
-            # )
-
-            # create deployment
-            dep_name = f'{app_alias}-deployment'
-
-            # # EnvVar
-            env = []
-            if env_vars:
-                for key, value in env_vars.items():
-                    env.append(client.V1EnvVar(
-                        name=str(key), value=str(value)
-                    ))
-
-            # pod template
-            container = client.V1Container(
-                name=app_alias,
-                image=app_image,
-                ports=[client.V1ContainerPort(container_port=app_port)],
-                env=env,
-                command=command
-                # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
-            )
-
-            # pod volumes
-            # volumes = client.V1Volume(
-            #     name=dep_name
-            #     # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-            # )
-
-            # spec
-            template = client.V1PodTemplateSpec(
-                metadata=client.V1ObjectMeta(labels={
-                    'app': app_alias
-                }),
-                spec=client.V1PodSpec(
-                    containers=[container],
-                    image_pull_secrets=[image_pull_secret]
-                    # volumes=[volumes]
-                )
-            )
-
-            # spec of deployment
-            spec = client.V1DeploymentSpec(
-                replicas=replicas,
-                template=template,
-                selector={'matchLabels': {'app': app_alias}}
-            )
-
-            # Instantiate the deployment
-            deployment = client.V1Deployment(
-                api_version="apps/v1",
-                kind="Deployment",
-                metadata=client.V1ObjectMeta(name=dep_name),
-                spec=spec
-            )
-
-            # create deployment in  cluster
-
-            kube_client.appsv1_api.create_namespaced_deployment(
-                body=deployment,
-                namespace=namespace,
-                _preload_content=False
-            )
-
-            # update registry
-            resource_registry['app_deployment'] = True
-
-            # create service in the cluster
-            service_name = f'{app_alias}-service'
-
-            service_meta = client.V1ObjectMeta(
-                name=service_name,
-                labels={'app': app_alias}
-            )
-
-            service_spec = client.V1ServiceSpec(
-                type='ClusterIP',
-                ports=[client.V1ServicePort(
-                    port=current_app.config['KUBE_SERVICE_PORT'], target_port=app_port)],
-                selector={'app': app_alias}
-            )
-
-            service = client.V1Service(
-                metadata=service_meta,
-                spec=service_spec)
-
-            kube_client.kube.create_namespaced_service(
-                namespace=namespace,
-                body=service,
-                _preload_content=False
-            )
-
-            # update resource registry
-            resource_registry['app_service'] = True
-
-            user = User.get_by_id(current_user_id)
-
-            if custom_domain and user.is_beta_user:
-                sub_domain = custom_domain
-                validated_app_data['has_custom_domain'] = True
-
-            else:
-                sub_domain = get_app_subdomain(app_alias)
-
-            # create new ingres rule for the application
-            new_ingress_backend = client.V1IngressBackend(
-                service=client.V1IngressServiceBackend(
-                    name=service_name,
-                    port=client.V1ServiceBackendPort(
-                        number=3000
-                    )
-                )
-            )
-
-            new_ingress_rule = client.V1IngressRule(
-                host=sub_domain,
-                http=client.V1HTTPIngressRuleValue(
-                    paths=[client.V1HTTPIngressPath(
-                        path="",
-                        path_type="ImplementationSpecific",
-                        backend=new_ingress_backend
-                    )]
-                )
-            )
-
-            ingress_name = f'{project.alias}-ingress'
-
-            # Check if there is an ingress resource in the namespace, create if not
-
-            ingress_list = kube_client.networking_api.list_namespaced_ingress(
-                namespace=namespace).items
-
-            if not ingress_list:
-
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
-
-                ingress_spec = {
-                    'rules': [new_ingress_rule]
-                }
-
-                ingress_body = {
-                    "apiVersion": "networking.k8s.io/v1",
-                    "kind": "Ingress",
-                    "metadata": ingress_meta,
-                    "spec": ingress_spec
-                }
-
-                kube_client.networking_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
-
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
-
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.networking_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
-
-            service_url = f'https://{sub_domain}'
-
-            new_app.url = service_url
-
-            saved = new_app.save()
-
-            if not saved:
-                return dict(
-                    status='fail',
-                    message='Internal Server Error'
-                ), 500
-
-            new_app_data, _ = app_schema.dump(new_app)
-
-            log_activity('App', status='Success',
-                         operation='Create',
-                         description='Created app Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
-                         a_app_id=new_app.id)
-            return dict(status='success', data=dict(app=new_app_data)), 201
-
-        except client.rest.ApiException as e:
-            resource_clean_up(
-                resource_registry,
-                app_alias,
-                namespace,
-                kube_client
-            )
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=json.loads(e.body),
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
-                         )
-            return dict(status='fail', message=json.loads(e.body)), 500
-
-        except Exception as e:
-            resource_clean_up(
-                resource_registry,
-                app_alias,
-                namespace,
-                kube_client
-            )
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=str(e),
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
-                         )
-            return dict(status='fail', message=str(e)), 500
+        new_app_data, _ = app_schema.dump(new_app)
+        log_activity('App', status='Success',
+                     operation='Create',
+                     description='Redeployed app Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_app_id=new_app.id)
+        return dict(status='success', data=dict(app=new_app_data)), 201
 
     @jwt_required
     def get(self, project_id):
@@ -1729,37 +1448,33 @@ class AppRedeployView(Resource):
                 if not is_authorised_project_user(project, current_user_id, 'admin'):
                     return dict(status='fail', message='Unauthorised'), 403
 
+            user = User.get_by_id(current_user_id)
+
             cluster = project.cluster
             namespace = project.alias
 
             if not cluster or not namespace:
                 return dict(status='fail', message='Internal server error'), 500
-            new_app = create_user_app(
-                app,
-                app.alias,
-                app.image,
-                project,
-                command_string=app.command,
-                env_vars=None,
-                private_repo=app.private_image,
-                docker_server=None,
-                docker_username=None,
-                docker_password=None,
-                docker_email=None,
-                replicas=app.replicas if app.replicas else 1,
-                app_port=app.port
+
+            kube_client = create_kube_clients(cluster.host, cluster.token)
+            new_app = deploy_user_app(
+                kube_client=kube_client,
+                project=project,
+                user=user,
+                app=app
             )
+
             if type(new_app) == SimpleNamespace:
                 status_code = new_app.status_code if new_app.status_code else 500
                 return dict(status='fail', message=new_app.message), status_code
 
             new_app_data, _ = app_schema.dump(new_app)
             log_activity('App', status='Success',
-                         operation='Create',
-                         description='Redeployed app Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id,
-                         a_app_id=new_app.id)
+                            operation='Create',
+                            description='Redeployed app Successfully',
+                            a_project_id=project.id,
+                            a_cluster_id=project.cluster_id,
+                            a_app_id=new_app.id)
             return dict(status='success', data=dict(app=new_app_data)), 201
         except Exception as e:
             log_activity('App', status='Failed',
