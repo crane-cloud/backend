@@ -1,6 +1,5 @@
 from urllib.parse import urlsplit
 from app.helpers.alias import create_alias
-from kubernetes.client import V1EnvVar
 import os
 from flask import current_app
 from types import SimpleNamespace
@@ -9,7 +8,6 @@ from app.models.app import App
 from app.models.user import User
 from app.models.project import Project
 from kubernetes import client
-from kubernetes.client.rest import ApiException
 import base64
 import json
 from app.helpers.activity_logger import log_activity
