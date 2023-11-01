@@ -4,6 +4,7 @@ import json
 import os
 from urllib.parse import urlsplit
 from app.helpers.activity_logger import log_activity
+from app.schemas.app import AppDeploySchema
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
@@ -86,7 +87,6 @@ class AppsView(Resource):
 
         kube_client = create_kube_clients(kube_host, kube_token)
         service_host = urlsplit(kube_host).hostname
-
 
         new_app = deploy_user_app(
             kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
@@ -174,7 +174,7 @@ class ProjectAppsView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
-        app_schema = AppSchema()
+        app_schema = AppDeploySchema()
 
         app_data = request.get_json()
 
@@ -183,21 +183,6 @@ class ProjectAppsView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-
-        existing_app = App.find_first(
-            name=validated_app_data['name'],
-            project_id=project_id)
-
-        if existing_app:
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description=f'App {validated_app_data["name"]} already exists',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return dict(
-                status='fail',
-                message=f'App with name {validated_app_data["name"]} already exists'
-            ), 409
 
         project = Project.get_by_id(project_id)
 
@@ -219,23 +204,86 @@ class ProjectAppsView(Resource):
         kube_token = cluster.token
 
         kube_client = create_kube_clients(kube_host, kube_token)
+        multi_app = validated_app_data.get('apps', [])
+        if multi_app:
+            apps_data = []
+            failed_apps_data = []
+            for app_item in validated_app_data['apps']:
+                existing_app = App.find_first(
+                    name=app_item['name'],
+                    project_id=project_id)
 
-        new_app = deploy_user_app(
-            kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
+                if existing_app:
+                    log_activity('App', status='Failed',
+                                 operation='Create',
+                                 description=f'App {app_item["name"]} already exists',
+                                 a_project_id=project.id,
+                                 a_cluster_id=project.cluster_id)
+                    failed_apps_data.append(dict(
+                        status='fail',
+                        message=f'App with name {app_item["name"]} already exists'
+                    ))
+                    continue
 
-        if type(new_app) == SimpleNamespace:
-            status_code = new_app.status_code if new_app.status_code else 500
-            return dict(status='fail', message=new_app.message), status_code
+                new_app = deploy_user_app(
+                    kube_client=kube_client, project=project, user=user, app_data=app_item)
 
-        new_app_data, _ = app_schema.dump(new_app)
-        log_activity('App', status='Success',
-                     operation='Create',
-                     description='Deployed app Successfully',
-                     a_project_id=project.id,
-                     a_cluster_id=project.cluster_id,
-                     a_app_id=new_app.id)
+                if type(new_app) == SimpleNamespace:
+                    status_code = new_app.status_code if new_app.status_code else 500
+                    failed_apps_data.append(dict(
+                        status='fail',
+                        message=new_app.message
+                    ))
+                    continue
 
-        return dict(status='success', data=dict(app=new_app_data)), 201
+                new_app_data, _ = app_schema.dump(new_app)
+                log_activity('App', status='Success',
+                             operation='Create',
+                             description='Deployed app Successfully',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id,
+                             a_app_id=new_app.id)
+                apps_data.append(new_app_data)
+
+            return dict(status='success', data=dict(failed_apps=failed_apps_data, apps=apps_data)), 201
+
+        else:
+            app_name = validated_app_data.get('name', None)
+            app_image = validated_app_data.get('image', None)
+            if not app_name or not app_image:
+                return dict(status='fail', data=dict(message="Missing data for required field, either name or image"))
+
+            existing_app = App.find_first(
+                name=app_name,
+                project_id=project_id)
+
+            if existing_app:
+                log_activity('App', status='Failed',
+                             operation='Create',
+                             description=f'App {app_name} already exists',
+                             a_project_id=project.id,
+                             a_cluster_id=project.cluster_id)
+                return dict(
+                    status='fail',
+                    message=f'App with name {app_name} already exists'
+                ), 409
+
+            new_app = deploy_user_app(
+                kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
+
+            if type(new_app) == SimpleNamespace:
+                status_code = new_app.status_code if new_app.status_code else 500
+                return dict(status='fail', message=new_app.message), status_code
+
+            new_app_data, _ = app_schema.dump(new_app)
+            log_activity('App', status='Success',
+                         operation='Create',
+                         description='Deployed app Successfully',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id,
+                         a_app_id=new_app.id)
+
+            return dict(status='success', data=dict(app=new_app_data)), 201
 
     @jwt_required
     def get(self, project_id):

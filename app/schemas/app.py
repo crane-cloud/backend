@@ -21,13 +21,7 @@ class AppSchema(Schema):
                 regex=r'^(?!\s*$)', error='image should be a valid string'
             ),
     ])
-    project_id = fields.String(required=True, error_message={
-        "required": "project_id is required"},
-        validate=[
-            validate.Regexp(
-                regex=r'^(?!\s*$)', error='project_id should be a valid string'
-            ),
-    ])
+    project_id = fields.String()
     alias = fields.String()
     url = fields.Url(dump_only=True)
     internal_url = fields.Method("get_service", dump_only=True)
@@ -62,3 +56,10 @@ class AppSchema(Schema):
             service_url += f':{KUBE_SERVICE_PORT}'
 
         return service_url
+
+
+class AppDeploySchema(AppSchema):
+    name = fields.String(required=False)
+    image = fields.String(required=False)
+    project_id = fields.String(required=False)
+    apps = fields.List(fields.Nested(AppSchema), load_only=True)
