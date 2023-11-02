@@ -2464,9 +2464,6 @@ paths:
         - in: body
           name: project
           schema:
-            required:
-              - name
-              - image
             properties:
               name:
                 type: string
@@ -2494,6 +2491,35 @@ paths:
                 type: string
               replicas:
                 type: number
+              apps:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      required: true
+                    image:
+                      type: string
+                      required: true
+                    env_vars:
+                      type: object
+                      additionalProperties:
+                        type: string
+                    port:
+                      type: number
+                    command:
+                      type: string
+                    private_image:
+                      type: boolean
+                    docker_server:
+                      type: string
+                    docker_username:
+                      type: string
+                    docker_password:
+                      type: string
+                    docker_email:
+                      type: string
       produces:
         - application/json
       responses:

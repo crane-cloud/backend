@@ -2,6 +2,8 @@ import uuid
 
 
 def create_alias(input_string):
+    if not input_string:
+        return None
     new_string = ''.join(
         letter for letter in input_string.lower()
         if letter.isalnum() or letter == '-')

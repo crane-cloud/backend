@@ -1,11 +1,13 @@
-from kubernetes.client import V1EnvVar
+from urllib.parse import urlsplit
+from app.helpers.alias import create_alias
 import os
+from flask import current_app
 from types import SimpleNamespace
 from app.helpers.db_flavor import disable_database, enable_database
 from app.models.app import App
+from app.models.user import User
 from app.models.project import Project
 from kubernetes import client
-from kubernetes.client.rest import ApiException
 import base64
 import json
 from app.helpers.activity_logger import log_activity
@@ -44,6 +46,375 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
     )
 
 
+def deploy_user_app(kube_client, project: Project, user: User, app: App = None, app_data={}):
+    """
+    deploy an application
+    """
+
+    resource_registry = {
+        'db_deployment': False,
+        'db_service': False,
+        'image_pull_secret': False,
+        'app_deployment': False,
+        'app_service': False,
+        'ingress_entry': False
+    }
+
+    app_name = app_data.get('name', None)
+    app_alias = create_alias(app_name)
+    app_image = app_data.get('image', None)
+    command_string = app_data.get('command', None)
+    # env_vars = app_data['env_vars']
+    env_vars = app_data.get('env_vars', None)
+    private_repo = app_data.get('private_image', False)
+    docker_server = app_data.get('docker_server', None)
+    docker_username = app_data.get('docker_username', None)
+    docker_password = app_data.get('docker_password', None)
+    docker_email = app_data.get('docker_email', None)
+    replicas = app_data.get('replicas', 1)
+    app_port = app_data.get('port', 80)
+    custom_domain = app_data.get('custom_domain', None)
+    image_pull_secret = None
+
+    if app:
+        app_name = app.name
+        app_alias = app.alias
+        app_image = app.image
+        command_string = app.command
+        private_repo = app.private_image
+        replicas = app.replicas
+        app_port = app.port
+        custom_domain = app.has_custom_domain
+        image_pull_secret = None
+
+    command = command_string.split() if command_string else None
+
+    namespace = project.alias
+
+
+    try:
+
+        if app:
+            new_app = app
+        else:
+            new_app = App(
+                name=app_name,
+                image=app_image,
+                project_id=project.id,
+                alias=app_alias,
+                port=app_port,
+                command=command_string,
+                replicas=replicas,
+                private_image=private_repo
+            )
+
+        if private_repo:
+
+            # handle gcr credentials
+            if 'gcr' in docker_server and docker_username == '_json_key':
+                docker_password = json.dumps(
+                    json.loads(base64.b64decode(docker_password))
+                )
+
+            # create image pull secrets
+            authstring = base64.b64encode(
+                f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+            secret_dict = dict(auths={
+                docker_server: {
+                    "username": docker_username,
+                    "password": docker_password,
+                    "email": docker_email,
+                    "auth": str(authstring, "utf-8")
+                }
+            })
+
+            secret_b64 = base64.b64encode(
+                json.dumps(secret_dict).encode("utf-8")
+            )
+
+            secret_body = client.V1Secret(
+                metadata=client.V1ObjectMeta(name=app_alias),
+                type='kubernetes.io/dockerconfigjson',
+                data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+            kube_client.kube.create_namespaced_secret(
+                namespace=namespace,
+                body=secret_body,
+                _preload_content=False)
+
+            # update registry
+            resource_registry['image_pull_secret'] = True
+
+            image_pull_secret = client.V1LocalObjectReference(
+                name=app_alias)
+
+        # create app deployment's pvc meta and spec
+        # pvc_name = f'{app_alias}-pvc'
+        # pvc_meta = client.V1ObjectMeta(name=pvc_name)
+
+        # access_modes = ['ReadWriteOnce']
+        # storage_class = 'openebs-standard'
+        # resources = client.V1ResourceRequirements(
+        #     requests=dict(storage='1Gi'))
+
+        # pvc_spec = client.V1PersistentVolumeClaimSpec(
+        #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
+
+        # Create a PVC
+        # pvc = client.V1PersistentVolumeClaim(
+        #     api_version="v1",
+        #     kind="PersistentVolumeClaim",
+        #     metadata=pvc_meta,
+        #     spec=pvc_spec
+        # )
+
+        # kube_client.kube.create_namespaced_persistent_volume_claim(
+        #     namespace=namespace,
+        #     body=pvc
+        # )
+
+        # create deployment
+        dep_name = f'{app_alias}-deployment'
+
+        # # EnvVar
+        env = []
+        if env_vars:
+            for key, value in env_vars.items():
+                env.append(client.V1EnvVar(
+                    name=str(key), value=str(value)
+                ))
+
+        # pod template
+        container = client.V1Container(
+            name=app_alias,
+            image=app_image,
+            ports=[client.V1ContainerPort(container_port=app_port)],
+            env=env,
+            command=command
+            # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
+        )
+
+        # pod volumes
+        # volumes = client.V1Volume(
+        #     name=dep_name
+        #     # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
+        # )
+
+        # spec
+        template = client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={
+                'app': app_alias
+            }),
+            spec=client.V1PodSpec(
+                containers=[container],
+                image_pull_secrets=[image_pull_secret]
+                # volumes=[volumes]
+            )
+        )
+
+        # spec of deployment
+        spec = client.V1DeploymentSpec(
+            replicas=replicas,
+            template=template,
+            selector={'matchLabels': {'app': app_alias}}
+        )
+
+        # Instantiate the deployment
+        deployment = client.V1Deployment(
+            api_version="apps/v1",
+            kind="Deployment",
+            metadata=client.V1ObjectMeta(name=dep_name),
+            spec=spec
+        )
+
+        # create deployment in  cluster
+
+        kube_client.appsv1_api.create_namespaced_deployment(
+            body=deployment,
+            namespace=namespace,
+            _preload_content=False
+        )
+
+        # update registry
+        resource_registry['app_deployment'] = True
+
+        # create service in the cluster
+        service_name = f'{app_alias}-service'
+
+        service_meta = client.V1ObjectMeta(
+            name=service_name,
+            labels={'app': app_alias}
+        )
+
+        service_spec = client.V1ServiceSpec(
+            type='ClusterIP',
+            ports=[client.V1ServicePort(
+                port=current_app.config['KUBE_SERVICE_PORT'], target_port=app_port)],
+            selector={'app': app_alias}
+        )
+
+        service = client.V1Service(
+            metadata=service_meta,
+            spec=service_spec)
+
+        try:
+            # Check if service exists in the cluster
+            kube_client.kube.read_namespaced_service(
+                service_name, project.alias)
+            # Delete service
+            kube_client.kube.delete_namespaced_service(
+                service_name, project.alias)
+        except:
+            pass
+
+        kube_client.kube.create_namespaced_service(
+            namespace=namespace,
+            body=service,
+            _preload_content=False
+        )
+
+        # update resource registry
+        resource_registry['app_service'] = True
+
+        if custom_domain and user.is_beta_user:
+            sub_domain = custom_domain
+            app_data['has_custom_domain'] = True
+
+        else:
+            sub_domain = get_app_subdomain(app_alias)
+
+        # create new ingres rule for the application
+        new_ingress_backend = client.V1IngressBackend(
+            service=client.V1IngressServiceBackend(
+                name=service_name,
+                port=client.V1ServiceBackendPort(
+                    number=3000
+                )
+            )
+        )
+
+        new_ingress_rule = client.V1IngressRule(
+            host=sub_domain,
+            http=client.V1HTTPIngressRuleValue(
+                paths=[client.V1HTTPIngressPath(
+                    path="",
+                    path_type="ImplementationSpecific",
+                    backend=new_ingress_backend
+                )]
+            )
+        )
+
+        ingress_name = f'{project.alias}-ingress'
+
+        # Check if there is an ingress resource in the namespace, create if not
+
+        ingress_list = kube_client.networking_api.list_namespaced_ingress(
+            namespace=namespace).items
+
+        if not ingress_list:
+
+            ingress_meta = client.V1ObjectMeta(
+                name=ingress_name
+            )
+
+            ingress_spec = {
+                'rules': [new_ingress_rule]
+            }
+
+            ingress_body = {
+                "apiVersion": "networking.k8s.io/v1",
+                "kind": "Ingress",
+                "metadata": ingress_meta,
+                "spec": ingress_spec
+            }
+
+            kube_client.networking_api.create_namespaced_ingress(
+                namespace=namespace,
+                body=ingress_body
+            )
+
+            # update registry
+            resource_registry['ingress_entry'] = True
+        else:
+            # Update ingress with new entry
+            ingress = ingress_list[0]
+
+            ingress.spec.rules.append(new_ingress_rule)
+
+            kube_client.networking_api.patch_namespaced_ingress(
+                name=ingress_name,
+                namespace=namespace,
+                body=ingress
+            )
+
+        service_url = f'https://{sub_domain}'
+
+        new_app.url = service_url
+
+        saved = new_app.save()
+
+        if not saved:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description='Internal Server Error',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
+            return SimpleNamespace(
+                message='Internal Server Error',
+                status_code=500
+            )
+
+        # log_activity('App', status='Success',
+        #              operation='Create',
+        #              description='Created app Successfully',
+        #              a_project_id=project.id,
+        #              a_cluster_id=project.cluster_id,
+        #              a_app_id=new_app.id)
+        return new_app
+
+    except client.rest.ApiException as e:
+        logger.exception('Exception occurred')
+        resource_clean_up(
+            resource_registry,
+            app_alias,
+            namespace,
+            kube_client
+        )
+
+        log_activity('App', status='Failed',
+                     operation='Create',
+                     description=json.loads(e.body),
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     )
+        
+        return SimpleNamespace(
+            message=json.loads(e.body),
+            status_code=500
+        )
+
+    except Exception as e:
+        logger.exception('Exception occurred')
+        resource_clean_up(
+            resource_registry,
+            app_alias,
+            namespace,
+            kube_client
+        )
+        log_activity('App', status='Failed',
+                     operation='Create',
+                     description=str(e),
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     )
+        
+        return SimpleNamespace(
+            message=str(e),
+            status_code=500
+        )
+
+
 def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars):
     container = cluster_deployment.spec.template.spec.containers[0]
 
@@ -69,7 +440,6 @@ def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars):
         # Handle case where no new environment variables are provided
         container.env = [
             env_var for env_var in container.env if env_var.name not in delete_env_vars]
-
 
 
 def delete_cluster_app(kube_client, namespace, app):
@@ -127,348 +497,6 @@ def delete_cluster_app(kube_client, namespace, app):
     #         name=pvc_name,
     #         namespace=namespace
     #     )
-
-
-def create_user_app(
-    new_app,
-    app_alias,
-    app_image,
-    project,
-    command_string=None,
-    env_vars=None,
-    private_repo=False,
-    docker_server=None,
-    docker_username=None,
-    docker_password=None,
-    docker_email=None,
-    replicas=1,
-    app_port=80,
-):
-    """
-    Function to create user application
-    """
-
-    resource_registry = {
-        'db_deployment': False,
-        'db_service': False,
-        'image_pull_secret': False,
-        'app_deployment': False,
-        'app_service': False,
-        'ingress_entry': False
-    }
-    image_pull_secret = None
-    command = command_string.split() if command_string else None
-
-    cluster = project.cluster
-    namespace = project.alias
-
-    if not cluster:
-        return SimpleNamespace(
-            message="Invalid Cluster",
-            status_code=500
-        )
-
-    kube_host = cluster.host
-    kube_token = cluster.token
-
-    kube_client = create_kube_clients(kube_host, kube_token)
-
-    try:
-        # check if namespace exists
-        try:
-            kube_client.kube.read_namespace(namespace)
-        except ApiException as e:
-            if e.status == 404:
-                # create namespace in cluster
-                kube_client.kube.create_namespace(
-                    client.V1Namespace(
-                        metadata=client.V1ObjectMeta(name=namespace)
-                    ))
-
-        try:
-            # Check if app is in the cluster
-            kube_client.appsv1_api.read_namespaced_deployment_status(
-                app_alias + "-deployment", project.alias)
-            return SimpleNamespace(
-                message='App already exists on the server',
-                status_code=409
-            )
-        except:
-            logger.exception('Exception occurred')
-            pass
-
-        if private_repo:
-
-            # handle gcr credentials
-            if 'gcr' in docker_server and docker_username == '_json_key':
-                docker_password = json.dumps(
-                    json.loads(base64.b64decode(docker_password)))
-
-            # create image pull secrets
-            authstring = base64.b64encode(
-                f'{docker_username}:{docker_password}'.encode("utf-8"))
-
-            secret_dict = dict(auths={
-                docker_server: {
-                    "username": docker_username,
-                    "password": str(docker_password),
-                    "email": docker_email,
-                    "auth": str(authstring, "utf-8")
-                }
-            })
-
-            secret_b64 = base64.b64encode(
-                json.dumps(secret_dict).encode("utf-8"))
-
-            secret_body = client.V1Secret(
-                metadata=client.V1ObjectMeta(name=app_alias),
-                type='kubernetes.io/dockerconfigjson',
-                data={'.dockerconfigjson': str(secret_b64, "utf-8")})
-
-            kube_client.kube.create_namespaced_secret(
-                namespace=namespace,
-                body=secret_body,
-                _preload_content=False)
-
-            # update registry
-            resource_registry['image_pull_secret'] = True
-
-            image_pull_secret = client.V1LocalObjectReference(
-                name=app_alias)
-
-        # create deployment
-        dep_name = f'{app_alias}-deployment'
-
-        # # EnvVar
-        env = []
-        if env_vars:
-            for key, value in env_vars.items():
-                env.append(client.V1EnvVar(
-                    name=str(key), value=str(value)
-                ))
-
-        # pod template
-        container = client.V1Container(
-            name=app_alias,
-            image=app_image,
-            ports=[client.V1ContainerPort(container_port=app_port)],
-            env=env,
-            command=command
-        )
-
-        # spec
-        template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels={
-                'app': app_alias
-            }),
-            spec=client.V1PodSpec(
-                containers=[container],
-                image_pull_secrets=[image_pull_secret]
-                # volumes=[volumes]
-            )
-        )
-
-        # spec of deployment
-        spec = client.V1DeploymentSpec(
-            replicas=replicas,
-            template=template,
-            selector={'matchLabels': {'app': app_alias}}
-        )
-
-        # Instantiate the deployment
-        deployment = client.V1Deployment(
-            api_version="apps/v1",
-            kind="Deployment",
-            metadata=client.V1ObjectMeta(name=dep_name),
-            spec=spec
-        )
-        # app deployment
-        kube_client.appsv1_api.create_namespaced_deployment(
-            body=deployment,
-            namespace=namespace,
-            _preload_content=False
-        )
-
-        # update registry
-        resource_registry['app_deployment'] = True
-
-        # create service in the cluster
-        service_name = f'{app_alias}-service'
-
-        service_meta = client.V1ObjectMeta(
-            name=service_name,
-            labels={'app': app_alias}
-        )
-
-        service_port = client.V1ServicePort(
-            port=3000, target_port=app_port)
-
-        service_spec = client.V1ServiceSpec(
-            type='ClusterIP',
-            ports=[service_port],
-            selector={'app': app_alias}
-        )
-
-        service = client.V1Service(
-            metadata=service_meta,
-            spec=service_spec)
-
-        try:
-            # Check if service exists in the cluster
-            kube_client.kube.read_namespaced_service(
-                service_name, project.alias)
-            # Delete service
-            kube_client.kube.delete_namespaced_service(
-                service_name, project.alias)
-        except:
-            pass
-
-        kube_client.kube.create_namespaced_service(
-            namespace=namespace,
-            body=service,
-            _preload_content=False
-        )
-        # update resource registry
-        resource_registry['app_service'] = True
-
-        # subdomain for the app
-        # sub_domain = f'{app_alias}.cranecloud.io'
-        sub_domain = get_app_subdomain(app_alias)
-
-        # create new ingress rule for the application
-        new_ingress_backend = client.V1IngressBackend(
-            service=client.V1IngressServiceBackend(
-                name=service_name,
-                port=client.V1ServiceBackendPort(
-                    number=3000
-                )
-            )
-        )
-
-        new_ingress_rule = client.V1IngressRule(
-            host=sub_domain,
-            http=client.V1HTTPIngressRuleValue(
-                paths=[client.V1HTTPIngressPath(
-                    path="",
-                    path_type="ImplementationSpecific",
-                    backend=new_ingress_backend
-                )]
-            )
-        )
-
-        ingress_name = f'{project.alias}-ingress'
-
-        # Check if there is an ingress resource in the namespace, create if not
-        # TODO: Remove the try and handle the error
-
-        try:
-            ingress_list = kube_client.networking_api.list_namespaced_ingress(
-                namespace=namespace).items
-
-            if not ingress_list:
-
-                ingress_meta = client.V1ObjectMeta(
-                    name=ingress_name
-                )
-
-                ingress_spec = client.ExtensionsV1beta1IngressSpec(
-                    # backend=ingress_backend,
-                    rules=[new_ingress_rule]
-                )
-
-                ingress_body = client.ExtensionsV1beta1Ingress(
-                    metadata=ingress_meta,
-                    spec=ingress_spec
-                )
-
-                kube_client.networking_api.create_namespaced_ingress(
-                    namespace=namespace,
-                    body=ingress_body
-                )
-
-                # update registry
-                resource_registry['ingress_entry'] = True
-            else:
-                # Update ingress with new entry
-                ingress = ingress_list[0]
-
-                ingress.spec.rules.append(new_ingress_rule)
-
-                kube_client.networking_api.patch_namespaced_ingress(
-                    name=ingress_name,
-                    namespace=namespace,
-                    body=ingress
-                )
-        except client.rest.ApiException as e:
-            logger.exception('Exception occurred')
-            print(e)
-        except Exception:
-            logger.exception('Exception occurred')
-            pass
-
-        service_url = f'https://{sub_domain}'
-
-        new_app.url = service_url
-
-        saved = new_app.save()
-
-        if not saved:
-            log_activity('App', status='Failed',
-                         operation='Create',
-                         description='Internal Server Error',
-                         a_project_id=project.id,
-                         a_cluster_id=project.cluster_id)
-            return SimpleNamespace(
-                message='Internal Server Error',
-                status_code=500
-            )
-
-        # log_activity('App', status='Success',
-        #              operation='Create',
-        #              description='Created app Successfully',
-        #              a_project_id=project.id,
-        #              a_cluster_id=project.cluster_id,
-        #              a_app_id=new_app.id)
-        return new_app
-
-    except client.rest.ApiException as e:
-        logger.exception('Exception occurred')
-        resource_clean_up(
-            resource_registry,
-            app_alias,
-            namespace,
-            kube_client
-        )
-
-        log_activity('App', status='Failed',
-                     operation='Create',
-                     description=json.loads(e.body),
-                     a_project_id=project.id,
-                     a_cluster_id=project.cluster_id,
-                     )
-        return SimpleNamespace(
-            message=json.loads(e.body),
-            status_code=500
-        )
-
-    except Exception as e:
-        logger.exception('Exception occurred')
-        resource_clean_up(
-            resource_registry,
-            app_alias,
-            namespace,
-            kube_client
-        )
-        log_activity('App', status='Failed',
-                     operation='Create',
-                     description=str(e),
-                     a_project_id=project.id,
-                     a_cluster_id=project.cluster_id,
-                     )
-        return SimpleNamespace(
-            message=str(e),
-            status_code=500
-        )
 
 
 def disable_user_app(app: App, is_admin=False):
