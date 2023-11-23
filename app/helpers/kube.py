@@ -414,7 +414,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         )
 
 
-def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars):
+def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars=[]):
     container = cluster_deployment.spec.template.spec.containers[0]
 
     if env_vars:

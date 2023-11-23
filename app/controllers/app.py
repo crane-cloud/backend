@@ -597,8 +597,8 @@ class AppDetailView(Resource):
 
         app_image = validated_update_data.get('image', None)
         command = validated_update_data.get('command', None)
-        env_vars = validated_update_data.get('env_vars', None)
-        delete_env_vars = validated_update_data.get('delete_env_vars', None)
+        env_vars = validated_update_data.get('env_vars', [])
+        delete_env_vars = validated_update_data.get('delete_env_vars', [])
         replicas = validated_update_data.get('replicas', None)
         app_port = validated_update_data.get('port', None)
         private_repo = validated_update_data.get('private_image', False)
