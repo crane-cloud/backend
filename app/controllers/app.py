@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import (create_kube_clients, delete_cluster_app,
-                              disable_user_app, enable_user_app, update_app_env_vars)
+                              disable_user_app, enable_user_app, sort_apps_for_deployment, update_app_env_vars)
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
@@ -206,47 +206,12 @@ class ProjectAppsView(Resource):
         kube_client = create_kube_clients(kube_host, kube_token)
         multi_app = validated_app_data.get('apps', [])
         if multi_app:
-            apps_data = []
-            failed_apps_data = []
-            for app_item in validated_app_data['apps']:
-                existing_app = App.find_first(
-                    name=app_item['name'],
-                    project_id=project_id)
-
-                if existing_app:
-                    log_activity('App', status='Failed',
-                                 operation='Create',
-                                 description=f'App {app_item["name"]} already exists',
-                                 a_project_id=project.id,
-                                 a_cluster_id=project.cluster_id)
-                    failed_apps_data.append(dict(
-                        status='fail',
-                        message=f'App with name {app_item["name"]} already exists'
-                    ))
-                    continue
-
-                new_app = deploy_user_app(
-                    kube_client=kube_client, project=project, user=user, app_data=app_item)
-
-                if type(new_app) == SimpleNamespace:
-                    status_code = new_app.status_code if new_app.status_code else 500
-                    failed_apps_data.append(dict(
-                        status='fail',
-                        message=new_app.message
-                    ))
-                    continue
-
-                new_app_data, _ = app_schema.dump(new_app)
-                log_activity('App', status='Success',
-                             operation='Create',
-                             description='Deployed app Successfully',
-                             a_project_id=project.id,
-                             a_cluster_id=project.cluster_id,
-                             a_app_id=new_app.id)
-                apps_data.append(new_app_data)
-
-            return dict(status='success', data=dict(failed_apps=failed_apps_data, apps=apps_data)), 201
-
+            deployed_apps = sort_apps_for_deployment(
+                apps_data=multi_app, kube_client=kube_client,
+                project=project, user=user, app_schema=app_schema)
+            return dict(status='success', data=dict(
+                failed_apps=deployed_apps.failed_apps_data,
+                apps=deployed_apps.apps_data)), 201
         else:
             app_name = validated_app_data.get('name', None)
             app_image = validated_app_data.get('image', None)

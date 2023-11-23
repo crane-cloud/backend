@@ -58,8 +58,12 @@ class AppSchema(Schema):
         return service_url
 
 
+class AppMultiDeploySchema(AppSchema):
+    dependant_env_vars = fields.Dict(load_only=True)
+
+
 class AppDeploySchema(AppSchema):
     name = fields.String(required=False)
     image = fields.String(required=False)
     project_id = fields.String(required=False)
-    apps = fields.List(fields.Nested(AppSchema), load_only=True)
+    apps = fields.List(fields.Nested(AppMultiDeploySchema), load_only=True)

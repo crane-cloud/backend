@@ -91,7 +91,6 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
     namespace = project.alias
 
-
     try:
 
         if app:
@@ -388,7 +387,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                      a_project_id=project.id,
                      a_cluster_id=project.cluster_id,
                      )
-        
+
         return SimpleNamespace(
             message=json.loads(e.body),
             status_code=500
@@ -408,7 +407,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                      a_project_id=project.id,
                      a_cluster_id=project.cluster_id,
                      )
-        
+
         return SimpleNamespace(
             message=str(e),
             status_code=500
@@ -750,3 +749,86 @@ def enable_project(project: Project):
             message=str(err),
             status_code=500
         )
+
+
+def sort_apps_for_deployment(apps_data, project, kube_client, user, app_schema):
+    failed_apps_data = []
+    apps_with_dependencies = []
+    apps_list = []
+    apps_without_dependencies = []
+    results = []
+
+    for app in apps_data:
+        if "dependant_env_vars" in app:
+            apps_with_dependencies.append(app)
+        else:
+            apps_without_dependencies.append(app)
+
+    # Create a list of all dependent environment variables
+    dependent_env_vars = [
+        dep for a in apps_with_dependencies for dep in a["dependant_env_vars"].values()]
+
+    for app in apps_data:
+        # Check if the app's name is in the list of dependent environment variables
+        if app["name"] in dependent_env_vars:
+            try:
+                apps_with_dependencies.remove(app)
+            except ValueError:
+                pass
+            try:
+                apps_without_dependencies.remove(app)
+            except ValueError:
+                pass
+            apps_list.insert(0, app)
+
+    apps_list.extend(apps_without_dependencies)
+    apps_list.extend(apps_with_dependencies)
+
+    for app_item in apps_list:
+        existing_app = App.find_first(
+            name=app_item['name'],
+            project_id=project.id)
+
+        if existing_app:
+            log_activity('App', status='Failed',
+                         operation='Create',
+                         description=f'App {app_item["name"]} already exists',
+                         a_project_id=project.id,
+                         a_cluster_id=project.cluster_id)
+            failed_apps_data.append(dict(
+                status='fail',
+                message=f'App with name {app_item["name"]} already exists'
+            ))
+            continue
+
+        if "dependant_env_vars" in app_item:
+            app_item.setdefault("env_vars", {})
+            for key, value in app_item["dependant_env_vars"].items():
+                new_value = next(
+                    (app['internal_url'] for app in results if app['name'] == value), None)
+                app_item["env_vars"].update(
+                    {key: new_value}
+                )
+        new_app = deploy_user_app(
+            kube_client=kube_client, project=project, user=user, app_data=app_item)
+
+        if type(new_app) == SimpleNamespace:
+            failed_apps_data.append(dict(
+                status='fail',
+                message=new_app.message
+            ))
+            continue
+
+        new_app_data, _ = app_schema.dump(new_app)
+        log_activity('App', status='Success',
+                     operation='Create',
+                     description='Deployed app Successfully',
+                     a_project_id=project.id,
+                     a_cluster_id=project.cluster_id,
+                     a_app_id=new_app.id)
+        results.append(new_app_data)
+
+    return SimpleNamespace(
+        apps_data=results,
+        failed_apps_data=failed_apps_data
+    )
