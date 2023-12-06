@@ -53,13 +53,5 @@ spec:
             - name: celery-worker
               containerPort: 5001
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: celery-worker
-          readinessProbe:
-            httpGet:
-              path: /
-              port: celery-worker
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
