@@ -103,15 +103,15 @@ jobs:
           location: us-central1-a
           project_id: crane-cloud-274413
 
-      - name: Add Repo (cranecloud-backend)
-        run: |
-          helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
+      # - name: Add Repo (cranecloud-backend)
+      #   run: |
+      #     helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
 
       - name: Helm Release
         run: |
           helm upgrade \
           --install \
-          cranecloud-backend cranecloud-backend/cranecloud-backend \
+          cranecloud-backend ./helm/chart \
           --version 0.1.4 \
           --values helm/values.staging.yaml \
           --namespace cranecloud \
