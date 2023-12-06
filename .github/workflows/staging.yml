@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - develop
+      - test-new-chart
   workflow_dispatch:
 
 jobs:
