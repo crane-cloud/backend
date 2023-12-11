@@ -7,7 +7,7 @@ from app.helpers.kube import disable_project, enable_project
 from flask import current_app, render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema, LoginSchema
+from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
