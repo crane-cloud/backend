@@ -14,6 +14,7 @@ from app.helpers.confirmation import send_verification
 from app.helpers.email import send_email
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
+from app.helpers.pagination import paginate
 import requests
 import secrets
 import string
@@ -1017,12 +1018,14 @@ class UserActivitesView(Resource):
             # get logs
             activities = mongo.db['activities'].find(validated_data_query)
             json_data = dumps(activities)
-
-            # TODO: Add pagination for these activities
+            
+            # Add pagination for these activities
+            pagination_meta_data , paginated_items = paginate(json.loads(json_data), 10, 1)
+            print(pagination_meta_data , paginated_items)
 
             return dict(
                 status='success',
-                data=dict(activity=json.loads(json_data))
+                data=dict(pagination = pagination_meta_data , activity=paginated_items)
             ), 200
         except Exception as err:
             return dict(status='fail', message=str(err)), 400
