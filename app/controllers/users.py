@@ -260,6 +260,9 @@ class UserLoginView(Resource):
 
         login_data = request.get_json()
 
+        if login_data is None:
+            return {"message": "No input data provided"}, 400
+
         validated_user_data, errors = user_schema.load(login_data)
 
         if errors:
@@ -1003,12 +1006,12 @@ class UserActivitesView(Resource):
 
             elif validated_data_query.get('start') and not validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                datetime.min.time()).isoformat(' ')}
+                                                                                  datetime.min.time()).isoformat(' ')}
                 validated_data_query.pop('start', None)
 
             elif not validated_data_query.get('start') and validated_data_query.get('end'):
                 validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
-                datetime.max.time()).isoformat(' ')}
+                                                                                  datetime.max.time()).isoformat(' ')}
                 validated_data_query.pop('end', None)
 
             # get logs
