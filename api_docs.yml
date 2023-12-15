@@ -472,6 +472,14 @@ paths:
           required: true
           description: "Bearer [token]"
         - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+        - in: query
           name: operation
           required: false
           type: string

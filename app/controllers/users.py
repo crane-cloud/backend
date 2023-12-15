@@ -941,6 +941,10 @@ class UserActivitesView(Resource):
             # get query params
             query_params = request.args
 
+            # get pagination params
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
+
             validated_data_query, errors = activity_schema.load(query_params)
 
             if errors:
@@ -1018,10 +1022,9 @@ class UserActivitesView(Resource):
             # get logs
             activities = mongo.db['activities'].find(validated_data_query)
             json_data = dumps(activities)
-            
+
             # Add pagination for these activities
-            pagination_meta_data , paginated_items = paginate(json.loads(json_data), 10, 1)
-            print(pagination_meta_data , paginated_items)
+            pagination_meta_data , paginated_items = paginate(json.loads(json_data), per_page=per_page, page=page)  
 
             return dict(
                 status='success',
