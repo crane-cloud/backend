@@ -26,6 +26,7 @@ from app.models.clusters import Cluster
 from app.models.project import Project
 from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.crane_app_logger import logger
+from app.helpers.pagination import paginate
 
 
 class AppsView(Resource):
@@ -373,6 +374,10 @@ class AppDetailView(Resource):
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
 
+            # get pagination params
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
+
             app_schema = AppSchema()
 
             app = App.get_by_id(app_id)
@@ -499,10 +504,14 @@ class AppDetailView(Resource):
 
             # sort revisions
             revisions.sort(key=lambda x: x['revision_id'], reverse=True)
+
+            # add pagination to these revisions
+            pagination_meta_data , paginated_items = paginate(revisions, per_page=per_page, page=page)
+
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success',
-                        data=dict(apps=app_list, revisions=revisions)), 200
+                        data=dict(apps=app_list, pagination=pagination_meta_data, revisions=paginated_items)), 200
 
         except client.rest.ApiException as exc:
 

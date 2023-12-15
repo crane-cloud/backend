@@ -3768,6 +3768,14 @@ paths:
           name: app_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number for revisions
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of revisions per page
 
       responses:
         200:
