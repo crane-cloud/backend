@@ -1020,7 +1020,7 @@ class UserActivitesView(Resource):
                 validated_data_query.pop('end', None)
 
             # get logs
-            activities = mongo.db['activities'].find(validated_data_query)
+            activities = mongo.db['activities'].find(validated_data_query).sort("creation_date", -1)
             json_data = dumps(activities)
 
             # Add pagination for these activities
