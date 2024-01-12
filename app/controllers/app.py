@@ -369,14 +369,11 @@ class AppDetailView(Resource):
     @jwt_required
     def get(self, app_id):
         """
+        get single application details
         """
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
-
-            # get pagination params
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 10, type=int)
 
             app_schema = AppSchema()
 
@@ -477,41 +474,16 @@ class AppDetailView(Resource):
             # Get deployment version history
             version_history = kube_client.appsv1_api.list_namespaced_replica_set(
                 project.alias, label_selector=f"app={app_list['alias']}")
-
-            revisions = []
+            
             for item in version_history.items:
-                replica_command = item.spec.template.spec.containers[0].command
-                if replica_command:
-                    replica_command = ' '.join(replica_command)
-                else:
-                    replica_command = replica_command
-                # TODO Add deployment status to replicas
-                replica_set = {
-                    'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
-                    'revision_id': int(item.metadata.creation_timestamp.timestamp()),
-                    'replicas': item.status.ready_replicas,
-                    'created_at': str(item.metadata.creation_timestamp),
-                    'image': item.spec.template.spec.containers[0].image,
-                    'port': item.spec.template.spec.containers[0].ports[0].container_port,
-                    'command': replica_command
-                }
-
+                # set revision_id basing on the current revision
                 if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
-                    replica_set["current"] = True
                     app_list["revision_id"] = int(
                         item.metadata.creation_timestamp.timestamp())
-                revisions.append(replica_set)
-
-            # sort revisions
-            revisions.sort(key=lambda x: x['revision_id'], reverse=True)
-
-            # add pagination to these revisions
-            pagination_meta_data , paginated_items = paginate(revisions, per_page=per_page, page=page)
 
             if errors:
                 return dict(status='error', error=errors, data=dict(apps=app_list)), 409
-            return dict(status='success',
-                        data=dict(apps=app_list, pagination=pagination_meta_data, revisions=paginated_items)), 200
+            return dict(status='success', data=dict(apps=app_list)), 200
 
         except client.rest.ApiException as exc:
 
@@ -840,6 +812,108 @@ class AppDetailView(Resource):
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
+            return dict(status='fail', message=str(exc)), 500
+
+class AppRevisionsView(Resource):
+    @jwt_required
+    def get(self, app_id):
+        """
+        get application revisions
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            # get pagination params
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 10, type=int)
+
+            app_schema = AppSchema()
+
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(status='fail', message=f'App {app_id} not found'), 404
+
+            project = app.project
+
+            if not project:
+                return dict(status='fail', message='Internal server error'), 500
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                if not is_authorised_project_user(project, current_user_id, 'member'):
+                    return dict(status='fail', message='Unauthorised'), 403
+
+            app_data, errors = app_schema.dumps(app)
+
+            app_list = json.loads(app_data)
+
+            cluster = Cluster.get_by_id(project.cluster_id)
+
+            if not cluster:
+                return dict(
+                    status='fail',
+                    message=f'cluster with id {project.cluster_id} does not exist'), 404
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            app_status_object = \
+                kube_client.appsv1_api.read_namespaced_deployment_status(
+                    app_list['alias'] + "-deployment", project.alias)
+
+            # this is needed in the subsequent executions to determine the current revision
+            app_list["revision"] = app_status_object.metadata.annotations.get(
+                'deployment.kubernetes.io/revision')
+
+            # Get deployment version history
+            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
+                project.alias, label_selector=f"app={app_list['alias']}")
+
+            revisions = []
+            for item in version_history.items:
+                replica_command = item.spec.template.spec.containers[0].command
+                if replica_command:
+                    replica_command = ' '.join(replica_command)
+                else:
+                    replica_command = replica_command
+                # TODO Add deployment status to replicas
+                replica_set = {
+                    'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
+                    'revision_id': int(item.metadata.creation_timestamp.timestamp()),
+                    'replicas': item.status.ready_replicas,
+                    'created_at': str(item.metadata.creation_timestamp),
+                    'image': item.spec.template.spec.containers[0].image,
+                    'port': item.spec.template.spec.containers[0].ports[0].container_port,
+                    'command': replica_command
+                }
+
+                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
+                    replica_set["current"] = True
+                    app_list["revision_id"] = int(
+                        item.metadata.creation_timestamp.timestamp())
+                revisions.append(replica_set)
+
+            # sort revisions
+            revisions.sort(key=lambda x: x['revision_id'], reverse=True)
+
+            # add pagination to these revisions
+            pagination_meta_data , paginated_items = paginate(revisions, per_page=per_page, page=page)
+
+            if errors:
+                return dict(status='error', error=errors), 409
+            return dict(status='success',
+                        data=dict(pagination=pagination_meta_data, revisions=paginated_items)), 200
+
+        except client.rest.ApiException as exc:
+
+            if exc.status == 404:
+                return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
+
+            return dict(status='fail', message=exc.reason), exc.status
+
+        except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
 
