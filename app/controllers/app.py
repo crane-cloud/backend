@@ -863,9 +863,7 @@ class AppRevisionsView(Resource):
                 kube_client.appsv1_api.read_namespaced_deployment_status(
                     app_list['alias'] + "-deployment", project.alias)
 
-            app_list["image"] = app_status_object.spec.template.spec.containers[0].image
-            app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
-            app_list["replicas"] = app_status_object.spec.replicas
+            # this is needed in the subsequent executions to determine the current revision
             app_list["revision"] = app_status_object.metadata.annotations.get(
                 'deployment.kubernetes.io/revision')
 
