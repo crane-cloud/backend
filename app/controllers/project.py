@@ -25,6 +25,10 @@ from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, func
 from app.helpers.crane_app_logger import logger
+from flask import current_app, render_template
+from app.helpers.email import send_email
+
+
 
 
 class ProjectsView(Resource):
@@ -1002,6 +1006,29 @@ class ProjectDisableView(Resource):
             status_code = disabled_project.status_code if disabled_project.status_code else 500
             return dict(status='fail', message=disabled_project.message), status_code
 
+        receipient_users = [user.user for user in project.users]
+        project_owner = User.get_by_id(project.owner_id)
+        
+        for user in receipient_users : 
+
+            html_layout = render_template(
+            'user/project_disable_enable.html',
+            email=user.email,
+            name=user.name,
+            is_project_owner = (user.id == project.owner_id),
+            owner_name = project_owner.name,
+            project_name = project.name,
+            admin_disabled = is_admin(current_user_roles),
+            status='disabled')
+
+            send_email(
+                user.email,
+                f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
+
         return dict(
             status='success',
             message=f'project {project_id} disabled successfully'
@@ -1036,6 +1063,29 @@ class ProjectEnableView(Resource):
         if type(enabled_project) == SimpleNamespace:
             status_code = enabled_project.status_code if enabled_project.status_code else 500
             return dict(status='fail', message=enabled_project.message), status_code
+        
+        receipient_users = [user.user for user in project.users]
+        project_owner = User.get_by_id(project.owner_id)
+        
+        for user in receipient_users : 
+
+            html_layout = render_template(
+            'user/project_disable_enable.html',
+            email=user.email,
+            name=user.name,
+            is_project_owner = (user.id == project.owner_id),
+            owner_name = project_owner.name,
+            project_name = project.name,
+            admin_disabled = is_admin(current_user_roles),
+            status='enabled')
+
+            send_email(
+                user.email,
+                f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
+                html_layout,
+                current_app.config["MAIL_DEFAULT_SENDER"],
+                current_app._get_current_object(),
+            )
 
         return dict(
             status='success',

@@ -10,10 +10,10 @@ def async_mail(app, message):
         mail.send(message)
 
 
-def send_email(to, subject, template, sender, app):
+def send_email(to : str or list, subject, template, sender, app):
     msg = Message(
         f'[Crane Cloud] {subject}',
-        recipients=[to],
+        recipients = [to] if type(to) == str else [receipient for receipient in to],
         html=template,
         sender=sender,
     )
