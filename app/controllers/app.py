@@ -474,7 +474,7 @@ class AppDetailView(Resource):
             # Get deployment version history
             version_history = kube_client.appsv1_api.list_namespaced_replica_set(
                 project.alias, label_selector=f"app={app_list['alias']}")
-            
+
             for item in version_history.items:
                 # set revision_id basing on the current revision
                 if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
@@ -756,7 +756,11 @@ class AppDetailView(Resource):
                         namespace=namespace,
                         body=service
                     )
-            if command:
+
+            if ("command" in validated_update_data and validated_update_data["command"] == ""):
+                cluster_deployment.spec.template.spec.containers[0].command = [
+                ]
+            elif command is not None:
                 cluster_deployment.spec.template.spec.containers[0].command = command.split(
                 )
 
@@ -813,6 +817,7 @@ class AppDetailView(Resource):
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
             return dict(status='fail', message=str(exc)), 500
+
 
 class AppRevisionsView(Resource):
     @jwt_required
@@ -899,7 +904,8 @@ class AppRevisionsView(Resource):
             revisions.sort(key=lambda x: x['revision_id'], reverse=True)
 
             # add pagination to these revisions
-            pagination_meta_data , paginated_items = paginate(revisions, per_page=per_page, page=page)
+            pagination_meta_data, paginated_items = paginate(
+                revisions, per_page=per_page, page=page)
 
             if errors:
                 return dict(status='error', error=errors), 409
