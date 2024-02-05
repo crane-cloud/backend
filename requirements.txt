@@ -12,7 +12,7 @@ cached-property==1.5.2
 cachetools==3.1.1
 celery==5.1.2
 certifi==2023.7.22
-cffi==1.12.3
+cffi
 chardet==3.0.4
 charset-normalizer==2.0.12
 click==7.1.2

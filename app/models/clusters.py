@@ -18,6 +18,7 @@ class Cluster(ModelMixin):
     host = db.Column(db.String, nullable=False, unique=True)
     token = db.Column(EncryptedType(db.String, secret), nullable=False)
     description = db.Column(db.String, nullable=False)
+    sub_domain = db.Column(db.String, default="cranecloud.io")
     prometheus_url = db.Column(db.String, default="")
     cost_modal_url = db.Column(db.String, default="")
     projects = db.relationship('Project', backref='cluster', lazy=True)

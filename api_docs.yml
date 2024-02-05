@@ -681,6 +681,8 @@ paths:
                 type: string
               description:
                 type: string
+              sub_domain:
+                type: string
               prometheus_url:
                 type: string
               cost_modal_url:
@@ -773,6 +775,8 @@ paths:
               host:
                 type: string
               token:
+                type: string
+              sub_domain:
                 type: string
               prometheus_url:
                 type: string
