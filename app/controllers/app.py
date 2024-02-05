@@ -474,7 +474,7 @@ class AppDetailView(Resource):
             # Get deployment version history
             version_history = kube_client.appsv1_api.list_namespaced_replica_set(
                 project.alias, label_selector=f"app={app_list['alias']}")
-            
+
             for item in version_history.items:
                 # set revision_id basing on the current revision
                 if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
@@ -814,6 +814,7 @@ class AppDetailView(Resource):
                          a_app_id=app_id)
             return dict(status='fail', message=str(exc)), 500
 
+
 class AppRevisionsView(Resource):
     @jwt_required
     def get(self, app_id):
@@ -899,7 +900,8 @@ class AppRevisionsView(Resource):
             revisions.sort(key=lambda x: x['revision_id'], reverse=True)
 
             # add pagination to these revisions
-            pagination_meta_data , paginated_items = paginate(revisions, per_page=per_page, page=page)
+            pagination_meta_data, paginated_items = paginate(
+                revisions, per_page=per_page, page=page)
 
             if errors:
                 return dict(status='error', error=errors), 409
@@ -949,7 +951,7 @@ class AppRevertView(Resource):
             if not cluster or not namespace:
                 return dict(status='fail', message='Internal server error'), 500
 
-            app_sub_domain = get_app_subdomain(app.alias)
+            app_sub_domain = get_app_subdomain(app.alias, cluster.sub_domain)
             custom_domain = None
             if type(app.url) is str:
                 custom_domain = app.url.split("//", 1)[-1]

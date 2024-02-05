@@ -1,12 +1,6 @@
 import os
 
 
-def get_app_subdomain(alias):
+def get_app_subdomain(alias, domain):
 
-    DOMAIN = "cranecloud.io"
-
-    if os.getenv("FLASK_ENV") != "production":
-
-        return f'{alias}.dev.{DOMAIN}'
-
-    return f'{alias}.{DOMAIN}'
+    return f'{alias}.{domain}'

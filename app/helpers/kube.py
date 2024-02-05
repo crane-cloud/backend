@@ -281,7 +281,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             app_data['has_custom_domain'] = True
 
         else:
-            sub_domain = get_app_subdomain(app_alias)
+            sub_domain = get_app_subdomain(app_alias, project.cluster.sub_domain)
 
         # create new ingres rule for the application
         new_ingress_backend = client.V1IngressBackend(

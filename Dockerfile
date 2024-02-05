@@ -1,12 +1,12 @@
 # use an official python runtime as the base image
-FROM python:3.6
+FROM python:3.10
 
 # set the (container) working directory
 WORKDIR /app
 
 # install netcat
 RUN apt-get update && \
-    apt-get install netcat -y
+    apt-get install netcat-traditional -y
 
 COPY requirements.txt /app/requirements.txt
 
