@@ -756,7 +756,11 @@ class AppDetailView(Resource):
                         namespace=namespace,
                         body=service
                     )
-            if command:
+
+            if ("command" in validated_update_data and validated_update_data["command"] == ""):
+                cluster_deployment.spec.template.spec.containers[0].command = [
+                ]
+            elif command is not None:
                 cluster_deployment.spec.template.spec.containers[0].command = command.split(
                 )
 
