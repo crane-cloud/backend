@@ -1,133 +1,133 @@
 ---
-  name: staging
-  
-  on:
-    push:
-      branches:
-        - develop
-    workflow_dispatch:
-  
-  jobs:
-    build:
-      outputs:
-        image: ${{ steps.export.outputs.image }}
-        tag: ${{ steps.export.outputs.tag }}
-  
-      runs-on: ubuntu-latest
-  
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v2
-  
-        - name: Install (Buildx)
-          uses: docker/setup-buildx-action@v1
-  
-        - name: Login (GCP)
-          uses: google-github-actions/auth@v0
-          with:
-            credentials_json: ${{ secrets.CREDENTIALS_JSON }}
-  
-        - name: Install (Gcloud)
-          uses: google-github-actions/setup-gcloud@v1
-          with:
-            project_id: crane-cloud-274413
-            install_components: "gke-gcloud-auth-plugin"
-  
-        - name: Login (GCR)
-          run: gcloud auth configure-docker
-  
-        - id: meta
-          name: Tag
-          uses: docker/metadata-action@v3
-          with:
-            flavor: |
-              latest=true
-            images: gcr.io/crane-cloud-274413/cranecloud-backend
-            tags: |
-              type=ref,event=branch
-              type=ref,event=pr
-              type=sha
-  
-        - name: Build
-          uses: docker/build-push-action@v2
-          with:
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
-            context: .
-            file: docker/prod/Dockerfile
-            labels: ${{ steps.meta.outputs.labels }}
-            push: true
-            tags: ${{ steps.meta.outputs.tags }}
-  
-        - id: export
-          name: Export
-          uses: actions/github-script@v5
-          with:
-            script: |
-              const metadata = JSON.parse(`${{ steps.meta.outputs.json }}`)
-              const fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
-              if (fullUrl == null) {
-                core.error('Unable to find sha tag of image')
-              } else {
-                const tag = fullUrl.split(':')[1]
-                core.setOutput('image', fullUrl)
-                core.setOutput('tag', tag)
-              }
-  
-    Staging:
-      name: Deploy (Staging)
-  
-      needs:
-        - Build
-  
-      runs-on: ubuntu-latest
-  
-      steps:
-        - name: Clone
-          uses: actions/checkout@v2
-  
-        - name: Login (GCP)
-          uses: google-github-actions/auth@v0
-          with:
-            credentials_json: ${{ secrets.CREDENTIALS_JSON }}
-  
-        - name: Install (Gcloud)
-          uses: google-github-actions/setup-gcloud@v1
-          with:
-            project_id: crane-cloud-274413
-            install_components: "gke-gcloud-auth-plugin"
-  
-        - name: Login (Kubernetes Cluster)
-          uses: google-github-actions/get-gke-credentials@v1
-          with:
-            cluster_name: staging-cluster
-            location: us-central1-a
-            project_id: crane-cloud-274413
-  
-        # - name: Add Repo (cranecloud-backend)
-        #   run: |
-        #     helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
-  
-        - name: Helm Release
-          run: |
-            helm upgrade \
-            --install \
-            cranecloud-backend ./helm/chart \
-            --version 0.1.4 \
-            --values helm/values.staging.yaml \
-            --namespace cranecloud \
-            --set image.tag="${{ needs.build.outputs.tag }}" \
-            --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \
-            --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
-            --set environment.APP_MAIL_PASSWORD="${{ secrets.STAGING_APP_MAIL_PASSWORD }}" \
-            --set environment.DATABASE_URI="${{ secrets.STAGING_DATABASE_URI }}" \
-            --set environment.MONGO_URI="${{ secrets.STAGING_MONGO_URI }}" \
-            --set environment.FLASK_APP_SALT="${{ secrets.STAGING_FLASK_APP_SALT }}" \
-            --set environment.FLASK_APP_SECRET="${{ secrets.STAGING_FLASK_APP_SECRET }}" \
-            --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
-            --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.STAGING_NEW_RELIC_LICENSE_KEY }}" \
-            --timeout=300s
-  
-        - name: Monitor Rollout
-          run: |
-            kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud
+name: staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    outputs:
+      image: ${{ steps.export.outputs.image }}
+      tag: ${{ steps.export.outputs.tag }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install (Buildx)
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login (GCP)
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+
+      - name: Install (Gcloud)
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: crane-cloud-274413
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Login (GCR)
+        run: gcloud auth configure-docker
+
+      - id: meta
+        name: Tag
+        uses: docker/metadata-action@v3
+        with:
+          flavor: |
+            latest=true
+          images: gcr.io/crane-cloud-274413/cranecloud-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: .
+          file: docker/prod/Dockerfile
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - id: export
+        name: Export
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const metadata = JSON.parse(`${{ steps.meta.outputs.json }}`)
+            const fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
+            if (fullUrl == null) {
+              core.error('Unable to find sha tag of image')
+            } else {
+              const tag = fullUrl.split(':')[1]
+              core.setOutput('image', fullUrl)
+              core.setOutput('tag', tag)
+            }
+
+  Staging:
+    name: Deploy (Staging)
+
+    needs:
+      - Build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Login (GCP)
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+
+      - name: Install (Gcloud)
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: crane-cloud-274413
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Login (Kubernetes Cluster)
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: staging-cluster
+          location: us-central1-a
+          project_id: crane-cloud-274413
+
+      # - name: Add Repo (cranecloud-backend)
+      #   run: |
+      #     helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
+
+      - name: Helm Release
+        run: |
+          helm upgrade \
+          --install \
+          cranecloud-backend ./helm/chart \
+          --version 0.1.4 \
+          --values helm/values.staging.yaml \
+          --namespace cranecloud \
+          --set image.tag="${{ needs.build.outputs.tag }}" \
+          --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \
+          --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
+          --set environment.APP_MAIL_PASSWORD="${{ secrets.STAGING_APP_MAIL_PASSWORD }}" \
+          --set environment.DATABASE_URI="${{ secrets.STAGING_DATABASE_URI }}" \
+          --set environment.MONGO_URI="${{ secrets.STAGING_MONGO_URI }}" \
+          --set environment.FLASK_APP_SALT="${{ secrets.STAGING_FLASK_APP_SALT }}" \
+          --set environment.FLASK_APP_SECRET="${{ secrets.STAGING_FLASK_APP_SECRET }}" \
+          --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
+          --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.STAGING_NEW_RELIC_LICENSE_KEY }}" \
+          --timeout=300s
+
+      - name: Monitor Rollout
+        run: |
+          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud
