@@ -131,6 +131,7 @@ jobs:
           --set environment.FLASK_APP_SECRET="${{ secrets.PRODUCTION_FLASK_APP_SECRET }}" \
           --set environment.GITHUB_CLIENT_SECRET="${{ secrets.PRODUCTION_GITHUB_CLIENT_SECRET }}" \
           --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.PRODUCTION_NEW_RELIC_LICENSE_KEY }}" \
+          --set environment.KUBE_SERVICE_PORT="${{ secrets.PRODUCTION_KUBE_SERVICE_PORT }}" \
           --timeout=300s
 
       - name: Monitor Rollout

@@ -288,7 +288,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             service=client.V1IngressServiceBackend(
                 name=service_name,
                 port=client.V1ServiceBackendPort(
-                    number=3000
+                    number=current_app.config['KUBE_SERVICE_PORT']
                 )
             )
         )

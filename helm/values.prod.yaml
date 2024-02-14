@@ -79,3 +79,4 @@ environment:
   NEW_RELIC_LICENSE_KEY: ${{ NEW_RELIC_LICENSE_KEY }}
   PROMETHEUS_URL: https://prom.cranecloud.io/
   REDIS_URL: redis://redis:6379
+  KUBE_SERVICE_PORT: ${{ KUBE_SERVICE_PORT}}
