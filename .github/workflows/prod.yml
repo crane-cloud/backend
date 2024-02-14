@@ -6,9 +6,6 @@ on:
     types:
       - released
       - prereleased
-  push:
-    branches:
-      - ft-update-ingressport
 
 jobs:
   build:
@@ -22,8 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          # ref: develop
-          ref: ft-update-ingressport
+          ref: develop
 
       
       - name: Install (Buildx)
