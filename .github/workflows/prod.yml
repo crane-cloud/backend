@@ -21,7 +21,6 @@ jobs:
         with:
           ref: develop
 
-      
       - name: Install (Buildx)
         uses: docker/setup-buildx-action@v1
 
@@ -34,7 +33,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
-          install_components: 'gke-gcloud-auth-plugin'
+          install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (GCR)
         run: gcloud auth configure-docker
@@ -80,7 +79,6 @@ jobs:
             }
 
   Production:
-  
     name: Deploy (Production)
 
     needs:
@@ -101,7 +99,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: crane-cloud-274413
-          install_components: 'gke-gcloud-auth-plugin'
+          install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (Kubernetes Cluster)
         uses: google-github-actions/get-gke-credentials@v1
@@ -133,10 +131,10 @@ jobs:
           --set environment.GITHUB_CLIENT_SECRET="${{ secrets.PRODUCTION_GITHUB_CLIENT_SECRET }}" \
           --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.PRODUCTION_NEW_RELIC_LICENSE_KEY }}" \
           --set environment.KUBE_SERVICE_PORT="${{ secrets.PRODUCTION_KUBE_SERVICE_PORT }}" \
-          --set environment.SYSTEM_DOCKER_USERNAME="${{ secrets.PRODUCTION_SYSTEM_DOCKER_USERNAME }}" \
+          --set environment.SYSTEM_DOCKER_EMAIL="${{ secrets.PRODUCTION_SYSTEM_DOCKER_USERNAME }}" \
           --set environment.SYSTEM_DOCKER_PASSWORD="${{ secrets.PRODUCTION_SYSTEM_DOCKER_PASSWORD }}" \
           --timeout=300s
 
       - name: Monitor Rollout
         run: |
-          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud-prod 
+          kubectl rollout status deployment/cranecloud-backend --timeout=300s --namespace cranecloud-prod

@@ -120,7 +120,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             # update registry
             resource_registry['image_pull_secret'] = True
 
-        elif current_app.config['SYSTEM_DOCKER_USERNAME'] and current_app.config['SYSTEM_DOCKER_PASSWORD']:
+        elif current_app.config['SYSTEM_DOCKER_EMAIL'] and current_app.config['SYSTEM_DOCKER_PASSWORD']:
             DEFAULT_NAMESPACE = namespace
             DEFAULT_APP_NAME = 'cranecloud-app'
             try:
@@ -132,9 +132,9 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                         kube_client=kube_client,
                         app_alias=DEFAULT_APP_NAME,
                         namespace=DEFAULT_NAMESPACE,
-                        docker_username=current_app.config['SYSTEM_DOCKER_USERNAME'],
+                        docker_username=current_app.config['SYSTEM_DOCKER_EMAIL'],
                         docker_password=current_app.config['SYSTEM_DOCKER_PASSWORD'],
-                        docker_email=current_app.config['SYSTEM_DOCKER_USERNAME'],
+                        docker_email=current_app.config['SYSTEM_DOCKER_EMAIL'],
                         docker_server=current_app.config['SYSTEM_DOCKER_SERVER']
                     )
                 else:
@@ -142,7 +142,6 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
             # update registry
             resource_registry['image_pull_secret'] = True
-
 
         # create app deployment's pvc meta and spec
         # pvc_name = f'{app_alias}-pvc'

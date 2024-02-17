@@ -38,9 +38,10 @@ class Base:
     KUBE_SERVICE_PORT = os.getenv("KUBE_SERVICE_PORT", 80)
 
     # Docker logins (optional)
-    SYSTEM_DOCKER_USERNAME = os.getenv("SYSTEM_DOCKER_USERNAME")
+    SYSTEM_DOCKER_EMAIL = os.getenv("SYSTEM_DOCKER_EMAIL")
     SYSTEM_DOCKER_PASSWORD = os.getenv("SYSTEM_DOCKER_PASSWORD")
     SYSTEM_DOCKER_SERVER = os.getenv("SYSTEM_DOCKER_SERVER", 'docker.io')
+
 
 class Development(Base):
     """ development config """
