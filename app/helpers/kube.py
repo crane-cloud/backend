@@ -123,7 +123,6 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         elif current_app.config['SYSTEM_DOCKER_USERNAME'] and current_app.config['SYSTEM_DOCKER_PASSWORD']:
             DEFAULT_NAMESPACE = namespace
             DEFAULT_APP_NAME = 'cranecloud-app'
-            DEFAULT_APP_NAME = app_alias
             try:
                 kube_client.kube.read_namespaced_secret(
                     DEFAULT_APP_NAME, DEFAULT_NAMESPACE)
