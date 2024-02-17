@@ -67,7 +67,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
     # env_vars = app_data['env_vars']
     env_vars = app_data.get('env_vars', None)
     private_repo = app_data.get('private_image', False)
-    docker_server = app_data.get('docker_server', None)
+    docker_server = app_data.get('docker_server', 'docker.io')
     docker_username = app_data.get('docker_username', None)
     docker_password = app_data.get('docker_password', None)
     docker_email = app_data.get('docker_email', None)
@@ -108,45 +108,40 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             )
 
         if private_repo:
-
-            # handle gcr credentials
-            if 'gcr' in docker_server and docker_username == '_json_key':
-                docker_password = json.dumps(
-                    json.loads(base64.b64decode(docker_password))
-                )
-
-            # create image pull secrets
-            authstring = base64.b64encode(
-                f'{docker_username}:{docker_password}'.encode("utf-8"))
-
-            secret_dict = dict(auths={
-                docker_server: {
-                    "username": docker_username,
-                    "password": docker_password,
-                    "email": docker_email,
-                    "auth": str(authstring, "utf-8")
-                }
-            })
-
-            secret_b64 = base64.b64encode(
-                json.dumps(secret_dict).encode("utf-8")
-            )
-
-            secret_body = client.V1Secret(
-                metadata=client.V1ObjectMeta(name=app_alias),
-                type='kubernetes.io/dockerconfigjson',
-                data={'.dockerconfigjson': str(secret_b64, "utf-8")})
-
-            kube_client.kube.create_namespaced_secret(
+            image_pull_secret = create_docker_pull_secret(
+                kube_client=kube_client,
+                app_alias=app_alias,
                 namespace=namespace,
-                body=secret_body,
-                _preload_content=False)
-
+                docker_username=docker_username,
+                docker_password=docker_password,
+                docker_email=docker_email,
+                docker_server=docker_server
+            )
             # update registry
             resource_registry['image_pull_secret'] = True
 
-            image_pull_secret = client.V1LocalObjectReference(
-                name=app_alias)
+        elif current_app.config['SYSTEM_DOCKER_EMAIL'] and current_app.config['SYSTEM_DOCKER_PASSWORD']:
+            DEFAULT_NAMESPACE = namespace
+            DEFAULT_APP_NAME = 'cranecloud-app'
+            try:
+                kube_client.kube.read_namespaced_secret(
+                    DEFAULT_APP_NAME, DEFAULT_NAMESPACE)
+            except client.rest.ApiException as e:
+                if e.status == 404:
+                    image_pull_secret = create_docker_pull_secret(
+                        kube_client=kube_client,
+                        app_alias=DEFAULT_APP_NAME,
+                        namespace=DEFAULT_NAMESPACE,
+                        docker_username=current_app.config['SYSTEM_DOCKER_EMAIL'],
+                        docker_password=current_app.config['SYSTEM_DOCKER_PASSWORD'],
+                        docker_email=current_app.config['SYSTEM_DOCKER_EMAIL'],
+                        docker_server=current_app.config['SYSTEM_DOCKER_SERVER']
+                    )
+                else:
+                    raise
+
+            # update registry
+            resource_registry['image_pull_secret'] = True
 
         # create app deployment's pvc meta and spec
         # pvc_name = f'{app_alias}-pvc'
@@ -281,14 +276,15 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             app_data['has_custom_domain'] = True
 
         else:
-            sub_domain = get_app_subdomain(app_alias, project.cluster.sub_domain)
+            sub_domain = get_app_subdomain(
+                app_alias, project.cluster.sub_domain)
 
         # create new ingres rule for the application
         new_ingress_backend = client.V1IngressBackend(
             service=client.V1IngressServiceBackend(
                 name=service_name,
                 port=client.V1ServiceBackendPort(
-                    number=3000
+                    number=current_app.config['KUBE_SERVICE_PORT']
                 )
             )
         )
@@ -412,6 +408,48 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             message=str(e),
             status_code=500
         )
+
+
+def create_docker_pull_secret(kube_client, app_alias, namespace, docker_username, docker_password, docker_email, docker_server):
+    """Create a docker pull secret for repositories"""
+
+    # handle gcr credentials
+    if 'gcr' in docker_server and docker_username == '_json_key':
+        docker_password = json.dumps(
+            json.loads(base64.b64decode(docker_password))
+        )
+
+    # create image pull secrets
+    authstring = base64.b64encode(
+        f'{docker_username}:{docker_password}'.encode("utf-8"))
+
+    secret_dict = dict(auths={
+        docker_server: {
+            "username": docker_username,
+            "password": docker_password,
+            "email": docker_email,
+            "auth": str(authstring, "utf-8")
+        }
+    })
+    print(secret_dict)
+
+    secret_b64 = base64.b64encode(
+        json.dumps(secret_dict).encode("utf-8")
+    )
+
+    secret_body = client.V1Secret(
+        metadata=client.V1ObjectMeta(name=app_alias),
+        type='kubernetes.io/dockerconfigjson',
+        data={'.dockerconfigjson': str(secret_b64, "utf-8")})
+
+    kube_client.kube.create_namespaced_secret(
+        namespace=namespace,
+        body=secret_body,
+        _preload_content=False)
+
+    image_pull_secret = client.V1LocalObjectReference(
+        name=app_alias)
+    return image_pull_secret
 
 
 def update_app_env_vars(client, cluster_deployment, env_vars, delete_env_vars=[]):
