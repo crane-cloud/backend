@@ -6,7 +6,9 @@ on:
     types:
       - released
       - prereleased
-
+  push:
+    branches:
+      - develop
 jobs:
   build:
     outputs:
