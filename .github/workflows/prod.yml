@@ -8,7 +8,7 @@ on:
       - prereleased
   push:
     branches:
-      - develop
+      - ft-chang-service-port
 jobs:
   build:
     outputs:
