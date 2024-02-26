@@ -77,8 +77,7 @@ class Staging(Base):
 class Production(Base):
     """ production config """
 
-    # DEBUG = False
-    DEBUG = True
+    DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
     MONGO_URI = os.getenv("MONGO_URI")
 

@@ -261,9 +261,9 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                 service_name, project.alias)
         except:
             pass
-        logger.error(
+        print(
             f'Creating service for {app_alias} namespasce {namespace}')
-        logger.error(service)
+        print(service)
         # print(f'Creating service for {app_alias} namespasce {namespace}')
         # print(service)
         kube_client.kube.create_namespaced_service(
