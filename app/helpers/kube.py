@@ -262,6 +262,8 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         except:
             pass
 
+        print(f'Creating service for {app_alias} namespasce {namespace}')
+        print(service)
         kube_client.kube.create_namespaced_service(
             namespace=namespace,
             body=service,
