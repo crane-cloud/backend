@@ -81,7 +81,7 @@ class ProjectUsersView(Resource):
             email_role = role
 
             # send email
-            success = True
+            # success = True # failed to see it's relevance
             send_user_to_project_notification(
             email,
             name,
