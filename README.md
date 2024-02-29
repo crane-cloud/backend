@@ -35,10 +35,14 @@ Make sure you have `pip` installed on your machine.
 
 Create a pip virtual environment called `venv`.
 
+```bash
+python -m venv venv
+```
+
 Activate the virtual environment:
 
 ```bash
-. venv/bin/activate
+.\venv\Scripts\activate
 ```
 
 Install the dependencies:
@@ -52,7 +56,7 @@ Create a `.env` file (which defines the environment variables used) at the root 
 Add the following details, customizing as needed:
 
 ```bash
-export FLASK_APP=app.py
+export FLASK_APP=server.py
 export FLASK_ENV=development
 export FLASK_DEBUG=1
 export FLASK_RUN_PORT=5000
@@ -127,7 +131,7 @@ To create an admin account, run:
 
 ```bash
 flask admin_user --email=<email> --password=<password> --confirm_password=<password>
-```
+``` 
 
 ### To add clusters locally
 
