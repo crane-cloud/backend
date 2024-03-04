@@ -35,7 +35,7 @@ class Base:
     # Log level
     LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 
-    KUBE_SERVICE_PORT = int(os.getenv("KUBE_SERVICE_PORT", 80))
+    KUBE_SERVICE_PORT = os.getenv("KUBE_SERVICE_PORT", 80)
 
     # Docker logins (optional)
     SYSTEM_DOCKER_EMAIL = os.getenv("SYSTEM_DOCKER_EMAIL")
