@@ -1,252 +1,135 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title></title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <style type="text/css">
-      body,
-      table,
-      td,
-      a {
-        -webkit-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
-      }
-
-      table,
-      td {
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
-      }
-
-      img {
-        -ms-interpolation-mode: bicubic;
-      }
-
-      /* RESET STYLES */
-      img {
-        border: 0;
-        height: auto;
-        line-height: 100%;
-        outline: none;
-        text-decoration: none;
-      }
-
-      table {
-        border-collapse: collapse !important;
-      }
-
-      body {
-        height: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-      }
-
-      /* iOS BLUE LINKS */
-      a[x-apple-data-detectors] {
-        color: inherit !important;
-        text-decoration: none !important;
-        font-size: inherit !important;
-        font-family: inherit !important;
-        font-weight: inherit !important;
-        line-height: inherit !important;
-      }
-
-      /* MOBILE STYLES */
-      @media screen and (max-width: 600px) {
-        h1 {
-          font-size: 32px !important;
-          line-height: 32px !important;
-        }
-      }
-
-      /* ANDROID CENTER FIX */
-      div[style*="margin: 16px 0;"] {
-        margin: 0 !important;
-      }
-    </style>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:ital,wght@1,500&display=swap"
-      rel="stylesheet"
-    />
-
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crane-Cloud</title>
     <style>
-      body {
-        font-family: "Roboto", sans-serif;
-      }
+        @media only screen and (max-width: 600px) {
+            body, table, td, p, a {
+                font-size: 14px !important;
+            }
+            h1 {
+                font-size: 20px !important;
+            }
+            h2 {
+                font-size: 18px !important;
+            }
+            .mobile-padding {
+                padding: 10px !important;
+            }
+            .mobile-margin {
+                margin: 10px !important;
+            }
+        }
     </style>
-  </head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #EAF0F3;">
+    <!-- Message Container -->
+    <table width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 10px; margin: 30px auto;">
+        <tr>
+            <td align="left" valign="top" style="padding: 40px;">
+                <!-- Logo and Greeting -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" align="left">
+                    <tr>
+                        <td align="left" valign="top">
+                            <img src="https://raw.githubusercontent.com/crane-cloud/frontend/develop/public/favicon.png" alt="Logo" style="display: block; max-width: 80px; margin: 0 auto 0px;">
+                            
 
-  <body style="background-color: #f4f4f4; margin: 0 !important; padding: 0 !important">
-    <!-- HIDDEN PREHEADER TEXT -->
-    <div
-      style="
-        display: none;
-        font-size: 1px;
-        color: #fefefe;
-        line-height: 1px;
-        max-height: 0px;
-        max-width: 0px;
-        opacity: 0;
-        overflow: hidden;
-      "
-    ></div>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-      <tr>
-        <td bgcolor="#f4f4f4" align="center" style="padding: 0px 10px 0px 10px">
-          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px">
-            <tr>
-              <td
-                bgcolor="#ffffff"
-                align="center"
-                valign="top"
-                style="
-                  padding: 5px 15px 30px 15px;
-                  border-radius: 4px 4px 0px 0px;
-                  color: #111111;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 48px;
-                  font-weight: 400;
-                  letter-spacing: 4px;
-                  line-height: 48px;
-                "
-              >
-                <img
-                  src="https://raw.githubusercontent.com/crane-cloud/frontend/develop/public/favicon.png"
-                  width="150"
-                  height="100"
-                  style="display: block; border: 0px"
-                />
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-
-      <tr>
-        <td bgcolor="#f4f4f4" align="center" style="padding: 0px 10px 0px 10px">
-          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px">
-            <tr>
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 5px 15px 30px 15px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              >
-                <p style="margin: 0">Hey there,</p>
-              </td>
-            </tr>
-            <tr>
-              {% if success ==true %}
-
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 5px 15px 30px 15px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              >
-                <p style="margin: 0">This email is to inform you that you have been invited to collaborate on the {{project_name}} project by {{name}}. You've been assigned a role: {{email_role}} on this project!</p>
-                <p style="margin: 0">You are required to register with Crane Cloud in order to gain access to the project and collaborate.</p>
-              </td>
-              {% else %}
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 5px 15px 30px 15px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              ></td>
-              {% endif %}
-            </tr>
-            <tr>
-              <td bgcolor="#ffffff" align="left">
-                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td bgcolor="#ffffff" align="center" style="padding: 5px 15px 30px 15px">
-                      <table border="0" cellspacing="0" cellpadding="0">
-                        <tr>
-                          <td align="center" style="border-radius: 3px" bgcolor="#008AC1">
-                            <a
-                              href={{client_based_url}}
-                              target="_blank"
-                              style="
-                                font-size: 20px;
-                                font-family: 'Roboto', Arial, sans-serif;
-                                color: #ffffff;
-                                text-decoration: none;
-                                color: #ffffff;
-                                text-decoration: none;
-                                padding: 15px 25px;
-                                border-radius: 2px;
-                                border: 1px solid #008ac1;
-                                display: inline-block;
-                              "
-                              >Register Here</a
-                            >
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
+                            <h1 style="font-size: 24px; color: #333333; margin: 0 0 20px;">Hi there,</h1>
+                        </td>
+                    </tr>
                 </table>
-              </td>
-            </tr>
-            <tr>
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 0px 30px 40px 30px;
-                  border-radius: 0px 0px 4px 4px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              >
-                <p>Click the button above to register.</p>
-              </td>
-            </tr>
-            <tr>
-              <td
-                bgcolor="#ffffff"
-                align="left"
-                style="
-                  padding: 0px 30px 40px 30px;
-                  border-radius: 0px 0px 4px 4px;
-                  color: #666666;
-                  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-                  font-size: 18px;
-                  font-weight: 400;
-                  line-height: 25px;
-                "
-              >
-                <p style="margin: 0">Cheers !<br />Crane Cloud Team</p>
-              </td>
-            </tr>
-          </table>
-        </td>
+                
+                <!-- Center-aligned Content -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+                    <tr>
+                        <td align="center" valign="top">
+                            <!-- Email Content -->
+                            {% if success == true %}
+                            <p style="font-size: 16px; color: #333333; line-height: 1.5;">This email is to inform you that you have been invited to collaborate on the <b>{{project_name}}</b> project by <b>{{name}}</b>. You've been assigned a role: <b>{{email_role}}</b> on this project!</p>
+                            <p style="font-size: 16px; color: #333333; line-height: 1.5;">You are required to register with Crane Cloud in order to gain access to the project and collaborate.</p>
+                            
+                            <!-- Register Button -->
+                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 20px 0;">
+                                <tr>
+                                    <td align="center" bgcolor="#008ac1" style="border-radius: 20px;">
+                                        <a href="https://app.cranecloud.io/" target="_blank" style="font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; display: inline-block; padding: 12px 24px; border-radius: 5px;">Register Here</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Fallback Link -->
+                            <p style="font-size: 16px; color: #333333; line-height: 1.5;"><a href="https://app.cranecloud.io/" target="_blank" style="color: #008ac1;">Click here if the button does not work</a></p>
+                            
+                            <!-- Signature -->
+                            {% else %}
+                            <p style="font-size: 16px; color: #333333; line-height: 1.5;">There was an issue sending your invitation to collaborate to a project. Please check your email address and try again later. If the problem persists, contact our support team for assistance.</p>
+                            {% endif %}
+                            <p style="font-size: 16px; color: #333333; text-align: left; line-height: 1.5;">Cheers!<br>Crane Cloud Team</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>            
+                   <!-- Social Media and Copyright Section -->
+    <table width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #EAF0F3; border-radius: 10px; margin: 0px auto;">
+      <tr>
+          <td align="left" valign="top" style="padding: 20px;">
+              <!-- Connect with Us Text -->
+              <h3 style="font-size: 18px; color: #333333; text-align: center; margin: 0 0 5px;">Connect with us</h3>
+              
+              <!-- Social Media Icons -->
+              <table cellpadding="0" cellspacing="0" border="0" align="center">
+                 <tr>
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-facebook" style="font-size:30px;color:rgb(1, 101, 225)"></i>
+                          </a>
+                      </td>
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="https://medium.com/cranecloud" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-medium" style="font-size:24px;color:grey"></i>
+                          </a>
+                      </td>
+                      <!-- <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-slack" style="font-size:24px;color:rgb(11, 184, 155)"></i>
+                          </a>
+                      </td> -->
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="https://www.linkedin.com/company/cranecloud/" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-linkedin" style="font-size:24px;color:rgb(10, 102, 194)"></i>
+                          </a>
+                      </td>
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-instagram" style="font-size:24px;color:rgb(193, 53, 132)"></i>
+                          </a>
+                      </td>
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="https://www.youtube.com/@cranecloud571" target="_blank" style="text-decoration: none;">
+                              <i class="fab fa-youtube" style="font-size:24px;color:red"></i>
+                          </a>
+                      </td>
+                      <td align="center" valign="middle" style="padding: 0 10px;">
+                          <a href="https://twitter.com/cranecloud_io" target="_blank" style="text-decoration: none;">
+                              <i class="fa-brands fa-x-twitter" style="font-size:24px;color:black"></i>
+                          </a>
+                      </td>
+                 </tr>
+              </table>
+          </td>
       </tr>
-    </table>
-  </body>
+      <tr>
+          <td align="center" valign="top" style="padding: 0 40px;">
+              <!-- Copyright Text -->
+              <p style="font-size: 12px; color: #333333; text-align: center; margin: 0;">Copyright &copy; 2024 Crane Cloud Limited</p>
+              <p style="font-size: 12px; color: #333333; margin: 10px">This email was meant for {{email}}. If you received this email by mistake, please disregard it. <br>If you have any questions or need further assistance, please contact our support team.</p>
+          </td>
+      </tr>
+ </table>
+</body>
 </html>

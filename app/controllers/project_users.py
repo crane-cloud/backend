@@ -81,7 +81,7 @@ class ProjectUsersView(Resource):
             email_role = role
 
             # send email
-            success = True
+            success 
             send_user_to_project_notification(
             email,
             name,
@@ -133,7 +133,7 @@ class ProjectUsersView(Resource):
 
         # send email
         success = True
-        send_user_to_project_notification(
+        send_user_to_project_notification( 
         email,
         name,
         current_app._get_current_object(),
