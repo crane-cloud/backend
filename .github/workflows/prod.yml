@@ -6,9 +6,6 @@ on:
     types:
       - released
       - prereleased
-  push:
-    branches:
-      - ft-chang-service-port
 jobs:
   build:
     outputs:
