@@ -6,7 +6,6 @@ on:
     types:
       - released
       - prereleased
-
 jobs:
   build:
     outputs:
