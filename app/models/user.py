@@ -53,7 +53,7 @@ class User(ModelMixin):
         # set token expiry period
         expiry = timedelta(days=10)
 
-        return create_access_token(user, expires_delta=expiry)
+        return create_access_token(user, True, expires_delta=expiry)
 
     def __repr__(self):
         return "<User: {}>".format(self.email)
