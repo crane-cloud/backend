@@ -130,7 +130,7 @@ jobs:
           --set environment.GITHUB_CLIENT_SECRET="${{ secrets.PRODUCTION_GITHUB_CLIENT_SECRET }}" \
           --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.PRODUCTION_NEW_RELIC_LICENSE_KEY }}" \
           --set environment.KUBE_SERVICE_PORT="${{ secrets.PRODUCTION_KUBE_SERVICE_PORT }}" \
-          --set environment.SYSTEM_DOCKER_EMAIL="${{ secrets.PRODUCTION_SYSTEM_DOCKER_USERNAME }}" \
+          --set environment.SYSTEM_DOCKER_EMAIL="${{ secrets.PRODUCTION_SYSTEM_DOCKER_EMAIL }}" \
           --set environment.SYSTEM_DOCKER_PASSWORD="${{ secrets.PRODUCTION_SYSTEM_DOCKER_PASSWORD }}" \
           --timeout=300s
 
