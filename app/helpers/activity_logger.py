@@ -8,11 +8,11 @@ import os
 import requests
 import json
 from app.helpers.crane_app_logger import logger
+from flask import current_app
 
 mongo = MongoClient(
     os.getenv('MONGO_URI', 'mongodb://localhost:27017/cranecloud'))
 
-LOGGER_APP_URL = os.getenv('LOGGING_SERVICE_URL', None)
 
 try:
     mongo_db = mongo.get_default_database()
@@ -21,8 +21,11 @@ except Exception as e:
 
 
 def log_activity(model: str, status: str, operation: str, description: str, a_user_id=None, a_db_id=None, a_app_id=None, a_project_id=None, a_cluster_id=None):
+    LOGGER_APP_URL = current_app.config.get('LOGGER_APP_URL')
+    print(LOGGER_APP_URL)
     if not LOGGER_APP_URL:
         return
+
     try:
         user_id = get_jwt_identity()
         user = User.get_by_id(user_id)
