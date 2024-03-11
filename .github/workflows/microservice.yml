@@ -109,6 +109,7 @@
           # - name: Add Repo (cranecloud-backend)
           #   run: |
           #     helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
+          
 
           - name: Helm Install
             run: |
@@ -128,9 +129,8 @@
                 --set environment.GITHUB_CLIENT_SECRET="${{ secrets.STAGING_GITHUB_CLIENT_SECRET }}" \
                 --set environment.NEW_RELIC_LICENSE_KEY="${{ secrets.STAGING_NEW_RELIC_LICENSE_KEY }}" \
                 --set environment.KUBE_SERVICE_PORT="${{ secrets.STAGING_KUBE_SERVICE_PORT }}" \
-                --timeout=300s
-                --create-namespace
-    
+                --timeout=300s 
+                
         #   - name: Helm Release
         #     run: |
         #       helm upgrade \
@@ -152,6 +152,6 @@
         #       --set environment.KUBE_SERVICE_PORT="${{ secrets.STAGING_KUBE_SERVICE_PORT }}" \
         #       --timeout=300s
     
-          - name: Monitor Rollout
-            run: |
-              kubectl rollout status deployment/cranecloud-product-api --timeout=300s --namespace cranecloud-microservice
+        #   - name: Monitor Rollout
+        #     run: |
+        #       kubectl rollout status deployment/cranecloud-product-api --timeout=300s --namespace cranecloud-microservice
