@@ -95,7 +95,7 @@ def create_app(config_name):
     def add_claims_to_access_token(user):
         return {
             'roles': user.get('roles', None),
-            'email' : user.email
+            'email' : user.get('email', None),
         }
 
     @jwt.user_identity_loader
