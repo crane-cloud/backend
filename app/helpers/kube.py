@@ -244,7 +244,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         service_spec = client.V1ServiceSpec(
             type='ClusterIP',
             ports=[client.V1ServicePort(
-                port=current_app.config['KUBE_SERVICE_PORT'], target_port=app_port)],
+                port=int(current_app.config['KUBE_SERVICE_PORT']), target_port=app_port)],
             selector={'app': app_alias}
         )
 
@@ -261,7 +261,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                 service_name, project.alias)
         except:
             pass
-
+        
         kube_client.kube.create_namespaced_service(
             namespace=namespace,
             body=service,
