@@ -13,7 +13,7 @@ from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema
+from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema, ClusterSchema
 from app.helpers.decorators import admin_required
 import datetime
 from prometheus_http_client import Prometheus
@@ -27,8 +27,6 @@ from sqlalchemy import or_, func
 from app.helpers.crane_app_logger import logger
 from flask import current_app, render_template
 from app.helpers.email import send_email
-
-
 
 
 class ProjectsView(Resource):
@@ -354,10 +352,15 @@ class ProjectDetailView(Resource):
         if errors:
             return dict(status='fail', message=errors), 500
 
+        # return cluster information
+        cluster_schema = ClusterSchema()
+        project_cluster = project.cluster
+        print(project_cluster)
+        cluster_data, errors = cluster_schema.dumps(project_cluster)
         # if user not an admin
         if not is_admin(current_user_roles):
             return dict(status='success', data=dict(
-                project=json.loads(project_data))), 200
+                project=json.loads(**json.loads(project_data), cluster=json.loads(cluster_data),))), 200
         else:
             apps_schema = AppSchema(many=True)
             database_schema = ProjectDatabaseSchema(many=True)
@@ -372,7 +375,9 @@ class ProjectDetailView(Resource):
                 project=dict(**json.loads(project_data),
                              apps=json.loads(apps_data),
                              databases=json.loads(databases_data),
-                             users=json.loads(users_data)))), 200
+                             users=json.loads(users_data),
+                             cluster=json.loads(cluster_data),
+                             ))), 200
 
     @jwt_required
     def delete(self, project_id):
@@ -978,6 +983,7 @@ class ProjectGetCostsView(Resource):
 
         return dict(status='success', data=dict(cost_data=cost_data)), 200
 
+
 class ProjectDisableView(Resource):
     @jwt_required
     def post(self, project_id):
@@ -1008,22 +1014,23 @@ class ProjectDisableView(Resource):
 
         receipient_users = [user.user for user in project.users]
         project_owner = User.get_by_id(project.owner_id)
-        
-        for user in receipient_users : 
+
+        for user in receipient_users:
 
             html_layout = render_template(
-            'user/project_disable_enable.html',
-            email=user.email,
-            name=user.name,
-            is_project_owner = (user.id == project.owner_id),
-            owner_name = project_owner.name,
-            project_name = project.name,
-            admin_disabled = is_admin(current_user_roles),
-            status='disabled')
+                'user/project_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                is_project_owner=(user.id == project.owner_id),
+                owner_name=project_owner.name,
+                project_name=project.name,
+                admin_disabled=is_admin(current_user_roles),
+                status='disabled')
 
             send_email(
                 user.email,
-                f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
+                f'Status of your project {project.name}' if (
+                    user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
                 current_app._get_current_object(),
@@ -1063,25 +1070,26 @@ class ProjectEnableView(Resource):
         if type(enabled_project) == SimpleNamespace:
             status_code = enabled_project.status_code if enabled_project.status_code else 500
             return dict(status='fail', message=enabled_project.message), status_code
-        
+
         receipient_users = [user.user for user in project.users]
         project_owner = User.get_by_id(project.owner_id)
-        
-        for user in receipient_users : 
+
+        for user in receipient_users:
 
             html_layout = render_template(
-            'user/project_disable_enable.html',
-            email=user.email,
-            name=user.name,
-            is_project_owner = (user.id == project.owner_id),
-            owner_name = project_owner.name,
-            project_name = project.name,
-            admin_disabled = is_admin(current_user_roles),
-            status='enabled')
+                'user/project_disable_enable.html',
+                email=user.email,
+                name=user.name,
+                is_project_owner=(user.id == project.owner_id),
+                owner_name=project_owner.name,
+                project_name=project.name,
+                admin_disabled=is_admin(current_user_roles),
+                status='enabled')
 
             send_email(
                 user.email,
-                f'Status of your project {project.name}' if (user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
+                f'Status of your project {project.name}' if (
+                    user.id == project.owner_id) else f'Status of project {project.name} you are contributing to.',
                 html_layout,
                 current_app.config["MAIL_DEFAULT_SENDER"],
                 current_app._get_current_object(),
