@@ -355,12 +355,12 @@ class ProjectDetailView(Resource):
         # return cluster information
         cluster_schema = ClusterSchema()
         project_cluster = project.cluster
-        print(project_cluster)
         cluster_data, errors = cluster_schema.dumps(project_cluster)
+
         # if user not an admin
         if not is_admin(current_user_roles):
             return dict(status='success', data=dict(
-                project=json.loads(**json.loads(project_data), cluster=json.loads(cluster_data),))), 200
+                project=dict(**json.loads(project_data)), cluster=json.loads(cluster_data))), 200
         else:
             apps_schema = AppSchema(many=True)
             database_schema = ProjectDatabaseSchema(many=True)
@@ -376,7 +376,7 @@ class ProjectDetailView(Resource):
                              apps=json.loads(apps_data),
                              databases=json.loads(databases_data),
                              users=json.loads(users_data),
-                             cluster=json.loads(cluster_data),
+                             cluster=json.loads(cluster_data)
                              ))), 200
 
     @jwt_required
