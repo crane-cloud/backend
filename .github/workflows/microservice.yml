@@ -94,10 +94,10 @@ jobs:
 
       - name: Helm Release
         run: |
-          helm upgrade --install \
+          helm upgrade --install --create-namespace \
           cranecloud-backend ./helm/chart \
           --values helm/values.staging.yaml \
-          --namespace $namespace\
+          --namespace $namespace \
           --set image.tag="${{ needs.build.outputs.tag }}" \
           --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \
           --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.STAGING_ADMIN_PSQL_PASSWORD }}" \
