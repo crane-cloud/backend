@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - microservice
-      - deploy/microservice-app
 
   workflow_dispatch:
 
@@ -96,7 +95,7 @@ jobs:
         run: |
           helm upgrade --install --create-namespace \
           cranecloud-backend ./helm/chart \
-          --values helm/values.staging.yaml \
+          --values helm/values.micro.yaml \
           --namespace $namespace \
           --set image.tag="${{ needs.build.outputs.tag }}" \
           --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \

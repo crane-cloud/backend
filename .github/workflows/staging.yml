@@ -115,7 +115,7 @@ jobs:
           --install \
           cranecloud-backend ./helm/chart \
           --version 0.1.4 \
-          --values helm/values.micro.yaml \
+          --values helm/values.staging.yaml \
           --namespace cranecloud \
           --set image.tag="${{ needs.build.outputs.tag }}" \
           --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.STAGING_ADMIN_MYSQL_PASSWORD }}" \
