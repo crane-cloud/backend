@@ -43,7 +43,7 @@ class Base:
     SYSTEM_DOCKER_SERVER = os.getenv("SYSTEM_DOCKER_SERVER", 'docker.io')
 
     # logger app url
-    LOGGER_APP_URL = os.getenv('LOGGING_SERVICE_URL', None)
+    LOGGER_APP_URL = os.getenv('LOGGER_APP_URL', None)
 
 
 class Development(Base):

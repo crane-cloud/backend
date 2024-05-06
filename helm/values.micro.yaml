@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: gcr.io/crane-cloud-274413/cranecloud-backend
+  repository: cranecloud/cranecloud-backend
   pullPolicy: Always
   tag: ${{ DOCKER_IMAGE_TAG }}
 
