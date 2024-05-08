@@ -109,16 +109,20 @@ class AppsView(Resource):
     @admin_required
     def get(self):
         """
-        Get overal app information
+        Get overall app information
         """
+
         graph_filter_data = {
             'start': request.args.get('start', '2018-01-01'),
             'end': request.args.get('end', datetime.datetime.now().strftime('%Y-%m-%d')),
-            'set_by': request.args.get('set_by', 'month')
+            'set_by': request.args.get('set_by', 'month'),
+            'disabled': request.args.get('disabled'),
         }
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
+        disabled = request.args.get('disabled', False) == "true"
+        active = request.args.get('active', False) == "true"
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -132,9 +136,26 @@ class AppsView(Resource):
         }
 
         if not series:
-            apps = App.find_all(paginate=True, page=page, per_page=per_page)
-            apps_data, errors = apps_schema.dumps(apps.items)
-            pagination = apps.pagination
+            paginated_apps = App.query.paginate(
+                page=page, per_page=per_page, error_out=False)
+            if disabled:
+                paginated_apps = App.query.filter_by(disabled=True).paginate(
+                    page=page, per_page=per_page, error_out=False)
+            if active:
+                paginated_apps = App.query.filter_by(disabled=False).paginate(
+                    page=page, per_page=per_page, error_out=False)
+
+            pagination = {
+                'total': paginated_apps.total,
+                'pages': paginated_apps.pages,
+                'page': paginated_apps.page,
+                'per_page': paginated_apps.per_page,
+                'next': paginated_apps.next_num,
+                'prev': paginated_apps.prev_num
+            }
+            apps = paginated_apps.items
+            apps_data, errors = apps_schema.dumps(apps)
+            # pagination = apps.pagination
 
             if errors:
                 return dict(status='fail', message=errors), 400
@@ -358,7 +379,7 @@ class ProjectAppsView(Resource):
                         data=dict(pagination=pagination, apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -490,7 +511,7 @@ class AppDetailView(Resource):
             if exc.status == 404:
                 return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
 
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -807,7 +828,7 @@ class AppDetailView(Resource):
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',
@@ -917,7 +938,7 @@ class AppRevisionsView(Resource):
             if exc.status == 404:
                 return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
 
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -1048,7 +1069,7 @@ class AppRevertView(Resource):
             ), 200
 
         except client.rest.ApiException as exc:
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -1176,7 +1197,7 @@ class AppReviseView(Resource):
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',
@@ -1685,6 +1706,8 @@ class AppNetworkUsageView(Resource):
 
         return dict(status='success', data=dict(values=network_data_list)), 200
 
+# idea point
+
 
 class AppLogsView(Resource):
     @jwt_required
@@ -1870,3 +1893,7 @@ class AppStorageUsageView(Resource):
 
         return dict(status='success',
                     data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
+
+
+class AppDashboardView(Resource):
+    pass
