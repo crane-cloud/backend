@@ -69,6 +69,8 @@ def setup_periodic_tasks(**kwargs):
         crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
     celery_app.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(
     ), name='send credits expiry notifications')
+    celery_app.add_periodic_task(
+        crontab(minute="*"), hello.s(), name='check app statuses')
 
 
 @celery_app.task()

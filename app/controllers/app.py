@@ -434,6 +434,68 @@ class AppDetailView(Resource):
                 kube_client.appsv1_api.read_namespaced_deployment_status(
                     app_list['alias'] + "-deployment", project.alias)
 
+            ''' get replica list'''
+            replicas = kube_client.appsv1_api.list_namespaced_replica_set(
+                project.alias).to_dict()
+            replicasList = []
+            for replica in replicas['items']:
+                name = replica['metadata']['name']
+                if name.startswith(app_list['alias']):
+                    replicasList.append(name)
+
+            ''' get pods list'''
+            pods = kube_client.kube.list_namespaced_pod(project.alias)
+            podsList = []
+            for item in pods.items:
+                item = kube_client.api_client.sanitize_for_serialization(item)
+                pod_name = item['metadata']['name']
+                # to avoid repetition
+                added = False
+
+                for replica in replicasList:
+                    if pod_name.startswith(replica):
+                        podsList.append(item)
+                        added = True
+                        continue
+
+                if pod_name.startswith(app_list['alias']) and not added:
+                    podsList.append(item)
+                    continue
+
+            app_status_messages = []
+            for index, pod_log in enumerate(podsList):
+                pod_name = pod_log["metadata"]["name"]
+                pod_namespace = pod_log["metadata"]["namespace"]
+                pod_status = pod_log["status"]["phase"]
+
+                if pod_status == "Running":
+                    app_status_messages.append({
+                        "status": "running",
+                        "message": f"Pod {pod_name} in namespace {pod_namespace} is running.",
+                        "replicaNumber": index
+                    })
+                else:
+                    container_statuses = pod_log["status"].get(
+                        "containerStatuses", [])
+                    if container_statuses:
+                        for container_status in container_statuses:
+
+                            reason = container_status["state"]["waiting"]["reason"]
+                            message = container_status["state"]["waiting"]["message"]
+                            app_status_messages.append({
+                                "status": "down",
+                                "message": f"Pod {pod_name} in namespace {pod_namespace} is down. Reason: {reason}. Message: {message}",
+                                "failureReason": reason,
+                                "replicaNumber": index
+                            })
+                    else:
+                        app_status_messages.append({
+                            "status": "failed",
+                            "message": f"Failed to access pod status",
+                            "replicaNumber": index
+                        })
+
+            app_list["pod_statuses"] = app_status_messages
             app_deployment_status_conditions = app_status_object.status.conditions
 
             app_list["image"] = app_status_object.spec.template.spec.containers[0].image
@@ -459,9 +521,13 @@ class AppDetailView(Resource):
                     envs[item.name] = item.value
                 app_list["env_vars"] = envs
 
+            deployment_messages = []
             for deplyoment_status_condition in app_deployment_status_conditions:
                 if deplyoment_status_condition.type == "Available":
                     app_deployment_status = deplyoment_status_condition.status
+                deployment_messages.append(deplyoment_status_condition.message)
+
+            app_list["deployment_messages"] = deployment_messages
 
             try:
                 app_db_status_object = \
