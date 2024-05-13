@@ -2,6 +2,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
 from app.models import db
 from app.models.model_mixin import ModelMixin, SoftDeleteQuery
+from app.models.app_state import AppState
 
 
 class App(ModelMixin):
@@ -26,3 +27,5 @@ class App(ModelMixin):
     private_image = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    app_status = db.relationship(
+        'AppState', backref='app_status_id', lazy=True)

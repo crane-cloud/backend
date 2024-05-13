@@ -43,6 +43,7 @@ class AppSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     delete_env_vars = fields.List(fields.Str(), load_only=True)
+    app_status = fields.String()
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
