@@ -14,7 +14,6 @@ def update_or_create_app_state(session, app_status_message):
 
     app_id = app_status_message["app"]
     existing_state = session.query(AppState).filter_by(app=app_id).first()
-    print(app_status_message)
     if existing_state:
         # Update existing entry
         existing_state.failure_reason = app_status_message.get(

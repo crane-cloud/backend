@@ -9,6 +9,7 @@ class AppStatusList(enum.Enum):
     running = "running"
     unknown = "unknown"
     failed = "failed"
+    down = "down"
 
 
 class AppState(ModelMixin):

@@ -136,7 +136,8 @@ class ModelMixin(db.Model):
     def get_by_id(cls, id):
         try:
             return cls.query.filter_by(id=id).first()
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
+            print(e)
             return False
 
     def toDict(self):

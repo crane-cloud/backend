@@ -21,12 +21,16 @@ from app.helpers.decorators import admin_required
 from app.helpers.kube import create_kube_clients, delete_cluster_app, deploy_user_app
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
+from app.models.app_state import AppState
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema, AppStateSchema
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
+from app.helpers.app_status_updater import update_or_create_app_state
+from app.models import db
+from datetime import datetime
 
 
 class AppsView(Resource):
@@ -420,6 +424,7 @@ class AppDetailView(Resource):
             app_list = json.loads(app_data)
 
             cluster = Cluster.get_by_id(project.cluster_id)
+            # st = AppState.query.filter_by(app=app_id).first()
 
             if not cluster:
                 return dict(
@@ -465,14 +470,15 @@ class AppDetailView(Resource):
             app_status_messages = []
             for index, pod_log in enumerate(podsList):
                 pod_name = pod_log["metadata"]["name"]
-                pod_namespace = pod_log["metadata"]["namespace"]
+                # pod_namespace = pod_log["metadata"]["namespace"]
                 pod_status = pod_log["status"]["phase"]
 
                 if pod_status == "Running":
                     app_status_messages.append({
                         "status": "running",
-                        "message": f"Pod {pod_name} in namespace {pod_namespace} is running.",
-                        "replicaNumber": index
+                        "message": f"Pod:{index} is running. ",
+                        "replicaNumber": index,
+                        "failureReason": None,
                     })
                 else:
                     container_statuses = pod_log["status"].get(
@@ -484,7 +490,7 @@ class AppDetailView(Resource):
                             message = container_status["state"]["waiting"]["message"]
                             app_status_messages.append({
                                 "status": "down",
-                                "message": f"Pod {pod_name} in namespace {pod_namespace} is down. Reason: {reason}. Message: {message}",
+                                "message": f"Pod:{index} is down. Message: {message}. ",
                                 "failureReason": reason,
                                 "replicaNumber": index
                             })
@@ -492,6 +498,7 @@ class AppDetailView(Resource):
                         app_status_messages.append({
                             "status": "failed",
                             "message": f"Failed to access pod status",
+                            "failureReason": "unknown",
                             "replicaNumber": index
                         })
 
@@ -557,6 +564,21 @@ class AppDetailView(Resource):
                     app_list['app_running_status'] = "failed"
             else:
                 app_list['app_running_status'] = "unknown"
+
+            messages = [message.get("message")
+                        for message in app_status_messages]
+            reasons = [reason.get("failureReason")
+                       for reason in app_status_messages]
+
+            update_or_create_app_state(
+                db.session, {
+                    "status": app_list['app_running_status'],
+                    "app": app_list['id'],
+                    "failure_reason": ", ".join(reasons) if reasons else "",
+                    "message": ", ".join(messages) if messages else "",
+                    "last_check": datetime.now()
+                }
+            )
 
             # Get deployment version history
             version_history = kube_client.appsv1_api.list_namespaced_replica_set(

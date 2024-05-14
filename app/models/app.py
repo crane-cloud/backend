@@ -27,5 +27,5 @@ class App(ModelMixin):
     private_image = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
-    app_status = db.relationship(
-        'AppState', backref='app_status_id', lazy=True)
+    app_status = db.Column(UUID(as_uuid=True), db.ForeignKey(
+        'app_state.id'))
