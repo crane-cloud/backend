@@ -10,6 +10,7 @@ def test_user_creation_success(test_client):
     THEN check that the response is valid
     """
     user_client = UserBaseTestCase()
+    print(user_client.user_data)
     response = test_client.post(
         '/users',
         content_type='application/json',

@@ -30,7 +30,6 @@ from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 from app.helpers.app_status_updater import update_or_create_app_state
 from app.models import db
-from datetime import datetime
 
 
 class AppsView(Resource):
@@ -576,7 +575,7 @@ class AppDetailView(Resource):
                     "app": app_list['id'],
                     "failure_reason": ", ".join(reasons) if reasons else "",
                     "message": ", ".join(messages) if messages else "",
-                    "last_check": datetime.now()
+                    "last_check": datetime.datetime.now()
                 }
             )
 
