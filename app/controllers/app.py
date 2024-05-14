@@ -133,9 +133,12 @@ class AppsView(Resource):
         filter_schema = AppGraphSchema()
         apps_schema = AppSchema(many=True)
 
+        # since it is a one to one
         metadata = {
             'disabled': App.query.filter_by(disabled=True).count(),
-            'total_apps': App.query.count()
+            'total_apps': App.query.count(),
+            'failing_apps': AppState.query.filter_by(status="failed").count(),
+            'running_apps': AppState.query.filter_by(status="running").count(),
         }
 
         if not series:
