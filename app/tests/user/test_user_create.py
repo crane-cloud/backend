@@ -78,8 +78,8 @@ def test_user_creation_already_exists(test_client):
 #     # headers={'Authorization': 'Bearer {}'.format(access_token)}
 
 #     response = test_client.get(
-#         f'/users/${user.id}', 
+#         f'/users/${user.id}',
 #         # headers=headers
 #         )
-    
+
 #     assert response.status_code == 200
