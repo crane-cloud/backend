@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Usage Reminder</title>
+    <title>Database Usage</title>
     <style>
         body {
             margin: 0;
@@ -39,10 +39,6 @@
         .name{
             text-align: left;
         }
-        .database_figures{
-            color: red;
-            font-size: 20px;
-        }
         .content ul {
             text-align: left;
             margin-top: 0px;
@@ -50,11 +46,28 @@
         .signature{
             margin-top: 20px;
             text-align: left;
+            margin-bottom: 40px;
+        }
+        .social-media-divider {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 0;
+            width: 100%;
         }
         .social-media {
             display: flex;
             justify-content: center;
-            margin-top: 20px;
+            flex-direction: column;
+            align-items: center; /* Align items vertically in the center */
+        }
+        .social-media h3 {
+        display: block;
+        text-align: center;
+        color: #333333; 
+        }
+        .social-media a-container {
+            display: flex;
+            justify-content: center;
         }
         .social-media a {
             margin: 0 10px;
@@ -65,10 +78,8 @@
             font-size: 24px;
         }
         .copyright {
-            text-align: center;
-            padding: 20px;
-            background-color: #EAF0F3;
-            border-radius: 10px;
+            margin-top: 30px;
+            text-align: center;   
             font-size: 10px;
         }
         @media only screen and (max-width: 600px) {
@@ -100,13 +111,13 @@
         </div>
         <div class="content">
             <h3 class="name">Hello, {{name}}</h3>
-            <p>We've noticed that your database usage is approaching the allocated limit. You have used <b class="database_figures">{{usage_percentage}}%</b> of your <b>{{database_limit}}</b>.</p>
+            <p>We've noticed that your database <b>{{database_name}}</b> in the project <b>{{project_name}}</b> is approaching the allocated limit. You have used <b>{{usage_percentage}}%</b> of your <b>{{database_limit}}</b>.</p>
             
             <p style="text-align: left; margin-top: 20px;">If you use up your allocated size, the following implications will apply:</p>
             <ul>
-                <li>You will not be able to add data in existing projects.</li>
-                <li>You will not be able to update data in existing projects.</li>
-                <li>You will only view data in existing projects.</li>
+                <li>You will not be able to add data in the database.</li>
+                <li>You will not be able to update data the database.</li>
+                <li>You will only view data in this database.</li>
             </ul>
             <p style="text-align: left; margin-top: 20px;">If you need further assistance or wish to increase your database limit, please contact our support team.</p>
         </div>
@@ -115,18 +126,26 @@
             <h2>Not ready to get more storage?</h2> <a href="">Delete files to free up space</a>.
             <p class="signature">Best regards,<br>Crane Cloud Team</p>
         </div>
-    </div> 
-    <div class="social-media"> 
-        <a href=""><i class="fab fa-facebook" target="_blank" style="font-size:30px;color:rgb(1, 101, 225)" ></i></a>
-        <a href="https://medium.com/cranecloud" target="_blank" ><i class="fab fa-medium" style="font-size:24px;color:grey"></i></a>
-        <a href="https://www.linkedin.com/company/cranecloud/"><i class="fab fa-linkedin" style="font-size:24px;color:rgb(10, 102, 194)"></i></a>
-        <a href=""><i class="fab fa-instagram" target="_blank" style="font-size:24px;color:rgb(193, 53, 132)"></i></a>
-        <a href="https://www.youtube.com/@cranecloud571" target="_blank"><i class="fab fa-youtube" style="font-size:24px;color:red"></i></a>
-        <a href="https://twitter.com/cranecloud_io" target="_blank"><i class="fa-brands fa-x-twitter" style="font-size:24px;color:black"></i></a>
-    </div>
-    <div class="copyright">
-        <p>Copyright &copy; 2024 Crane Cloud Limited</p>
-        <p>This email was meant for {{email}}. If you received this email by mistake, please disregard it. <br>If you have any questions or need further assistance, please contact our support team.</p>
+
+        <hr class="social-media-divider">
+        <div class="social-media"> 
+                <h3>Connect with us</h3>
+
+            <div class="a-container">
+                <a href=""><i class="fab fa-facebook" target="_blank" style="font-size:30px;color:rgb(1, 101, 225)" ></i></a>
+                <a href="https://medium.com/cranecloud" target="_blank" ><i class="fab fa-medium" style="font-size:24px;color:grey"></i></a>
+                <a href="https://www.linkedin.com/company/cranecloud/"><i class="fab fa-linkedin" style="font-size:24px;color:rgb(10, 102, 194)"></i></a>
+                <a href=""><i class="fab fa-instagram" target="_blank" style="font-size:24px;color:rgb(193, 53, 132)"></i></a>
+                <a href="https://www.youtube.com/@cranecloud571" target="_blank"><i class="fab fa-youtube" style="font-size:24px;color:red"></i></a>
+                <a href="https://twitter.com/cranecloud_io" target="_blank"><i class="fa-brands fa-x-twitter" style="font-size:24px;color:black"></i></a>
+            </div>
+
+            <div class="copyright">
+                <p>Copyright &copy; 2024 Crane Cloud Limited</p>
+                <p>This email was meant for {{email}}. If you received this email by mistake, please disregard it. <br>If you have any questions or need further assistance, please contact our support team.</p>
+            </div>
+
+        </div>
     </div>
 </body>
 </html>
