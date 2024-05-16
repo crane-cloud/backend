@@ -7,7 +7,7 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, disable_user_app, enable_project, enable_user_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, disable_user_app, enable_project, enable_user_app, check_kube_error_code
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
@@ -189,7 +189,7 @@ class ProjectsView(Resource):
                          operation='Create',
                          description=e.body,
                          a_cluster_id=cluster_id)
-            return dict(status='fail', message=str(e.body)), e.status
+            return dict(status='fail', message=str(e.body)), check_kube_error_code(e.status)
 
         except Exception as err:
             log_activity('Project', status='Failed',
@@ -544,7 +544,7 @@ class ProjectDetailView(Resource):
                          description=e.reason,
                          a_project_id=project_id,
                          a_cluster_id=project.cluster_id)
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             log_activity('Project', status='Failed',
