@@ -261,7 +261,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                 service_name, project.alias)
         except:
             pass
-        
+
         kube_client.kube.create_namespaced_service(
             namespace=namespace,
             body=service,
@@ -761,7 +761,7 @@ def enable_project(project: Project):
                              a_cluster_id=project.cluster_id)
                 return SimpleNamespace(
                     message=str(e.body),
-                    status_code=e.status
+                    status_code=check_kube_error_code(e.status)
                 )
 
         # save project
@@ -870,3 +870,8 @@ def sort_apps_for_deployment(apps_data, project, kube_client, user, app_schema):
         apps_data=results,
         failed_apps_data=failed_apps_data
     )
+
+
+def check_kube_error_code(error):
+    # prevent a 401 from being sent to the frontend
+    return 511 if error == 401 else error
