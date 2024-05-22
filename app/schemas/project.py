@@ -28,7 +28,7 @@ class ProjectSchema(Schema):
     apps_count = fields.Method("get_apps_count", dump_only=True)
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
-    promentheus_url = fields.Method("get_prometheus_url", dump_only=True)
+    prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
