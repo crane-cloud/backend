@@ -1,4 +1,3 @@
-import os
 import datetime
 import json
 from types import SimpleNamespace
@@ -7,16 +6,15 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, disable_user_app, enable_project, enable_user_app, check_kube_error_code
+from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, enable_project, check_kube_error_code
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema, ClusterSchema
+from app.schemas import ProjectSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema, ClusterSchema
 from app.helpers.decorators import admin_required
 import datetime
-from prometheus_http_client import Prometheus
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -56,7 +54,8 @@ class ProjectsView(Resource):
         if existing_project:
             return dict(
                 status='fail',
-                message=f'project with name {validated_project_data["name"]} already exists'
+                message=f'''project with name {
+                    validated_project_data["name"]} already exists'''
             ), 409
         try:
             validated_project_data['alias'] =\
@@ -411,7 +410,8 @@ class ProjectDetailView(Resource):
                     db_flavour = get_db_flavour(database_flavour_name)
 
                     if not db_flavour:
-                        message = f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
+                        message = f"""Database flavour with name {
+                            database.database_flavour_name} is not mysql or postgres."""
                         log_activity('Project', status='Failed',
                                      operation='Delete',
                                      description=message,
@@ -583,7 +583,8 @@ class ProjectDetailView(Resource):
             if existing_project:
                 return dict(
                     status='fail',
-                    message=f'project with name {validate_project_data["name"]} already exists'
+                    message=f'''project with name {
+                        validate_project_data["name"]} already exists'''
                 ), 409
 
             project = Project.get_by_id(project_id)
@@ -688,243 +689,6 @@ class ClusterProjectsView(Resource):
                 pagination=projects.pagination,
                 projects=json.loads(projects_json))
         ), 200
-
-
-class ProjectMemoryUsageView(Resource):
-
-    @jwt_required
-    def post(self, project_id):
-
-        project_memory_schema = MetricsSchema()
-        project_query_data = request.get_json()
-
-        validated_query_data, errors = project_memory_schema.load(
-            project_query_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        current_time = datetime.datetime.now()
-        yesterday_time = current_time + datetime.timedelta(days=-1)
-
-        start = validated_query_data.get('start', yesterday_time.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        namespace = project.alias
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        prom_memory_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="", namespace="'+namespace+'"}[5m]))')
-
-        new_data = json.loads(prom_memory_data)
-        final_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                mem_case = {'timestamp': float(
-                    value[0]), 'value': float(value[1])}
-                final_data_list.append(mem_case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=final_data_list)), 200
-
-
-class ProjectCPUView(Resource):
-    @jwt_required
-    def post(self, project_id):
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project_memory_schema = MetricsSchema()
-        project_cpu_data = request.get_json()
-
-        validated_query_data, errors = project_memory_schema.load(
-            project_cpu_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
-            namespace+'"}[5m]))'
-        )
-
-        #  change array values to json"values"
-        new_data = json.loads(prom_data)
-        cpu_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': value[0], 'value': value[1]}
-                cpu_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=cpu_data_list)), 200
-
-
-class ProjectNetworkRequestView(Resource):
-    @jwt_required
-    def post(self, project_id):
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project_network_schema = MetricsSchema()
-        project_network_data = request.get_json()
-
-        validated_query_data, errors = project_network_schema.load(
-            project_network_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_network_receive_bytes_total{namespace="' +
-            namespace+'"}[5m]))'
-        )
-        #  change array values to json"values"
-        new_data = json.loads(prom_data)
-        network_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': float(value[0]), 'value': float(value[1])}
-                network_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=network_data_list)), 200
-
-
-class ProjectStorageUsageView(Resource):
-    @jwt_required
-    def post(self, project_id):
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        try:
-            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                                         namespace+'"})'
-                                         )
-            #  change array values to json
-            new_data = json.loads(prom_data)
-            values = new_data["data"]
-
-            percentage_data = prometheus.query(metric='sum(100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                               namespace+'"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                               namespace+'"}))'
-                                               )
-
-            data = json.loads(percentage_data)
-            volume_perc_value = data["data"]
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
 
 
 class ProjectGetCostsView(Resource):
