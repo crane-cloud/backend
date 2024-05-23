@@ -10,19 +10,9 @@ import json
 from app.helpers.crane_app_logger import logger
 from flask import current_app
 
-mongo = MongoClient(
-    os.getenv('MONGO_URI', 'mongodb://localhost:27017/cranecloud'))
-
-
-try:
-    mongo_db = mongo.get_default_database()
-except Exception as e:
-    mongo_db = mongo.get_database('testing')
-
 
 def log_activity(model: str, status: str, operation: str, description: str, a_user_id=None, a_db_id=None, a_app_id=None, a_project_id=None, a_cluster_id=None):
     LOGGER_APP_URL = current_app.config.get('LOGGER_APP_URL')
-    print(LOGGER_APP_URL)
     if not LOGGER_APP_URL:
         return
 
@@ -57,15 +47,3 @@ def log_activity(model: str, status: str, operation: str, description: str, a_us
         pass
 
     # log_user_activity.delay(data)
-
-
-@celery_app.task(name="log_user_activity")
-def log_user_activity(data):
-    filtered = {k: v for k, v in data.items() if v is not None}
-    try:
-
-        mongo_db['activities'].insert_one(filtered)
-        return True
-    except Exception as e:
-        print(e)
-        return False
