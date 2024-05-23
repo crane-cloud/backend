@@ -2,11 +2,11 @@
 import datetime
 from flask_jwt_extended import get_jwt_identity
 from app.models.user import User
-from app.tasks import celery_app
-from flask_pymongo import MongoClient
-import os
+# from app.tasks import celery_app
+# from flask_pymongo import MongoClient
+# import os
 import requests
-import json
+# import json
 from app.helpers.crane_app_logger import logger
 from flask import current_app
 
@@ -45,5 +45,3 @@ def log_activity(model: str, status: str, operation: str, description: str, a_us
     except Exception as e:
         logger.error(f"Error logging activity")
         pass
-
-    # log_user_activity.delay(data)
