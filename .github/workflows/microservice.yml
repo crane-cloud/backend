@@ -88,6 +88,11 @@ jobs:
       #   with:
       #     kubeconfig: ${{ secrets.RENU_KUBECONFIG}}
 
+      - name: Login (GCP)
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+
       - name: Install (Gcloud)
         uses: google-github-actions/setup-gcloud@v1
         with:
