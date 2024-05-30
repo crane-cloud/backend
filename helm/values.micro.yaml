@@ -8,43 +8,12 @@ image:
 imagePullSecrets: []
 
 nameOverride: "cranecloud-backend"
-fullnameOverride: ""
-
-serviceAccount:
-  create: false
-  annotations: {}
-  name: ""
-
-podAnnotations: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
 service:
   type: NodePort
   port: 80
 
-resources: {}
-  # limits:
-  #   cpu: 512m
-  #   memory: 512Mi
-  # requests:
-  #   cpu: 512m
-  #   memory: 512Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
+port: 5000
 
 nginxConf:
   server {

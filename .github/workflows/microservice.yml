@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - microservice
+      - deploy/gcp
 
   workflow_dispatch:
 
@@ -83,18 +84,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - uses: azure/k8s-set-context@v1
-        with:
-          kubeconfig: ${{ secrets.RENU_KUBECONFIG}}
+      # - uses: azure/k8s-set-context@v1
+      #   with:
+      #     kubeconfig: ${{ secrets.RENU_KUBECONFIG}}
 
-      # - name: Add Repo (cranecloud-backend)
-      #   run: |
-      #     helm repo add cranecloud-backend https://crane-cloud.github.io/helm-charts/
+      - name: Install (Gcloud)
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: crane-cloud-274413
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Login (Kubernetes Cluster)
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: staging-cluster
+          location: us-central1-a
+          project_id: crane-cloud-274413
+
+      - name: Add Repo (cranecloud)
+        run: |
+          helm repo add cranecloud https://crane-cloud.github.io/helm-charts/
 
       - name: Helm Release
         run: |
           helm upgrade --install --create-namespace \
-          cranecloud-backend ./helm/chart \
+          cranecloud-backend cranecloud/cranecloud \
           --values helm/values.micro.yaml \
           --namespace $namespace \
           --set image.tag="${{ needs.build.outputs.tag }}" \
