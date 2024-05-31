@@ -30,6 +30,7 @@ from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 from app.helpers.app_status_updater import update_or_create_app_state
 from app.models import db
+from sqlalchemy.orm import sessionmaker
 
 
 class AppsView(Resource):
@@ -572,8 +573,9 @@ class AppDetailView(Resource):
             reasons = [reason.get("failureReason")
                        for reason in app_status_messages]
 
+            session = sessionmaker(bind=db.engine)()
             update_or_create_app_state(
-                db.session, {
+                session, {
                     "status": app_list['app_running_status'],
                     "app": app_list['id'],
                     "failure_reason": ", ".join(reasons) if reasons else "",
