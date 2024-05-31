@@ -18,7 +18,7 @@ from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.decorators import admin_required
-from app.helpers.kube import create_kube_clients, delete_cluster_app, deploy_user_app
+from app.helpers.kube import create_kube_clients, delete_cluster_app, deploy_user_app, check_kube_error_code
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
 from app.models.app_state import AppState
@@ -385,7 +385,7 @@ class ProjectAppsView(Resource):
                         data=dict(pagination=pagination, apps=apps_data_list)), 200
 
         except client.rest.ApiException as exc:
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -601,7 +601,7 @@ class AppDetailView(Resource):
             if exc.status == 404:
                 return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
 
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -918,7 +918,7 @@ class AppDetailView(Resource):
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',
@@ -1028,7 +1028,7 @@ class AppRevisionsView(Resource):
             if exc.status == 404:
                 return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
 
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -1159,7 +1159,7 @@ class AppRevertView(Resource):
             ), 200
 
         except client.rest.ApiException as exc:
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
@@ -1287,7 +1287,7 @@ class AppReviseView(Resource):
                          a_project_id=project.id,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app_id)
-            return dict(status='fail', message=exc.reason), exc.status
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',

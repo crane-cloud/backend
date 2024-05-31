@@ -4,7 +4,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required
 from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
-from app.helpers.kube import create_kube_clients
+from app.helpers.kube import create_kube_clients, check_kube_error_code
 from app.helpers.decorators import admin_required
 from app.helpers.pagination import paginate
 
@@ -199,7 +199,7 @@ class ClusterNamespacesView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -211,7 +211,8 @@ class ClusterNamespacesView(Resource):
             # get all namespaces in the cluster
             namespace_resp = kube_client.kube.list_namespace()
 
-            pagination , paginated_items = paginate(namespace_resp , per_page , page)
+            pagination, paginated_items = paginate(
+                namespace_resp, per_page, page)
 
             namespaces = []
 
@@ -221,9 +222,9 @@ class ClusterNamespacesView(Resource):
 
             namespaces_json = json.dumps(namespaces)
 
-            return dict(status='success', data=dict(pagination = pagination , namespaces=json.loads(namespaces_json))), 200
+            return dict(status='success', data=dict(pagination=pagination, namespaces=json.loads(namespaces_json))), 200
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -260,7 +261,7 @@ class ClusterNamespaceDetailView(Resource):
             return dict(status='success', data=dict(namespace=json.loads(namespace_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -277,7 +278,7 @@ class ClusterNodesView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -289,7 +290,7 @@ class ClusterNodesView(Resource):
             # get all nodes in the cluster
             node_resp = kube_client.kube.list_node()
 
-            pagination , paginated_items = paginate(node_resp , per_page , page)
+            pagination, paginated_items = paginate(node_resp, per_page, page)
 
             nodes = []
 
@@ -299,9 +300,9 @@ class ClusterNodesView(Resource):
 
             nodes_json = json.dumps(nodes)
 
-            return dict(status='success', data=dict(pagination = pagination , nodes=json.loads(nodes_json))), 200
+            return dict(status='success', data=dict(pagination=pagination, nodes=json.loads(nodes_json))), 200
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -332,7 +333,7 @@ class ClusterNodeDetailView(Resource):
             return dict(status='success', data=dict(node=json.loads(node_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -351,7 +352,7 @@ class ClusterDeploymentsView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -362,8 +363,9 @@ class ClusterDeploymentsView(Resource):
 
             deployment_resp =\
                 kube_client.appsv1_api.list_deployment_for_all_namespaces()
-            
-            pagination , paginated_items = paginate(deployment_resp.items , per_page , page)
+
+            pagination, paginated_items = paginate(
+                deployment_resp.items, per_page, page)
 
             tot_deployment_count = 0
             tot_success_deployments = 0
@@ -371,7 +373,7 @@ class ClusterDeploymentsView(Resource):
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 deployments.append(item)
 
-                if((item["status"]["conditions"][0]["status"] == "True") and (item["status"]["conditions"][1]["status"] == "True")):
+                if ((item["status"]["conditions"][0]["status"] == "True") and (item["status"]["conditions"][1]["status"] == "True")):
                     tot_success_deployments = tot_success_deployments + 1
 
                 tot_deployment_count = tot_deployment_count + 1
@@ -382,9 +384,9 @@ class ClusterDeploymentsView(Resource):
                                           total_successful_deployments=tot_success_deployments, total_failed_deployment=tot_failed_deployments)
             deployments_json = json.dumps(deployments)
 
-            return dict(status='success', data=dict(pagination = pagination , deployment_summary_stats=summary_stats_metadata, deployments=json.loads(deployments_json))), 200
+            return dict(status='success', data=dict(pagination=pagination, deployment_summary_stats=summary_stats_metadata, deployments=json.loads(deployments_json))), 200
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -423,7 +425,7 @@ class ClusterDeploymentDetailView(Resource):
             ), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -440,7 +442,7 @@ class ClusterPvcsView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -451,8 +453,9 @@ class ClusterPvcsView(Resource):
 
             pvcs_resp = \
                 kube_client.kube.list_persistent_volume_claim_for_all_namespaces()
-            
-            pagination , paginated_items = paginate(pvcs_resp.items , per_page , page)
+
+            pagination, paginated_items = paginate(
+                pvcs_resp.items, per_page, page)
 
             pvcs = []
 
@@ -463,10 +466,10 @@ class ClusterPvcsView(Resource):
             pvcs_json = json.dumps(pvcs)
 
             return dict(
-                status='success', data=dict(pagination = pagination , pvcs=json.loads(pvcs_json))), 200
+                status='success', data=dict(pagination=pagination, pvcs=json.loads(pvcs_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -500,7 +503,7 @@ class ClusterPvcDetailView(Resource):
             return dict(status='success', data=dict(pvc=json.loads(pvc_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -517,7 +520,7 @@ class ClusterPVsView(Resource):
 
             if not cluster:
                 return dict(status='fail', message=f'cluster with id {cluster_id} does not exist'), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -528,7 +531,8 @@ class ClusterPVsView(Resource):
 
             pvs_resp = kube_client.kube.list_persistent_volume()
 
-            pagination , paginated_items = paginate(pvs_resp.items , per_page , page)
+            pagination, paginated_items = paginate(
+                pvs_resp.items, per_page, page)
 
             pvs = []
 
@@ -538,10 +542,10 @@ class ClusterPVsView(Resource):
 
             pvs_json = json.dumps(pvs)
 
-            return dict(status='success', data=dict(pagination = pagination , pvs=json.loads(pvs_json))), 200
+            return dict(status='success', data=dict(pagination=pagination, pvs=json.loads(pvs_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -575,7 +579,7 @@ class ClusterPVDetailView(Resource):
             return dict(status='success', data=dict(pv=json.loads(pv_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -595,7 +599,7 @@ class ClusterPodsView(Resource):
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
                 ), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -604,8 +608,9 @@ class ClusterPodsView(Resource):
 
             kube_client = create_kube_clients(kube_host, kube_token)
             pods_resp = kube_client.kube.list_pod_for_all_namespaces()
-            
-            pagination , paginated_items = paginate(pods_resp.items,per_page,page)
+
+            pagination, paginated_items = paginate(
+                pods_resp.items, per_page, page)
 
             pods = []
 
@@ -613,10 +618,10 @@ class ClusterPodsView(Resource):
                 item = kube_client.api_client.sanitize_for_serialization(item)
                 pods.append(item)
 
-            return dict(status='success', data=dict(pagination=pagination , pods=pods)), 200
+            return dict(status='success', data=dict(pagination=pagination, pods=pods)), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -648,7 +653,7 @@ class ClusterPodDetailView(Resource):
             return dict(status='success', data=dict(pod=json.loads(pod_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -668,7 +673,7 @@ class ClusterServicesView(Resource):
                     status='fail',
                     message=f'cluster with id {cluster_id} does not exist'
                 ), 404
-            
+
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
@@ -679,8 +684,9 @@ class ClusterServicesView(Resource):
 
             service_resp =\
                 kube_client.kube.list_service_for_all_namespaces()
-            
-            pagination , paginated_items = paginate(service_resp.items,per_page,page)
+
+            pagination, paginated_items = paginate(
+                service_resp.items, per_page, page)
 
             services = []
 
@@ -690,10 +696,10 @@ class ClusterServicesView(Resource):
 
             services_json = json.dumps(services)
 
-            return dict(status='success', data=dict(pagination = pagination , services=json.loads(services_json))), 200
+            return dict(status='success', data=dict(pagination=pagination, services=json.loads(services_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -726,7 +732,7 @@ class ClusterServiceDetailView(Resource):
             return dict(status='success', data=dict(service=json.loads(service_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -762,7 +768,7 @@ class ClusterJobsView(Resource):
             return dict(status='success', data=dict(jobs=json.loads(jobs_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -795,7 +801,7 @@ class ClusterJobDetailView(Resource):
             return dict(status='success', data=dict(job=json.loads(job_json))), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -837,7 +843,7 @@ class ClusterStorageClassView(Resource):
             ), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
@@ -878,7 +884,7 @@ class ClusterStorageClassDetailView(Resource):
             ), 200
 
         except client.rest.ApiException as e:
-            return dict(status='fail', message=e.reason), e.status
+            return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
