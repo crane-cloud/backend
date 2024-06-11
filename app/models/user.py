@@ -34,6 +34,7 @@ class User(ModelMixin):
     credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    public = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, name, password, organisation = None):
         """ initialize with email, username and password """
