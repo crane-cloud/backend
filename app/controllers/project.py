@@ -25,6 +25,7 @@ from sqlalchemy import or_, func
 from app.helpers.crane_app_logger import logger
 from flask import current_app, render_template
 from app.helpers.email import send_email
+from app.helpers.pagination import paginate
 
 
 class ProjectsView(Resource):
@@ -630,6 +631,8 @@ class UserProjectsView(Resource):
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
+        page = request.args.get('page' , 1 , type=int)
+        per_page = request.args.get('per_page' , 10 , type=int)
 
         if not is_current_or_admin(user_id, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -640,16 +643,22 @@ class UserProjectsView(Resource):
         if not user:
             return dict(status='fail', message=f'user {user_id} not found'), 404
 
-        projects = user.projects
+        pagination_meta_data , projects = paginate(user.projects , per_page , page)
+        pinned = [project for project in user.projects if project.pinned]
 
         projects_json, errors = project_schema.dumps(projects)
+        pinned_projects_json, errs = project_schema.dumps(pinned)
 
-        if errors:
+        if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
 
         return dict(
             status='success',
-            data=dict(projects=json.loads(projects_json))
+            data=dict(
+                pagination = {**pagination_meta_data , 'pinnned_count' : len(pinned)},
+                pinned = json.loads(pinned_projects_json),
+                projects=json.loads(projects_json)
+            )
         ), 200
 
 

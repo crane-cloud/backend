@@ -423,6 +423,16 @@ paths:
           name: user_id
           required: true
           type: string
+        - in: query
+          name: page
+          type: integer
+          required: false
+          description: Page
+        - in: query
+          name: per_page
+          type: integer
+          required: false
+          description: per page
       responses:
         200:
           description: "Success"
