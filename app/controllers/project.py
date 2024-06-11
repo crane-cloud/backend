@@ -863,3 +863,98 @@ class ProjectEnableView(Resource):
             status='success',
             message=f'project {project_id} enabled successfully'
         ), 201
+
+
+class ProjectPinView(Resource):
+    @jwt_required
+    def post(self , project_id):
+
+        current_user_id = get_jwt_identity()
+
+        project = Project.get_by_id(project_id)
+        user = User.get_by_id(current_user_id)
+
+        if (not user):
+            return dict(
+                status = 'fail',
+                message = 'The user does not exist'
+            ),404
+        
+        if (project not in user.projects):
+            return dict(
+                message = 'Project is not this users project',
+                status = 'fail'
+            ),409
+        
+        if (not project):
+            return dict(
+                status = 'fail',
+                message = 'The project id provided does not exist'
+            ),404
+        
+        if (project.pinned):
+            return dict(
+                status = 'fail',
+                message = 'The project was already pinned'
+            ),409
+        
+        
+
+        pinned_projects = [project for project in user.projects if (project.pinned != 'null' or project.pinned )]
+        pinned_projects_count = len(pinned_projects)
+
+
+        if (pinned_projects_count >= 6) :
+            return dict(
+                status = 'Fail',
+                message = 'Pinned projects cant more than 6'
+            ) , 409
+        
+
+        project.pinned = True
+        project.save()
+
+        return dict(
+            status = 'Success',
+            message = f'Project {project_id} pinned successfully'
+        ) , 200
+    
+    @jwt_required
+    def delete(self,project_id):
+
+        current_user_id = get_jwt_identity()
+
+        project = Project.get_by_id(project_id)
+        user = User.get_by_id(current_user_id)
+
+        if (not user):
+            return dict(
+                status = 'fail',
+                message = 'The user does not exist'
+            ),404
+        
+        if (project not in user.projects):
+            return dict(
+                message = 'Project is not this users project',
+                status = 'fail'
+            ),409
+        
+        if (not project):
+            return dict(
+                status = 'fail',
+                message = 'The project id provided does not exist'
+            ),404
+        
+        if (not project.pinned):
+            return dict(
+                status = 'fail',
+                message = 'The project was not pinned'
+            ),409
+        
+        project.pinned = False
+        project.save()
+
+        return dict(
+            status = 'Success',
+            message = f'Project {project_id} unpinned successfully'
+        ) , 200

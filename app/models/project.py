@@ -36,3 +36,4 @@ class Project(ModelMixin):
     deleted = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    pinned = db.Column(db.Boolean, default=False)

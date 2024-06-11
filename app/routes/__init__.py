@@ -10,7 +10,7 @@ from app.controllers import (
     ClusterStorageClassView, ClusterStorageClassDetailView,
     ProjectsView, ProjectDetailView, UserProjectsView, UserActivitesView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView, AppDetailView, RegistriesView, AppLogsView,
+    ProjectAppsView, AppDetailView, RegistriesView, AppLogsView,ProjectPinView,
     ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
     ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
     ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
@@ -146,6 +146,7 @@ api.add_resource(ProjectDisableView,
                  '/projects/<string:project_id>/disable')
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
+api.add_resource(ProjectPinView, '/projects/<string:project_id>/pin')
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 
