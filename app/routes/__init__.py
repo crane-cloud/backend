@@ -17,7 +17,8 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectDatabaseDisableView, ProjectDatabaseEnableView,
-    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView)
+    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView,
+    UserFollowersView, UserFollowView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -46,6 +47,9 @@ api.add_resource(InActiveUsersView, '/users/inactive_users',
 
 api.add_resource(UserEnableView, '/users/<string:user_id>/enable')
 api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
+
+api.add_resource(UserFollowView, '/users/<string:user_id>/following')
+api.add_resource(UserFollowersView, '/users/<string:user_id>/followers')
 
 
 # Deployments

@@ -15,7 +15,7 @@ build-image: ## Build docker image
 
 start:build-image ## Start development server
 	@ ${INFO} "starting local development server"
-	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) up
+	@ docker compose -f $(DOCKER_DEV_COMPOSE_FILE) up --watch
 
 psql-connect:build-image ## Connect to psql
 	@ ${INFO} "Connect to psql"
