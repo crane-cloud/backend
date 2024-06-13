@@ -499,6 +499,9 @@ class ProjectFollowingView(Resource):
 
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+        
+        if str(project.owner_id) == current_user_id:
+            return dict(status='fail', message='You cannot follow your own project'), 400
    
         existing_project_follow = ProjectFollowers.find_first(user_id=current_user_id, project_id=project_id)
         if existing_project_follow:

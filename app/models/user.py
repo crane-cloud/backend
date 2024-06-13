@@ -10,7 +10,6 @@ from ..models import db
 from app.models.model_mixin import ModelMixin
 from app.models.credits import Credit
 from app.models.credit_assignments import CreditAssignment
-from app.models.project_users import ProjectFollowers
 
 class Followers(ModelMixin):
     """ followers table definition """
