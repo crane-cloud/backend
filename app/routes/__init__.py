@@ -11,14 +11,10 @@ from app.controllers import (
     ProjectsView, ProjectDetailView, UserProjectsView, UserActivitesView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
     ProjectAppsView, AppDetailView, RegistriesView, AppLogsView,
-    ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
-    ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
-    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectDatabaseDisableView, ProjectDatabaseEnableView,
-    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView,
-    UserFollowersView, UserFollowView)
+    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView, 
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -173,33 +169,6 @@ api.add_resource(
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
-
-# Databases
-api.add_resource(ProjectDatabaseView,
-                 '/projects/<string:project_id>/databases')
-api.add_resource(ProjectDatabaseDetailView,
-                 '/projects/<string:project_id>/databases/<string:database_id>')
-api.add_resource(ProjectDatabaseAdminView, '/databases')
-api.add_resource(ProjectDatabaseGraphAdminView, '/databases/graph')
-api.add_resource(ProjectDatabaseAdminDetailView,
-                 '/databases/<string:database_id>')
-api.add_resource(ProjectDatabaseResetView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/reset')
-api.add_resource(ProjectDatabaseAdminResetView,
-                 '/databases/<string:database_id>/reset')
-api.add_resource(ProjectDatabasePasswordResetView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/reset_password')
-api.add_resource(ProjectDatabaseAdminPasswordResetView,
-                 '/databases/<string:database_id>/reset_password')
-api.add_resource(ProjectDatabaseRetrievePasswordView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/password')
-api.add_resource(ProjectDatabaseAdminRetrievePasswordView,
-                 '/databases/<string:database_id>/password')
-api.add_resource(DatabaseStatsView, '/databases/stats')
-api.add_resource(ProjectDatabaseDisableView,
-                 '/databases/<string:database_id>/disable')
-api.add_resource(ProjectDatabaseEnableView,
-                 '/databases/<string:database_id>/enable')
 
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
