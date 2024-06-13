@@ -10,7 +10,7 @@ from ..models import db
 from app.models.model_mixin import ModelMixin
 from app.models.credits import Credit
 from app.models.credit_assignments import CreditAssignment
-
+from app.models.project_users import ProjectFollowers
 
 class Followers(ModelMixin):
     """ followers table definition """
@@ -51,6 +51,8 @@ class User(ModelMixin):
         'CreditAssignment', backref='user', lazy=True)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    followed_projects = db.relationship(
+        'ProjectFollowers', back_populates='user')
 
     def __init__(self, email, name, password, organisation=None):
         """ initialize with email, username and password """

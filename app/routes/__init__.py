@@ -18,7 +18,7 @@ from app.controllers import (
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectDatabaseDisableView, ProjectDatabaseEnableView,
     AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView,
-    UserFollowersView, UserFollowView)
+    UserFollowersView, UserFollowView, ProjectFollowingView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -207,5 +207,8 @@ api.add_resource(ProjectUsersTransferView,
                  '/projects/<string:project_id>/users/transfer')
 api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
+api.add_resource(ProjectFollowingView,
+                 '/projects/<string:project_id>/following')
+
 # system status
 api.add_resource(SystemSummaryView, '/system_summary')

@@ -10,7 +10,7 @@ from .monitoring_metrics import (UserGraphSchema, AppGraphSchema,
                                  BillingMetricsSchema)
 from .pod_logs import PodsLogsSchema
 from .project_database import ProjectDatabaseSchema
-from .project_users import ProjectUserSchema
+from .project_users import ProjectUserSchema, ProjectFollowerSchema
 from .credits import CreditSchema
 from .credit_assignments import CreditAssignmentSchema
 from .anonymous_users import AnonymousUsersSchema
