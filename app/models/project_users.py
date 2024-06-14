@@ -11,6 +11,7 @@ class RolesList(enum.Enum):
     admin = "admin"
     member = "member"
 
+
 class ProjectUser(ModelMixin):
     _tablename_ = "project_users"
 
@@ -21,3 +22,4 @@ class ProjectUser(ModelMixin):
     accepted_collaboration_invite = db.Column(db.Boolean, nullable=True)
     user = db.relationship("User", back_populates="other_projects")
     other_project = db.relationship("Project", back_populates="users")
+    pinned = db.Column(db.Boolean, default=False)

@@ -639,15 +639,15 @@ class UserProjectsView(Resource):
 
         project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
+        pinned_projects = ProjectUser.query.filter_by(user_id = current_user_id , pinned = True)
 
         if not user:
             return dict(status='fail', message=f'user {user_id} not found'), 404
 
-        pagination_meta_data , projects = paginate(user.projects , per_page , page)
-        pinned = [project for project in user.projects if project.pinned]
+        pagination_meta_data , projects = paginate(user.projects , per_page , page)        
 
         projects_json, errors = project_schema.dumps(projects)
-        pinned_projects_json, errs = project_schema.dumps(pinned)
+        pinned_projects_json, errs = project_schema.dumps([Project.get_by_id(project.project_id) for project in pinned_projects])
 
         if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
@@ -655,7 +655,7 @@ class UserProjectsView(Resource):
         return dict(
             status='success',
             data=dict(
-                pagination = {**pagination_meta_data , 'pinnned_count' : len(pinned)},
+                pagination = {**pagination_meta_data , 'pinnned_count' : pinned_projects.count()},
                 pinned = json.loads(pinned_projects_json),
                 projects=json.loads(projects_json)
             )
@@ -880,38 +880,21 @@ class ProjectPinView(Resource):
 
         current_user_id = get_jwt_identity()
 
-        project = Project.get_by_id(project_id)
-        user = User.get_by_id(current_user_id)
+        project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
 
-        if (not user):
+        if (not project_user):
             return dict(
-                status = 'fail',
-                message = 'The user does not exist'
-            ),404
-        
-        if (project not in user.projects):
-            return dict(
-                message = 'Project is not this users project',
+                message = 'The user is not apart of the project',
                 status = 'fail'
-            ),409
+            ) , 404
         
-        if (not project):
+        if (project_user.pinned):
             return dict(
-                status = 'fail',
-                message = 'The project id provided does not exist'
-            ),404
-        
-        if (project.pinned):
-            return dict(
-                status = 'fail',
-                message = 'The project was already pinned'
-            ),409
-        
-        
+                message = 'The project is already pinned',
+                status = 'fail'
+            ) , 409
 
-        pinned_projects = [project for project in user.projects if (project.pinned != 'null' or project.pinned )]
-        pinned_projects_count = len(pinned_projects)
-
+        pinned_projects_count = ProjectUser.count(user_id = current_user_id , pinned = True)
 
         if (pinned_projects_count >= 6) :
             return dict(
@@ -920,8 +903,8 @@ class ProjectPinView(Resource):
             ) , 409
         
 
-        project.pinned = True
-        project.save()
+        project_user.pinned = True
+        project_user.save()
 
         return dict(
             status = 'Success',
@@ -933,35 +916,16 @@ class ProjectPinView(Resource):
 
         current_user_id = get_jwt_identity()
 
-        project = Project.get_by_id(project_id)
-        user = User.get_by_id(current_user_id)
+        project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
 
-        if (not user):
+        if (not project_user):
             return dict(
-                status = 'fail',
-                message = 'The user does not exist'
-            ),404
-        
-        if (project not in user.projects):
-            return dict(
-                message = 'Project is not this users project',
+                message = 'The user is not apart of the project',
                 status = 'fail'
-            ),409
+            ) , 404
         
-        if (not project):
-            return dict(
-                status = 'fail',
-                message = 'The project id provided does not exist'
-            ),404
-        
-        if (not project.pinned):
-            return dict(
-                status = 'fail',
-                message = 'The project was not pinned'
-            ),409
-        
-        project.pinned = False
-        project.save()
+        project_user.pinned = False
+        project_user.save()
 
         return dict(
             status = 'Success',

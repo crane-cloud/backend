@@ -29,7 +29,6 @@ class ProjectSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
-    pinned = fields.Boolean()
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
