@@ -25,11 +25,6 @@ from .project import (
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppRevertView, AppReviseView, AppRedeployView, AppDisableView, AppEnableView, AppDockerWebhookListenerView)
 from .registry import RegistriesView
-from .project_database import (ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView,
-                               ProjectDatabaseAdminDetailView, ProjectDatabaseResetView, ProjectDatabaseAdminResetView,
-                               ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView, ProjectDatabaseGraphAdminView,
-                               ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
-                               ProjectDatabaseDisableView, ProjectDatabaseEnableView)
 from .billing_invoice import (
     BillingInvoiceView, BillingInvoiceNotificationView)
 from .system_status import SystemSummaryView

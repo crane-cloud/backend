@@ -28,7 +28,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
-from app.models.project_database import ProjectDatabase
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
 
@@ -379,8 +378,6 @@ class UserDetailView(Resource):
         user_data['follower_count'] = user.followers.count()
         user_data['apps_count'] = sum(
             len(project.apps) for project in user.projects)
-        user_data['database_count'] = sum(
-            len(project.project_databases) for project in user.projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
@@ -990,20 +987,10 @@ class UserActivitesView(Resource):
 
             user_id = validated_data_query.get('user_id', None)
 
-            # check if owner or admin or member for project, database or app
+            # check if owner or admin or member for project or app
             project_id = None
             if validated_data_query.get('a_project_id'):
                 project_id = validated_data_query.get('a_project_id')
-
-            elif validated_data_query.get('a_db_id'):
-                database_id = validated_data_query.get('a_db_id')
-                database_existant = ProjectDatabase.get_by_id(database_id)
-                if not database_existant:
-                    return dict(
-                        status="fail",
-                        message=f"Database with id {database_id} not found."
-                    ), 404
-                project_id = database_existant.project_id
 
             elif validated_data_query.get('a_app_id'):
                 app_id = validated_data_query.get('a_app_id')
