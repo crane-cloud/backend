@@ -65,8 +65,8 @@ services:
         - action: sync
           path: .
           target: /app
-    # volumes:
-    #   - .:/app
+    volumes:
+      - .:/app
     depends_on:
       - database
       - crane-mongo-db

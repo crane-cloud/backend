@@ -3,7 +3,6 @@ from app.helpers.alias import create_alias
 import os
 from flask import current_app
 from types import SimpleNamespace
-from app.helpers.db_flavor import disable_database, enable_database
 from app.models.app import App
 from app.models.user import User
 from app.models.project import Project
@@ -649,9 +648,6 @@ def enable_user_app(app: App):
 
 
 def disable_project(project: Project, is_admin=False):
-    # Disable databases
-    for database in project.project_databases:
-        disable_database(database, is_admin)
 
     # Disable apps
     try:
@@ -733,10 +729,6 @@ def disable_project(project: Project, is_admin=False):
 
 
 def enable_project(project: Project):
-    # Enable databases
-    for database in project.project_databases:
-        enable_database(database)
-
     # Enable apps
     try:
         kube_host = project.cluster.host
