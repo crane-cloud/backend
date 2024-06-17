@@ -882,7 +882,8 @@ class ProjectPinView(Resource):
 
         project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
 
-        if (not project_user):
+      if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
             return dict(
                 message = 'The user is not apart of the project',
                 status = 'fail'
