@@ -879,16 +879,14 @@ class ProjectPinView(Resource):
     def post(self , project_id):
 
         current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
 
         project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
 
-      if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-            return dict(
-                message = 'The user is not apart of the project',
-                status = 'fail'
-            ) , 404
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
         
+
         if (project_user.pinned):
             return dict(
                 message = 'The project is already pinned',
@@ -900,7 +898,7 @@ class ProjectPinView(Resource):
         if (pinned_projects_count >= 6) :
             return dict(
                 status = 'Fail',
-                message = 'Pinned projects cant more than 6'
+                message = 'Pinned projects cant be more than 6'
             ) , 409
         
 
@@ -916,14 +914,12 @@ class ProjectPinView(Resource):
     def delete(self,project_id):
 
         current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
 
         project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
 
-        if (not project_user):
-            return dict(
-                message = 'The user is not apart of the project',
-                status = 'fail'
-            ) , 404
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
         
         project_user.pinned = False
         project_user.save()
