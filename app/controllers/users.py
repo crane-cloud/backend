@@ -404,7 +404,7 @@ class UserDetailView(Resource):
                     message = f'User not with id {user_id} not found'
                 ),404
 
-            validate_user_data, errors = user_schema.load({**user.__dict__,**dict(user_data)})
+            validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
