@@ -8,7 +8,7 @@ from app.controllers import (
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
     ClusterStorageClassView, ClusterStorageClassDetailView,
-    ProjectsView, ProjectDetailView, UserProjectsView, UserActivitesView, UserEmailVerificationView,
+    ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
     ProjectAppsView, AppDetailView, RegistriesView, AppLogsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
@@ -37,7 +37,6 @@ api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/graph')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
-api.add_resource(UserActivitesView, '/users/activities')
 api.add_resource(InActiveUsersView, '/users/inactive_users',
                  endpoint='inactive_users')
 
