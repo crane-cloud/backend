@@ -470,77 +470,6 @@ paths:
         401:
           description: "failed to authenticate user"
 
-  "/users/activities":
-    get:
-      tags:
-        - users
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-        - in: query
-          name: page
-          type: integer
-          description: Page number
-        - in: query
-          name: per_page
-          type: integer
-          description: Number of items per page
-        - in: query
-          name: operation
-          required: false
-          type: string
-        - in: query
-          name: status
-          required: false
-          type: string
-        - in: query
-          name: model
-          required: false
-          type: string
-        - in: query
-          name: a_project_id
-          required: false
-          type: string
-        - in: query
-          name: a_cluster_id
-          required: false
-          type: string
-        - in: query
-          name: a_db_id
-          required: false
-          type: string
-        - in: query
-          name: a_user_id
-          required: false
-          type: string
-        - in: query
-          name: a_app_id
-          required: false
-          type: string
-        - in: query
-          name: start
-          required: false
-          type: string
-          format: date
-        - in: query
-          name: end
-          required: false
-          type: string
-          format: date
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
   "/users/inactive_users":
     get:
       tags:
@@ -654,6 +583,130 @@ paths:
       responses:
         201:
           description: "Successfully enabled user"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/{user_id}/following":
+    get:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: user_id
+          required: true
+          type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    post:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    delete:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: user_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/users/{user_id}/followers":
+    get:
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: user_id
+          required: true
+          type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+      responses:
+        200:
+          description: "Success"
         404:
           description: "User not found"
         400:
@@ -2698,298 +2751,6 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/projects/{project_id}/databases":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: body
-          name: project
-          type: json
-          schema:
-            required:
-              - database_flavour_name
-            properties:
-              database_flavour_name:
-                type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: query
-          name: page
-          type: integer
-          description: Page number
-        - in: query
-          name: per_page
-          type: integer
-          description: Number of items per page
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Databases not found"
-        500:
-          description: "Internal Server Error"
-
-  "/projects/{project_id}/databases/{database_id}":
-    delete:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database not found"
-        500:
-          description: "Internal Server Error"
-
-  "/projects/{project_id}/databases/{database_id}/reset":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/projects/{project_id}/databases/{database_id}/reset_password":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-        - in: body
-          name: database
-          schema:
-            required:
-              - password
-            properties:
-              password:
-                type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/projects/{project_id}/databases/{database_id}/password":
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: project_id
-          required: true
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database password not found"
-        500:
-          description: "Internal Server Error"
-
-
-  "/projects/{project_id}/pin":
-    post:
-      tags:
-        - projects
-      consumes:
-        - application/json
-      description: "Pin a project"
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          type: string
-
-        - in: path
-          name: project_id
-          required: true
-          type: string
-
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-        409:
-          description: "Conflict"
-
-    delete:
-      tags:
-        - projects
-      consumes:
-        - application/json
-      description: "Unpin a project"
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          type: string
-
-        - in: path
-          name: project_id
-          required: true
-          type: string
-
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-        409:
-          description: 'Conflict'
-
-
   "/projects/{project_id}/users":
     post:
       tags:
@@ -3200,336 +2961,6 @@ paths:
       responses:
         201:
           description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/databases":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: body
-          name: database
-          schema:
-            required:
-              - database_flavour_name
-            properties:
-              database_flavour_name:
-                type: string
-              name:
-                type: string
-              project_id:
-                type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: query
-          name: db_flavour
-          type: string
-          description: Database flavour either mysql or postgres
-        - in: query
-          name: page
-          type: integer
-          description: Page number
-        - in: query
-          name: per_page
-          type: integer
-          description: Number of items per page
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Databases not found"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/stats":
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database stats not found"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/graph":
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: query
-          name: start
-          type: string
-          description: Start date format(YYYY-MM-DD)
-        - in: query
-          name: end
-          type: string
-          description: End date format(YYYY-MM-DD)
-        - in: query
-          name: set_by
-          type: string
-          description: Either month or year
-        - in: query
-          name: db_flavour
-          type: string
-          description: Database flavour either mysql or postgres
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database stats not found"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}":
-    delete:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database Not Found"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}/reset":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}/reset_password":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-        - in: body
-          name: database
-          schema:
-            required:
-              - password
-            properties:
-              password:
-                type: string
-      produces:
-        - application/json
-      responses:
-        201:
-          description: "Success"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}/password":
-    get:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: "Success"
-        400:
-          description: "Bad request"
-        404:
-          description: "Database password not found"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}/disable":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      responses:
-        201:
-          description: "Successfully disabled Project Database"
-        404:
-          description: "Project database not found"
-        400:
-          description: "Bad request"
-        500:
-          description: "Internal Server Error"
-
-  "/databases/{database_id}/enable":
-    post:
-      tags:
-        - databases
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          description: "Bearer [token]"
-          type: string
-        - in: path
-          name: database_id
-          required: true
-          type: string
-      responses:
-        201:
-          description: "Successfully enabled Project Database"
-        404:
-          description: "Project database not found"
         400:
           description: "Bad request"
         500:
@@ -3776,7 +3207,7 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-  
+
   "/apps/{app_id}/revisions":
     get:
       tags:
@@ -3956,7 +3387,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
   "/projects/{project_id}/apps/{app_id}/logs":
     post:

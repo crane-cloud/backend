@@ -12,13 +12,12 @@ from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema, ClusterSchema
+from app.schemas import ProjectSchema, AppSchema, ProjectUserSchema, ClusterSchema
 from app.helpers.decorators import admin_required
 import datetime
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, func
@@ -363,18 +362,14 @@ class ProjectDetailView(Resource):
                 project=dict(**json.loads(project_data)), cluster=json.loads(cluster_data))), 200
         else:
             apps_schema = AppSchema(many=True)
-            database_schema = ProjectDatabaseSchema(many=True)
             users_schema = ProjectUserSchema(many=True)
             apps = project.apps
-            databases = project.project_databases
             users = project.users
             apps_data, errors = apps_schema.dumps(apps)
-            databases_data, errors = database_schema.dumps(databases)
             users_data, errors = users_schema.dumps(users)
             return dict(status='success', data=dict(
                 project=dict(**json.loads(project_data),
                              apps=json.loads(apps_data),
-                             databases=json.loads(databases_data),
                              users=json.loads(users_data),
                              cluster=json.loads(cluster_data)
                              ))), 200
@@ -398,75 +393,6 @@ class ProjectDetailView(Resource):
             return dict(status='fail', message='unauthorised'), 403
 
         try:
-            # check for dbs in project and delete them from host and CC db
-            databases_list = project.project_databases
-
-            if databases_list:
-                for database in databases_list:
-
-                    database_flavour_name = database.database_flavour_name
-                    if not database_flavour_name:
-                        database_flavour_name = "mysql"
-
-                    db_flavour = get_db_flavour(database_flavour_name)
-
-                    if not db_flavour:
-                        message = f"""Database flavour with name {
-                            database.database_flavour_name} is not mysql or postgres."""
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description=message,
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=message
-                        ), 409
-
-                    # Delete the database
-                    database_service = db_flavour['class']
-                    database_connection = database_service.check_db_connection()
-
-                    if not database_connection:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Failed to connect to database service',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Failed to connect to the database service"
-                        ), 500
-
-                    delete_database = database_service.delete_database(
-                        database.name)
-
-                    if not delete_database:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Unable to delete database',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Unable to delete database"
-                        ), 500
-
-                    # Delete database record from database
-                    deleted_database = database.soft_delete()
-
-                    if not deleted_database:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Internal server error',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(status='fail', message=f'Internal Server Error'), 500
-
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)
 
