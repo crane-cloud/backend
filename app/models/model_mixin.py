@@ -91,8 +91,7 @@ class ModelMixin(db.Model):
     def find_first(cls, **kwargs):
         try:
             return cls.query.filter_by(**kwargs).first()
-        except SQLAlchemyError as e:
-            print(e)
+        except SQLAlchemyError:
             return False
 
     @classmethod
