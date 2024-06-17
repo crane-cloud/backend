@@ -1,20 +1,18 @@
 import base64
 import datetime
 import json
-import os
 from urllib.parse import urlsplit
 from app.helpers.activity_logger import log_activity
 from app.schemas.app import AppDeploySchema
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from flask_restful import Resource, request
 from kubernetes import client
-from prometheus_http_client import Prometheus
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
 from app.helpers.kube import (create_kube_clients, delete_cluster_app,
                               disable_user_app, enable_user_app, sort_apps_for_deployment, update_app_env_vars)
-from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.helpers.decorators import admin_required
 from app.helpers.decorators import admin_required
@@ -24,7 +22,7 @@ from app.models.app import App
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import AppSchema, MetricsSchema, PodsLogsSchema, AppGraphSchema
+from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 
@@ -1470,222 +1468,6 @@ class AppEnableView(Resource):
 
         return dict(status='success', message=f'App has been enabled successfully'), 201
 
-
-class AppMemoryUsageView(Resource):
-
-    @jwt_required
-    def post(self, project_id, app_id):
-        """
-        """
-
-        app_memory_schema = MetricsSchema()
-        app_query_data = request.get_json()
-
-        validated_query_data, errors = app_memory_schema.load(
-            app_query_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        current_time = datetime.datetime.now()
-        yesterday_time = current_time + datetime.timedelta(days=-1)
-
-        start = validated_query_data.get('start', yesterday_time.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        app = App.get_by_id(app_id)
-
-        if not app:
-            return dict(status='fail', message=f'App {app_id} not found'), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='Unauthorised'), 403
-
-        app_alias = app.alias
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        prom_memory_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="",pod=~"' + app_alias + '.*", namespace="' + namespace + '"}[5m]))')
-
-        new_data = json.loads(prom_memory_data)
-        final_data_list = []
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                mem_case = {'timestamp': float(
-                    value[0]), 'value': float(value[1])}
-                final_data_list.append(mem_case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=final_data_list)), 200
-
-
-class AppCpuUsageView(Resource):
-    @jwt_required
-    def post(self, project_id, app_id):
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        app_memory_schema = MetricsSchema()
-        app_cpu_data = request.get_json()
-
-        validated_query_data, errors = app_memory_schema.load(app_cpu_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Check app from db
-        app = App.get_by_id(app_id)
-
-        if not app:
-            return dict(
-                status='fail',
-                message=f'app {app_id} not found'
-            ), 404
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-        app_alias = app.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="", namespace="' +
-                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
-        )
-        #  change array values to json"values"
-        new_data = json.loads(prom_data)
-        cpu_data_list = []
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': float(value[0]), 'value': float(value[1])}
-                cpu_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=cpu_data_list)), 200
-
-
-class AppNetworkUsageView(Resource):
-    @jwt_required
-    def post(self, project_id, app_id):
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        app_network_schema = MetricsSchema()
-        app_network_data = request.get_json()
-
-        validated_query_data, errors = app_network_schema.load(
-            app_network_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Check app from db
-        app = App.get_by_id(app_id)
-
-        if not app:
-            return dict(
-                status='fail',
-                message=f'app {app_id} not found'
-            ), 404
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-        app_alias = app.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_network_receive_bytes_total{namespace="' +
-                   namespace + '", pod=~"' + app_alias + '.*"}[5m]))'
-        )
-        #  change array values to json "values"
-        new_data = json.loads(prom_data)
-        network_data_list = []
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': float(value[0]), 'value': float(value[1])}
-                network_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=network_data_list)), 200
-
-
 class AppLogsView(Resource):
     @jwt_required
     def post(self, project_id, app_id):
@@ -1811,62 +1593,3 @@ class AppLogsView(Resource):
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
 
-
-class AppStorageUsageView(Resource):
-    @jwt_required
-    def post(self, project_id, app_id):
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Check app from db
-        app = App.get_by_id(app_id)
-
-        if not app:
-            return dict(
-                status='fail',
-                message=f'app {app_id} not found'
-            ), 404
-
-        namespace = project.alias
-        app_alias = app.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        try:
-            prom_data = prometheus.query(
-                metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                       namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
-            )
-            #  change array values to json
-            new_data = json.loads(prom_data)
-            values = new_data["data"]
-
-            percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
-                                               )
-
-            data = json.loads(percentage_data)
-            volume_perc_value = data["data"]
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success',
-                    data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200

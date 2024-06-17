@@ -18,7 +18,7 @@ from app.helpers.pagination import paginate
 import requests
 import secrets
 import string
-from sqlalchemy import Date, func, column, cast, and_, select
+from sqlalchemy import Date, func, column, cast, and_, or_
 from app.models import db
 from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
@@ -28,7 +28,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
-from app.models.project_database import ProjectDatabase
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
 
@@ -121,10 +120,13 @@ class UsersView(Resource):
             data=dict(user=json.loads(new_user_data))
         ), 201
 
-    @admin_required
+    @jwt_required
     def get(self):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -134,6 +136,38 @@ class UsersView(Resource):
         total_users = len(User.find_all())
 
         users = []
+        # check if user is admin
+        admin_role = Role.find_first(name='administrator')
+
+        if admin_role not in current_user.roles:
+            query = User.query
+            if keywords:
+                keyword_filter = or_(
+                    User.name.ilike(f'%{keywords}%'),
+                    User.email.ilike(f'%{keywords}%')
+                )
+                query = query.filter(keyword_filter)
+
+            paginated = query.filter(User.verified == True).order_by(
+                User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            users = paginated.items
+            pagination = {
+                'total': paginated.total,
+                'pages': paginated.pages,
+                'page': paginated.page,
+                'per_page': paginated.per_page,
+                'next': paginated.next_num,
+                'prev': paginated.prev_num
+            }
+            users_data, errors = user_schema.dumps(users)
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            return dict(
+                status='success',
+                data=dict(pagination=pagination,
+                          users=json.loads(users_data))
+            ), 200
 
         meta_data = dict()
         meta_data['total_users'] = total_users
@@ -212,7 +246,7 @@ class UsersView(Resource):
 
 class UserAdminUpdateView(Resource):
 
-    @admin_required
+    @ admin_required
     def patch(self):
         try:
             user_schema = UserSchema(only=("is_beta_user",))
@@ -280,7 +314,8 @@ class UserLoginView(Resource):
         if user.disabled:
             return dict(
                 status='fail',
-                message=f'User with id {user.id} is disabled, please contact an admin'
+                message=f'''User with id {
+                    user.id} is disabled, please contact an admin'''
             ), 401
 
         if not user.verified:
@@ -337,18 +372,18 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
-        new_user_data = json.loads(user_data)
-        new_user_data['projects_count'] = len(user.projects)
-        new_user_data['apps_count'] = sum(
+        user_data = json.loads(user_data)
+        user_data['projects_count'] = len(user.projects)
+        user_data['following_count'] = user.followed.count()
+        user_data['follower_count'] = user.followers.count()
+        user_data['apps_count'] = sum(
             len(project.apps) for project in user.projects)
-        new_user_data['database_count'] = sum(
-            len(project.project_databases) for project in user.projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            user=new_user_data)), 200
+            user=user_data)), 200
 
     def delete(self, user_id):
         """
@@ -812,7 +847,7 @@ class ResetPasswordView(Resource):
 
 class UserDataSummaryView(Resource):
 
-    @admin_required
+    @ admin_required
     def get(self):
         """
         Shows new users per month or year
@@ -925,13 +960,12 @@ class UserDataSummaryView(Resource):
                 metadata=meta_data,
                 graph_data=user_info)
         ), 200
-
-
+      
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date
 
-    @admin_required
+    @ admin_required
     def get(self):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
@@ -1023,7 +1057,7 @@ class InActiveUsersView(Resource):
 
 
 class UserDisableView(Resource):
-    @admin_required
+    @ admin_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1080,7 +1114,7 @@ class UserDisableView(Resource):
 
 
 class UserEnableView(Resource):
-    @jwt_required
+    @ jwt_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1132,3 +1166,88 @@ class UserEnableView(Resource):
                 status='fail',
                 message=str(err)
             ), 500
+
+
+class UserFollowView(Resource):
+    @ jwt_required
+    def post(self, user_id):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        user = User.get_by_id(user_id)
+
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if user == current_user:
+            return dict(status='fail', message='You cannot follow yourself'), 400
+
+        if user in current_user.followed:
+            return dict(status='fail', message=f'You are already following user with id {user_id}'), 409
+
+        current_user.followed.append(user)
+        saved_user = current_user.save()
+
+        if not saved_user:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You are now following user with id {user_id}'
+        ), 201
+
+    @ jwt_required
+    def get(self, user_id):
+        user = User.get_by_id(user_id)
+        user_schema = UserSchema(many=True)
+
+        followed = user.followed
+        users_data, errors = user_schema.dumps(followed)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(following=json.loads(users_data))
+        ), 200
+
+    @ jwt_required
+    def delete(self, user_id):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        user = User.get_by_id(user_id)
+
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if user not in current_user.followed:
+            return dict(status='fail', message=f'You are not following user with id {user_id}'), 409
+
+        current_user.followed.remove(user)
+        saved_user = current_user.save()
+
+        if not saved_user:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You have unfollowed user with id {user_id}'
+        ), 200
+
+
+class UserFollowersView(Resource):
+    @ jwt_required
+    def get(self, user_id):
+        user = User.get_by_id(user_id)
+        user_schema = UserSchema(many=True)
+
+        followers = user.followers
+        users_data, errors = user_schema.dumps(followers)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(followers=json.loads(users_data))
+        ), 200
