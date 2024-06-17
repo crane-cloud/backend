@@ -382,7 +382,7 @@ class UserDetailView(Resource):
         """
         """
         try:
-      user_schema = UserSchema(only=("name", "public"))
+            user_schema = UserSchema(only=("name", "public"))
 
             user_data = request.get_json()
 
