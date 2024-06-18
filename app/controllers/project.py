@@ -571,7 +571,7 @@ class UserProjectsView(Resource):
 
         projects_json, errors = project_schema.dumps(projects)
         
-        pinned_projects_json, errs = project_schema.dumps([Project.get_by_id(project.project_id) for project in pinned_projects])
+        pinned_projects_json , errs = project_schema.dumps([project.other_project for project in pinned_projects])
 
         if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
@@ -811,7 +811,7 @@ class ProjectPinView(Resource):
             return dict(status='fail', message='unauthorised'), 403
         
 
-        if (project_user.pinned):
+        if project_user.pinned:
             return dict(
                 message = 'The project is already pinned',
                 status = 'fail'
@@ -819,7 +819,7 @@ class ProjectPinView(Resource):
 
         pinned_projects_count = ProjectUser.count(user_id = current_user_id , pinned = True)
 
-        if (pinned_projects_count >= 6) :
+        if pinned_projects_count >= 6 :
             return dict(
                 status = 'Fail',
                 message = 'Pinned projects cant be more than 6'
