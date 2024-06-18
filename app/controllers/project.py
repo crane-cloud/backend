@@ -565,13 +565,19 @@ class UserProjectsView(Resource):
 
         project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
-        pinned_projects = ProjectUser.query.filter_by(user_id = user_id , pinned = True)
+
+        pinned_projects = Project.query.join(
+            ProjectUser, Project.id == ProjectUser.project_id
+        ).filter(
+            ProjectUser.user_id == user_id,
+            ProjectUser.pinned == True
+        ).all()
 
         pagination_meta_data , projects = paginate(user.projects , per_page , page)        
 
         projects_json, errors = project_schema.dumps(projects)
         
-        pinned_projects_json , errs = project_schema.dumps([project.other_project for project in pinned_projects])
+        pinned_projects_json , errs = project_schema.dumps(pinned_projects)
 
         if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
@@ -579,7 +585,7 @@ class UserProjectsView(Resource):
         return dict(
             status='success',
             data=dict(
-                pagination = {**pagination_meta_data , 'pinnned_count' : pinned_projects.count()},
+                pagination = {**pagination_meta_data , 'pinnned_count' : len(pinned_projects)},
                 pinned = json.loads(pinned_projects_json),
                 projects=json.loads(projects_json)
             )
