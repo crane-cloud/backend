@@ -15,6 +15,7 @@ from app.helpers.email import send_email
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
 from app.helpers.pagination import paginate
+from app.helpers.admin import is_admin
 import requests
 import secrets
 import string
@@ -411,26 +412,33 @@ class UserDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+    @jwt_required
     def patch(self, user_id):
         """
         """
         try:
-            user_schema = UserSchema(only=("name",))
+            user_schema = UserSchema(only=("name", "is_public"))
 
             user_data = request.get_json()
+
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            user = User.get_by_id(user_id)
+            
+            if (current_user_id != user_id):
+                if (not is_admin(current_user_roles)):
+                    return dict(
+                        status = 'UnAuthorised',
+                        message = 'You are not authorized to edit this users information'
+                    ) , 401
+
 
             validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
 
-            user = User.get_by_id(user_id)
-
-            if not user:
-                return dict(
-                    status='fail',
-                    message=f'User {user_id} not found'
-                ), 404
 
             updated = User.update(user, **validate_user_data)
 
@@ -960,109 +968,7 @@ class UserDataSummaryView(Resource):
                 metadata=meta_data,
                 graph_data=user_info)
         ), 200
-
-
-class UserActivitesView(Resource):
-
-    @ jwt_required
-    def get(self):
-
-        try:
-
-            current_user_roles = get_jwt_claims()['roles']
-            current_user_id = get_jwt_identity()
-
-            activity_schema = ActivityLogSchema()
-            # get query params
-            query_params = request.args
-
-            # get pagination params
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 10, type=int)
-
-            validated_data_query, errors = activity_schema.load(query_params)
-
-            if errors:
-                return {"message": "Validation errors", "errors": errors}, 400
-
-            user_id = validated_data_query.get('user_id', None)
-
-            # check if owner or admin or member for project or app
-            project_id = None
-            if validated_data_query.get('a_project_id'):
-                project_id = validated_data_query.get('a_project_id')
-
-            elif validated_data_query.get('a_app_id'):
-                app_id = validated_data_query.get('a_app_id')
-                app = App.get_by_id(app_id)
-                if not app:
-                    return dict(status='fail', message=f'App {app_id} not found'), 404
-                project_id = app.project_id
-
-            if project_id:
-                project = Project.get_by_id(project_id)
-
-                if not project:
-                    return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
-                if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                    if is_authorised_project_user(project, current_user_id, 'member'):
-                        if not user_id:
-                            validated_data_query.pop('user_id', None)
-                        elif user_id != current_user_id:
-                            if not is_authorised_project_user(project, user_id, 'member'):
-                                return dict(
-                                    status='fail',
-                                    message=f'''User with id {
-                                        user_id} not a member of the project'''
-                                ), 200
-                        else:
-                            validated_data_query.pop('user_id', None)
-
-                    else:
-                        return dict(status='fail', message='unauthorised'), 403
-            else:
-                # check if user is admin if not make sure user_id is current user
-                if not is_admin(current_user_roles) and not user_id:
-                    validated_data_query['user_id'] = current_user_id
-
-            # check for start and end query params
-            if validated_data_query.get('start') and validated_data_query.get('end'):
-
-                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' '),
-                                                         "$lte": datetime.combine(validated_data_query.get('end'), datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('start', None)
-                validated_data_query.pop('end', None)
-
-            elif validated_data_query.get('start') and not validated_data_query.get('end'):
-                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' ')}
-                validated_data_query.pop('start', None)
-
-            elif not validated_data_query.get('start') and validated_data_query.get('end'):
-                validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
-                                                                                  datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('end', None)
-
-            # get logs
-            activities = mongo.db['activities'].find(
-                validated_data_query).sort("creation_date", -1)
-            json_data = dumps(activities)
-
-            # Add pagination for these activities
-            pagination_meta_data, paginated_items = paginate(
-                json.loads(json_data), per_page=per_page, page=page)
-
-            return dict(
-                status='success',
-                data=dict(pagination=pagination_meta_data,
-                          activity=paginated_items)
-            ), 200
-        except Exception as err:
-            return dict(status='fail', message=str(err)), 400
-
-
+      
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date

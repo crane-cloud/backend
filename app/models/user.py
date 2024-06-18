@@ -52,6 +52,7 @@ class User(ModelMixin):
     admin_disabled = db.Column(db.Boolean, default=False)
     followed_projects = db.relationship(
         'ProjectFollowers', back_populates='user')
+    is_public = db.Column(db.Boolean, default=True)
 
     def __init__(self, email, name, password, organisation=None):
         """ initialize with email, username and password """
