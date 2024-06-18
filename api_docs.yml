@@ -205,7 +205,7 @@ paths:
             properties:
               name:
                 type: string
-              public:
+              is_public:
                 type: boolean
 
       responses:

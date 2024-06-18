@@ -382,12 +382,14 @@ class UserDetailView(Resource):
         """
         """
         try:
-            user_schema = UserSchema(only=("name", "public"))
+            user_schema = UserSchema(only=("name", "is_public"))
 
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
+
+            user = User.get_by_id(user_id)
             
             if (current_user_id != user_id):
                 if (not is_admin(current_user_roles)):
@@ -396,25 +398,12 @@ class UserDetailView(Resource):
                         message = 'You are not authorized to edit this users information'
                     ) , 401
 
-            user = User.get_by_id(user_id)
-
-            if (not user) :
-                return dict(
-                    status = 'Not found',
-                    message = f'User not with id {user_id} not found'
-                ),404
 
             validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
 
-
-            if not user:
-                return dict(
-                    status='fail',
-                    message=f'User {user_id} not found'
-                ), 404
 
             updated = User.update(user, **validate_user_data)
 
