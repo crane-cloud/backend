@@ -28,4 +28,4 @@ from .registry import RegistriesView
 from .billing_invoice import (
     BillingInvoiceView, BillingInvoiceNotificationView)
 from .system_status import SystemSummaryView
-from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView
+from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView, ProjectFollowingView
