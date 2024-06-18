@@ -565,14 +565,12 @@ class UserProjectsView(Resource):
 
         project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
-        pinned_projects = ProjectUser.query.filter_by(user_id = current_user_id , pinned = True)
-
-        if not user:
-            return dict(status='fail', message=f'user {user_id} not found'), 404
+        pinned_projects = ProjectUser.query.filter_by(user_id = user_id , pinned = True)
 
         pagination_meta_data , projects = paginate(user.projects , per_page , page)        
 
         projects_json, errors = project_schema.dumps(projects)
+        
         pinned_projects_json, errs = project_schema.dumps([Project.get_by_id(project.project_id) for project in pinned_projects])
 
         if errors and errs:
