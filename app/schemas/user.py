@@ -38,6 +38,7 @@ class UserSchema(Schema):
     ])
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
+    is_public = fields.Boolean()
    
     def get_age(self, obj):
         return get_item_age(obj.date_created)
