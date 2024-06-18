@@ -28,7 +28,6 @@ class ProjectFollowers(ModelMixin):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
     user_id = db.Column('user_id', UUID(as_uuid=True), db.ForeignKey(User.id), nullable=False)
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id'), nullable=False)
 
     user = db.relationship("User", back_populates="followed_projects")
