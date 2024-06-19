@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,ProjectPinView,
     RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -145,6 +145,7 @@ api.add_resource(ProjectDisableView,
                  '/projects/<string:project_id>/disable')
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
+api.add_resource(ProjectPinView, '/projects/<string:project_id>/pin')
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 

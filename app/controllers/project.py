@@ -24,6 +24,7 @@ from sqlalchemy import or_, func
 from app.helpers.crane_app_logger import logger
 from flask import current_app, render_template
 from app.helpers.email import send_email
+from app.helpers.pagination import paginate
 
 
 class ProjectsView(Resource):
@@ -556,6 +557,8 @@ class UserProjectsView(Resource):
 
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
+        page = request.args.get('page' , 1 , type=int)
+        per_page = request.args.get('per_page' , 10 , type=int)
 
         if not is_current_or_admin(user_id, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -563,19 +566,29 @@ class UserProjectsView(Resource):
         project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
 
-        if not user:
-            return dict(status='fail', message=f'user {user_id} not found'), 404
+        pinned_projects = Project.query.join(
+            ProjectUser, Project.id == ProjectUser.project_id
+        ).filter(
+            ProjectUser.user_id == user_id,
+            ProjectUser.pinned == True
+        ).all()
 
-        projects = user.projects
+        pagination_meta_data , projects = paginate(user.projects , per_page , page)        
 
         projects_json, errors = project_schema.dumps(projects)
+        
+        pinned_projects_json , errs = project_schema.dumps(pinned_projects)
 
-        if errors:
+        if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
 
         return dict(
             status='success',
-            data=dict(projects=json.loads(projects_json))
+            data=dict(
+                pagination = {**pagination_meta_data , 'pinnned_count' : len(pinned_projects)},
+                pinned = json.loads(pinned_projects_json),
+                projects=json.loads(projects_json)
+            )
         ), 200
 
 
@@ -789,3 +802,59 @@ class ProjectEnableView(Resource):
             status='success',
             message=f'project {project_id} enabled successfully'
         ), 201
+
+
+class ProjectPinView(Resource):
+    @jwt_required
+    def post(self , project_id):
+
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
+
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
+        
+
+        if project_user.pinned:
+            return dict(
+                message = 'The project is already pinned',
+                status = 'fail'
+            ) , 409
+
+        pinned_projects_count = ProjectUser.count(user_id = current_user_id , pinned = True)
+
+        if pinned_projects_count >= 6 :
+            return dict(
+                status = 'Fail',
+                message = 'Pinned projects cant be more than 6'
+            ) , 409
+        
+
+        project_user.pinned = True
+        project_user.save()
+
+        return dict(
+            status = 'Success',
+            message = f'Project {project_id} pinned successfully'
+        ) , 200
+    
+    @jwt_required
+    def delete(self,project_id):
+
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        project_user = ProjectUser.query.filter_by(user_id = current_user_id , project_id = project_id).first()
+
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
+        
+        project_user.pinned = False
+        project_user.save()
+
+        return dict(
+            status = 'Success',
+            message = f'Project {project_id} unpinned successfully'
+        ) , 200
