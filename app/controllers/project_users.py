@@ -2,10 +2,11 @@ from functools import partial
 import json
 from app.models.project_users import ProjectUser
 from flask_restful import Resource, request
-from app.schemas import ProjectUserSchema, UserSchema, AnonymousUsersSchema
+from app.schemas import ProjectUserSchema, UserSchema, AnonymousUsersSchema, ProjectFollowerSchema
 from app.models.user import User
 from app.models.role import User
 from app.models.project import Project
+from app.models.project_users import ProjectFollowers
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from flask import current_app
@@ -485,4 +486,74 @@ class ProjectUsersHandleInviteView(Resource):
         return dict(
             status='success',
             message='Invite to project has successfully been accepted',
+        ), 201
+    
+
+
+
+class ProjectFollowingView(Resource):
+    @ jwt_required
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+        
+        if str(project.owner_id) == current_user_id:
+            return dict(status='fail', message='You cannot follow your own project'), 400
+   
+        existing_project_follow = ProjectFollowers.find_first(user_id=current_user_id, project_id=project_id)
+        if existing_project_follow:
+            return dict(status='fail', message=f'You are already following project with id {project_id}'), 409
+        
+        new_project_follow = ProjectFollowers(user_id=current_user_id, project_id=project_id)
+
+        saved_project_follow = new_project_follow.save()
+
+        if not saved_project_follow:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You are now following project with id {project_id}'
+        ), 201
+
+    @ jwt_required
+    def get(self, project_id):
+        project = Project.get_by_id(project_id)
+        follower_schema = ProjectFollowerSchema(many=True)
+
+        followers = project.followers
+        users_data, errors = follower_schema.dumps(followers)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(followers=json.loads(users_data))
+        ), 200
+
+    @ jwt_required
+    def delete(self, project_id):
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+
+        existing_project_follow = ProjectFollowers.find_first(user_id=current_user_id, project_id=project_id)
+        if not existing_project_follow:
+            return dict(status='fail', message=f'You are not following project with id {project_id}'), 409
+
+        
+        deleted_project = existing_project_follow.delete()
+
+        if not deleted_project:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You are nolonger following project with id {project_id}'
         ), 201

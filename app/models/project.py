@@ -3,7 +3,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.orm import relationship
 from app.models import db
 from app.models.model_mixin import ModelMixin, SoftDeleteQuery
-
+from app.models.project_users import ProjectFollowers
 
 
 class Project(ModelMixin):
@@ -25,6 +25,7 @@ class Project(ModelMixin):
     project_type = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     users = relationship('ProjectUser', back_populates='other_project')
+    followers = relationship('ProjectFollowers', back_populates='project')
     project_transactions = db.relationship(
         'TransactionRecord', backref='project', lazy=True)
     billing_invoices = db.relationship(

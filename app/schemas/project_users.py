@@ -18,3 +18,7 @@ class ProjectUserSchema(Schema):
     project_id = fields.String()
     user = fields.Nested(UserRoleSchema, many=False, dump_only=True)
     accepted_collaboration_invite = fields.Boolean()
+
+
+class ProjectFollowerSchema(Schema):
+    user = fields.Nested(UserRoleSchema, many=False, dump_only=True)
