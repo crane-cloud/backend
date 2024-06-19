@@ -602,7 +602,7 @@ class UserProjectsView(Resource):
             status='success',
             data=dict(
                 pagination={**pagination_meta_data,
-                            'pinnned_count': len(pinned_projects)},
+                            'pinned_count': len(pinned_projects)},
                 pinned=pinned_projects_with_followers_status,
                 projects=projects_with_followers_status,
             )
