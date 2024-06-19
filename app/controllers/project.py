@@ -565,14 +565,15 @@ class UserProjectsView(Resource):
         # if not is_current_or_admin(user_id, current_user_id, current_user_roles):
         #     return dict(status='fail', message='unauthorised'), 403
 
-        project_schema = ProjectSchema()
+        project_schema = ProjectSchema(many=False)
         user = User.get_by_id(user_id)
 
         pinned_projects = Project.query.join(
             ProjectUser, Project.id == ProjectUser.project_id
         ).filter(
             ProjectUser.user_id == user_id,
-            ProjectUser.pinned == True
+            ProjectUser.pinned == True,
+            Project.deleted == False
         ).all()
 
         pagination_meta_data, projects = paginate(
@@ -590,12 +591,14 @@ class UserProjectsView(Resource):
             is_follower = project.is_followed_by(current_user)
             project_data, errs = project_schema.dump(project)
             project_data['is_follower'] = is_follower
-            projects_with_followers_status.append(project_data)
+            if (not project.deleted):
+                projects_with_followers_status.append(project_data)
 
         pinned_projects_with_followers_status = []
         for pinned_project in pinned_projects:
+            is_follower = project.is_followed_by(current_user)
             pinned_project_data, errs = project_schema.dump(pinned_project)
-            pinned_project_data['is_follower'] = pinned_project.is_followed_by_current_user
+            pinned_project_data['is_follower'] = is_follower
             pinned_projects_with_followers_status.append(pinned_project_data)
 
         return dict(
