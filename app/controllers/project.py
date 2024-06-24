@@ -565,7 +565,7 @@ class UserProjectsView(Resource):
         # if not is_current_or_admin(user_id, current_user_id, current_user_roles):
         #     return dict(status='fail', message='unauthorised'), 403
 
-        project_schema = ProjectSchema(many=False)
+        project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
 
         pinned_projects = Project.query.join(
@@ -579,35 +579,21 @@ class UserProjectsView(Resource):
         pagination_meta_data, projects = paginate(
             user.projects, per_page, page)
 
-        _, errors = project_schema.dumps(projects)
+        user_projects, errors = project_schema.dumps(
+            projects)
 
-        _, errs = project_schema.dumps(pinned_projects)
+        pinned_projects, errs = project_schema.dumps(pinned_projects)
 
         if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
-
-        projects_with_followers_status = []
-        for project in projects:
-            is_follower = project.is_followed_by(current_user)
-            project_data, errs = project_schema.dump(project)
-            project_data['is_follower'] = is_follower
-            if (not project.deleted):
-                projects_with_followers_status.append(project_data)
-
-        pinned_projects_with_followers_status = []
-        for pinned_project in pinned_projects:
-            is_follower = project.is_followed_by(current_user)
-            pinned_project_data, errs = project_schema.dump(pinned_project)
-            pinned_project_data['is_follower'] = is_follower
-            pinned_projects_with_followers_status.append(pinned_project_data)
 
         return dict(
             status='success',
             data=dict(
                 pagination={**pagination_meta_data,
                             'pinned_count': len(pinned_projects)},
-                pinned=pinned_projects_with_followers_status,
-                projects=projects_with_followers_status,
+                pinned=json.loads(pinned_projects),
+                projects=json.loads(user_projects),
             )
         ), 200
 
