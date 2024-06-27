@@ -30,7 +30,7 @@ def log_activity(model: str, status: str, operation: str, description: str, a_us
             'operation': operation,
             'model': model,
             'status': status,
-            'description': description,
+            'description':  str(description),
             'a_user_id': str(a_user_id) if a_user_id else None,
             'a_db_id': str(a_db_id) if a_db_id else None,
             'a_app_id': str(a_app_id) if a_app_id else None,
