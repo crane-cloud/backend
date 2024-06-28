@@ -48,8 +48,6 @@ class ActivityFeedView(Resource):
         # get project or app details in each item in the feed and return them
         user_feed = user_feed.json()
         user_activities = user_feed.get('data').get('activity')
-        print(user_feed)
-        print(dir(user_feed))
         if not user_activities:
             return dict(user_feed=user_feed), 200
 
