@@ -748,7 +748,8 @@ def enable_project(project: Project):
             if e.status != 404:
                 log_activity('Project', status='Failed',
                              operation='Enable',
-                             description=f'Error enabling the project. {e.body}',
+                             description=f'''Error enabling the project. {
+                                 e.body}''',
                              a_project_id=project.id,
                              a_cluster_id=project.cluster_id)
                 return SimpleNamespace(
