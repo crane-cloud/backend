@@ -1,6 +1,8 @@
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 from app.models.app import App
+from flask_jwt_extended import get_jwt_identity
+from app.models.user import User
 
 
 class ProjectSchema(Schema):
@@ -29,6 +31,13 @@ class ProjectSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
+    is_following = fields.Method("get_is_following", dump_only=True)
+
+    def get_is_following(self, obj):
+        # Assuming current_user is available in the view context
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        return obj.is_followed_by(current_user)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)

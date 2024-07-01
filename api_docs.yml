@@ -166,6 +166,10 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
         - in: path
           name: user_id
           required: true
