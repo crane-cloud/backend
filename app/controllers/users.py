@@ -358,10 +358,13 @@ class UserLoginView(Resource):
 
 class UserDetailView(Resource):
 
+    @jwt_required
     def get(self, user_id):
         """
         """
         user_schema = UserSchema()
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
 
         user = User.get_by_id(user_id)
 
@@ -377,6 +380,9 @@ class UserDetailView(Resource):
         user_data['projects_count'] = len(user.projects)
         user_data['following_count'] = user.followed.count()
         user_data['follower_count'] = user.followers.count()
+        # Identify if the person making the details request follows the user or not
+        user_data['requesting_user_follows'] = user.is_followed_by(
+            current_user)
         user_data['apps_count'] = sum(
             len(project.apps) for project in user.projects)
 
@@ -425,20 +431,18 @@ class UserDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             user = User.get_by_id(user_id)
-            
+
             if (current_user_id != user_id):
                 if (not is_admin(current_user_roles)):
                     return dict(
-                        status = 'UnAuthorised',
-                        message = 'You are not authorized to edit this users information'
-                    ) , 401
-
+                        status='UnAuthorised',
+                        message='You are not authorized to edit this users information'
+                    ), 401
 
             validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
-
 
             updated = User.update(user, **validate_user_data)
 
@@ -968,7 +972,8 @@ class UserDataSummaryView(Resource):
                 metadata=meta_data,
                 graph_data=user_info)
         ), 200
-      
+
+
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date
