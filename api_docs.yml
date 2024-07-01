@@ -3641,6 +3641,118 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/projects/tags/{tag_id}":
+    get:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: tag_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Tag not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    delete:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: tag_id
+          required: true
+          type: string
+
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "User not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+
+  "/projects/tags":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: body
+          name: tag
+          schema:
+            type: array
+            required:
+              - name
+            items:
+              type: string
+              
+      produces:
+        - application/json
+      responses:
+        201:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    get:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: query
+          name: keywords
+          type: string
+          description: Enter keywords if searching
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+
 components:
   securitySchemes:
     bearerAuth:

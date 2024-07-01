@@ -38,3 +38,4 @@ class Project(ModelMixin):
 
     def is_followed_by(self, user):
         return any(follower.user_id == user.id for follower in self.followers)
+
