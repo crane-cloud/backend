@@ -31,7 +31,7 @@ class ActivityFeedView(Resource):
             params['user_id'] = user_id
 
         following = current_user.followed
-        if following:
+        if following and not user_id:
             params['user_ids'] = [user.id for user in following]
 
         LOGGER_APP_URL = current_app.config.get('LOGGER_APP_URL')
@@ -48,15 +48,15 @@ class ActivityFeedView(Resource):
         # get project or app details in each item in the feed and return them
         user_feed = user_feed.json()
         user_activities = user_feed.get('data').get('activity')
+
         if not user_activities:
             return dict(user_feed=user_feed), 200
-
         for item in user_activities:
-            if item['model'] == 'Project':
+            if item['model'] == 'Project' or item['model'] == 'App' or item['model'] == 'Database':
                 project = Project.get_by_id(item['a_project_id'])
                 project_data, _ = project_schema.dump(project)
                 item['project'] = project_schema.dump(project_data)[0]
-            elif item['model'] == 'App':
+            if item['model'] == 'App':
                 app = App.get_by_id(item['a_app_id'])
                 app_data, _ = app_schema.dump(app)
                 item['app'] = app_schema.dump(app_data)[0]
