@@ -6,7 +6,8 @@ from app.schemas import ProjectUserSchema, UserSchema, AnonymousUsersSchema
 from app.models.user import User
 from app.models.role import User
 from app.models.project import Project
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from marshmallow import ValidationError
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin
 from flask import current_app
 from app.helpers.user_to_project_notification import send_user_to_project_notification
@@ -16,12 +17,12 @@ from app.models.anonymous_users import AnonymousUser
 
 class ProjectUsersView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_user_schema = ProjectUserSchema()
 
@@ -31,11 +32,10 @@ class ProjectUsersView(Resource):
 
         project_user_data = invitation_data
 
-        validated_project_user_data, errors = project_user_schema.load(
-            project_user_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_user_data = project_user_schema.load(project_user_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         # Get Project
         project = Project.get_by_id(project_id)
@@ -145,7 +145,11 @@ class ProjectUsersView(Resource):
         success)
 
         user_schema = ProjectUserSchema()
-        new_project_user_data, errors = user_schema.dumps(user)
+
+        try:
+            new_project_user_data = user_schema.dumps(user)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         return dict(
             status='success',
@@ -153,12 +157,12 @@ class ProjectUsersView(Resource):
             data=dict(project_user=json.loads(new_project_user_data))
         ), 201
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_user_schema = ProjectUserSchema(many=True)
         anonymous_user_schema = AnonymousUsersSchema(many=True)
@@ -189,14 +193,11 @@ class ProjectUsersView(Resource):
 
         project_users = project.users
 
-        project_user_data, errors = project_user_schema.dumps(project_users)
-        if errors:
-            return dict(status="fail", message="Internal Server Error"), 500
-        
-        project_anonymous_users = project.anonymoususers
-
-        project_anonymous_user_data, errors = anonymous_user_schema.dumps(project_anonymous_users)
-        if errors:
+        try:
+            project_user_data = project_user_schema.dumps(project_users)
+            project_anonymous_users = project.anonymoususers
+            project_anonymous_user_data = anonymous_user_schema.dumps(project_anonymous_users)
+        except ValidationError:
             return dict(status="fail", message="Internal Server Error"), 500
 
         return dict(
@@ -204,22 +205,21 @@ class ProjectUsersView(Resource):
             data=dict(project_users=json.loads(project_user_data),project_anonymous_users=json.loads(project_anonymous_user_data))
         ), 200
 
-    @jwt_required
+    @jwt_required()
     def patch(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_user_schema = ProjectUserSchema()
 
         project_user_data = request.get_json()
 
-        validated_project_user_data, errors = project_user_schema.load(
-            project_user_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_user_data = project_user_schema.load(project_user_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get Project
         project = Project.get_by_id(project_id)
@@ -284,8 +284,11 @@ class ProjectUsersView(Resource):
 
 
         user_schema = ProjectUserSchema()
-        updated_project_user_data, errors = user_schema.dumps(existing_user)
 
+        try:
+            updated_project_user_data = user_schema.dumps(existing_user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
         return dict(
             status='success',
             message='User role updated successfully',
@@ -294,22 +297,21 @@ class ProjectUsersView(Resource):
 
 
     # delete user from project
-    @jwt_required
+    @jwt_required()
     def delete(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_user_schema = ProjectUserSchema(partial=('role',))
 
         project_user_data = request.get_json()
 
-        validated_project_user_data, errors = project_user_schema.load(
-            project_user_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_user_data = project_user_schema.load(project_user_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get Project
         project = Project.get_by_id(project_id)
@@ -361,22 +363,21 @@ class ProjectUsersView(Resource):
 
 class ProjectUsersTransferView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_user_schema = ProjectUserSchema(partial=('role',))
 
         project_user_data = request.get_json()
 
-        validated_project_user_data, errors = project_user_schema.load(
-            project_user_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_user_data = project_user_schema.load(project_user_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get Project
         project = Project.get_by_id(project_id)
@@ -430,7 +431,7 @@ class ProjectUsersTransferView(Resource):
 
 class ProjectUsersHandleInviteView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def patch(self, project_id):
         """
         """
@@ -440,11 +441,10 @@ class ProjectUsersHandleInviteView(Resource):
 
         project_user_data = request.get_json()
 
-        validated_project_user_data, errors = project_user_schema.load(
-            project_user_data, partial=True)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_user_data = project_user_schema.load(project_user_data, partial=True)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get Project
         project = Project.get_by_id(project_id)

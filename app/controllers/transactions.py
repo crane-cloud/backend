@@ -1,8 +1,9 @@
 import datetime
 import os
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 import sqlalchemy
+from marshmallow import ValidationError
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.role_search import has_role
 import json
@@ -22,11 +23,11 @@ from rave_python import Rave
 
 class TransactionRecordView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         transaction_schema = TransactionRecordSchema()
 
@@ -42,11 +43,10 @@ class TransactionRecordView(Resource):
         try:
             transaction_data = request.get_json()
 
-            validated_transaction_data, errors = transaction_schema.load(
-                transaction_data, partial=("project_id"))
-
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validated_transaction_data = transaction_schema.load(transaction_data, partial=("project_id"))
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             amount = validated_transaction_data['amount']
             currency = validated_transaction_data['currency']
@@ -78,9 +78,11 @@ class TransactionRecordView(Resource):
                 transaction_type=transaction_type
             )
             
-            validated_transaction_data, errors = transaction_schema.load(
-            new_transaction_record_info)
-
+            try:
+                validated_transaction_data = transaction_schema.load(new_transaction_record_info)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+            
             validated_transaction_data['project_id'] = project_id
 
             transaction_record_existent = TransactionRecord.find_first(
@@ -118,7 +120,11 @@ class TransactionRecordView(Resource):
                             status='fail',
                             message='An error occured during updating of new invoice record'), 400
 
-            new_transaction_data, errors = transaction_schema.dump(transaction)
+            try:
+                new_transaction_data = transaction_schema.dump(transaction)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+
             return dict(status='success', data=dict(
                         transaction={**new_transaction_data, 
                         "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
@@ -127,11 +133,11 @@ class TransactionRecordView(Resource):
             return dict(status='fail', message=str(err)), 500
 
     
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -151,10 +157,10 @@ class TransactionRecordView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='Unauthorised'), 403
 
-        transaction_data, errors = transaction_schema.dumps(transaction.items)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            transaction_data = transaction_schema.dumps(transaction.items)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(status='success', data=dict(
            pagination=transaction.pagination, transaction=json.loads(transaction_data))), 200
@@ -162,11 +168,11 @@ class TransactionRecordView(Resource):
 
 class TransactionRecordDetailView(Resource):
     
-    @jwt_required
+    @jwt_required()
     def get(self,project_id ,record_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         transaction_schema = TransactionRecordSchema()
         project = Project.get_by_id(project_id)
@@ -182,29 +188,30 @@ class TransactionRecordDetailView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 return dict(status='fail', message='Unauthorised'), 403
 
-        transaction_data, errors = transaction_schema.dumps(transaction)
-        
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            transaction_data = transaction_schema.dumps(transaction)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(status='success', data=dict(
             transaction=json.loads(transaction_data))), 200
 
 
 
-    @jwt_required
+    @jwt_required()
     def patch(self,project_id ,record_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         update_data = request.get_json()
 
         transaction_schema = TransactionRecordSchema(partial=True)
-        validated_transaction_data, errors = transaction_schema.load(update_data)
         
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_transaction_data = transaction_schema.load(update_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -235,7 +242,7 @@ class TransactionRecordDetailView(Resource):
 
 class TransactionVerificationView(Resource):
     
-    @jwt_required
+    @jwt_required()
     def get(self, project_id, transaction_id, tx_ref):
 
         rave = Rave(
@@ -244,7 +251,7 @@ class TransactionVerificationView(Resource):
             usingEnv=False)
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
 
@@ -272,22 +279,21 @@ class TransactionVerificationView(Resource):
 
 class CreditTransactionRecordView(Resource):
     
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         transaction_schema = TransactionRecordSchema()
 
         try:
             transaction_data = request.get_json()
 
-            validated_transaction_data, errors = transaction_schema.load(
-                transaction_data, partial=True)
-
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validated_transaction_data = transaction_schema.load(transaction_data, partial=True)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             amount = validated_transaction_data['amount']
             
@@ -343,10 +349,11 @@ class CreditTransactionRecordView(Resource):
                 transaction_id=transaction_id,
                 transaction_type='credits'
             )
-
-            validated_transaction_data, errors = transaction_schema.load(
-            new_transaction_record_info)
             
+            try:
+                validated_transaction_data = transaction_schema.load(new_transaction_record_info)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             validated_transaction_data['project_id'] = project_id
 
@@ -386,7 +393,11 @@ class CreditTransactionRecordView(Resource):
                             status='fail',
                             message='An error occured during updating of new invoice record'), 400
 
-            new_transaction_data, errors = transaction_schema.dump(transaction)
+            try:
+                new_transaction_data = transaction_schema.dump(transaction)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+
             user_credit_exp_date = CreditAssignment.query.filter_by(user_id = project.owner_id).order_by(desc('expiry_date')).first()
             
             if not user_credit_exp_date:
@@ -394,8 +405,11 @@ class CreditTransactionRecordView(Resource):
                         transaction={**new_transaction_data, 
                         "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
 
-            user_credit_exp_date_json, errors = transaction_schema.dumps(user_credit_exp_date)
-        
+            try:
+                user_credit_exp_date_json = transaction_schema.dumps(user_credit_exp_date)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+
             arr= json.loads(user_credit_exp_date_json)
 
             assignment_expire = CreditAssignment.get_by_id(arr["id"])
@@ -420,22 +434,21 @@ class CreditTransactionRecordView(Resource):
         
 class CreditPurchaseTransactionRecordView(Resource):
     
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         transaction_schema = TransactionRecordSchema()
 
         try:
             transaction_data = request.get_json()
 
-            validated_transaction_data, errors = transaction_schema.load(
-                transaction_data, partial=True)
-            
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validated_transaction_data = transaction_schema.load(transaction_data, partial=True)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
             
             amount = validated_transaction_data['amount']
             
@@ -489,10 +502,11 @@ class CreditPurchaseTransactionRecordView(Resource):
                 transaction_id=transaction_id,
                 transaction_type='purchased_credits'
             )
-
-            validated_transaction_data, errors = transaction_schema.load(
-            new_transaction_record_info)
             
+            try:
+                validated_transaction_data = transaction_schema.load(new_transaction_record_info)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             validated_transaction_data['project_id'] = project_id
 
@@ -533,7 +547,11 @@ class CreditPurchaseTransactionRecordView(Resource):
                             status='fail',
                             message='An error occured during updating of new invoice record'), 400
 
-            new_transaction_data, errors = transaction_schema.dump(transaction)
+            try:
+                new_transaction_data = transaction_schema.dump(transaction)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+
             user_credit_exp_date = CreditAssignment.query.filter_by(user_id = project.owner_id).order_by(desc('expiry_date')).first()
             
             # if no credit assignments
@@ -541,9 +559,12 @@ class CreditPurchaseTransactionRecordView(Resource):
                 return dict(status='success', data=dict(
                         transaction={**new_transaction_data, 
                         "billing_invoice_id":str(transaction.billing_invoice_id)})), 201
-            
-            user_credit_exp_date_json, errors = transaction_schema.dumps(user_credit_exp_date)
-            
+
+            try:
+                user_credit_exp_date_json = transaction_schema.dumps(user_credit_exp_date)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
+
             arr= json.loads(user_credit_exp_date_json)
             
             assignment_expire = CreditAssignment.get_by_id(arr["id"])

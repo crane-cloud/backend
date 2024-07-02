@@ -5,9 +5,10 @@ import os
 from urllib.parse import urlsplit
 from app.helpers.activity_logger import log_activity
 from app.schemas.app import AppDeploySchema
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from flask_restful import Resource, request
 from kubernetes import client
+from marshmallow import ValidationError
 from prometheus_http_client import Prometheus
 from types import SimpleNamespace
 from app.models.app import App
@@ -39,21 +40,22 @@ class AppsView(Resource):
 
         app_data = request.get_json()
 
-        validated_app_data, errors = app_schema.load(app_data)
+        try:
+            validated_app_data = app_schema.load(app_data)
 
-        # check for existing app based on name and project_id
-        existing_app = App.find_first(
-            name=validated_app_data['name'],
-            project_id=validated_app_data['project_id'])
+            # check for existing app based on name and project_id
+            existing_app = App.find_first(
+                name=validated_app_data['name'],
+                project_id=validated_app_data['project_id'])
 
-        if existing_app:
-            return dict(
-                status='fail',
-                message=f'App with name {validated_app_data["name"]} already exists'
-            ), 409
+            if existing_app:
+                return dict(
+                    status='fail',
+                    message=f'App with name {validated_app_data["name"]} already exists'
+                ), 409
 
-        if errors:
-            return dict(status='fail', message=errors), 400
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         validated_app_data['port'] = validated_app_data.get('port', 80)
 
@@ -133,11 +135,11 @@ class AppsView(Resource):
 
         if not series:
             apps = App.find_all(paginate=True, page=page, per_page=per_page)
-            apps_data, errors = apps_schema.dumps(apps.items)
+            try:
+                apps_data = apps_schema.dumps(apps.items)
+            except ValidationError as err:
+                return dict(status="fail", message=err.messages), 400
             pagination = apps.pagination
-
-            if errors:
-                return dict(status='fail', message=errors), 400
 
             return dict(
                 status='success',
@@ -147,9 +149,10 @@ class AppsView(Resource):
                     apps=json.loads(apps_data))
             ), 200
 
-        validated_query_data, errors = filter_schema.load(graph_filter_data)
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = filter_schema.load(graph_filter_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         start = validated_query_data.get('start')
         end = validated_query_data.get('end')
@@ -167,24 +170,23 @@ class AppsView(Resource):
 
 class ProjectAppsView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         """
         """
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         app_schema = AppDeploySchema()
 
         app_data = request.get_json()
 
-        validated_app_data, errors = app_schema.load(
-            app_data, partial=("project_id",))
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
+        try:
+            validated_app_data = app_schema.load(app_data, partial=("project_id",))
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
+        
         project = Project.get_by_id(project_id)
 
         if not project:
@@ -251,13 +253,13 @@ class ProjectAppsView(Resource):
 
             return dict(status='success', data=dict(app=new_app_data)), 201
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
         """
         """
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
             keywords = request.args.get('keywords', '')
@@ -286,7 +288,6 @@ class ProjectAppsView(Resource):
                     project_id=project_id, paginate=True, page=page, per_page=per_page)
                 pagination = paginated.pagination
                 apps = paginated.items
-                apps_data, errors = app_schema.dumps(apps)
 
             else:
                 paginated = App.query.filter(App.name.ilike('%'+keywords+'%'), App.project_id == project_id).order_by(
@@ -300,60 +301,59 @@ class ProjectAppsView(Resource):
                     'prev': paginated.prev_num
                 }
                 apps = paginated.items
-                apps_data, errors = app_schema.dumps(apps)
 
-            # if errors:
-            #     return dict(status='fail', message=errors), 500
+            try:
+                apps_data = app_schema.dumps(apps)
 
-            apps_data_list = json.loads(apps_data)
-            for app in apps_data_list:
-                try:
-                    # Dont check status of disabled apps
-                    if app['disabled']:
-                        app['app_running_status'] = "disabled"
-                        continue
-                    app_status_object = \
-                        kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias'] + "-deployment", project.alias)
-                    app_deployment_status_conditions = app_status_object.status.conditions
+                apps_data_list = json.loads(apps_data)
+                for app in apps_data_list:
+                    try:
+                        # Dont check status of disabled apps
+                        if app['disabled']:
+                            app['app_running_status'] = "disabled"
+                            continue
+                        app_status_object = \
+                            kube_client.appsv1_api.read_namespaced_deployment_status(
+                                app['alias'] + "-deployment", project.alias)
+                        app_deployment_status_conditions = app_status_object.status.conditions
 
-                    app_deployment_status = None
-                    if app_deployment_status_conditions:
-                        for deplyoment_status_condition in app_deployment_status_conditions:
-                            if deplyoment_status_condition.type == "Available":
-                                app_deployment_status = deplyoment_status_condition.status
+                        app_deployment_status = None
+                        if app_deployment_status_conditions:
+                            for deplyoment_status_condition in app_deployment_status_conditions:
+                                if deplyoment_status_condition.type == "Available":
+                                    app_deployment_status = deplyoment_status_condition.status
 
-                except client.rest.ApiException:
-                    app_deployment_status = None
+                    except client.rest.ApiException:
+                        app_deployment_status = None
 
-                try:
-                    app_db_status_object = \
-                        kube_client.appsv1_api.read_namespaced_deployment_status(
-                            app['alias'] + "-postgres-db", project.alias)
+                    try:
+                        app_db_status_object = \
+                            kube_client.appsv1_api.read_namespaced_deployment_status(
+                                app['alias'] + "-postgres-db", project.alias)
 
-                    app_db_state_conditions = app_db_status_object.status.conditions
+                        app_db_state_conditions = app_db_status_object.status.conditions
 
-                    for app_db_condition in app_db_state_conditions:
-                        if app_db_condition.type == "Available":
-                            app_db_status = app_db_condition.status
+                        for app_db_condition in app_db_state_conditions:
+                            if app_db_condition.type == "Available":
+                                app_db_status = app_db_condition.status
 
-                except client.rest.ApiException:
-                    app_db_status = None
+                    except client.rest.ApiException:
+                        app_db_status = None
 
-                if app_deployment_status and not app_db_status:
-                    if app_deployment_status == "True":
-                        app['app_running_status'] = "running"
+                    if app_deployment_status and not app_db_status:
+                        if app_deployment_status == "True":
+                            app['app_running_status'] = "running"
+                        else:
+                            app['app_running_status'] = "failed"
+                    elif app_deployment_status and app_db_status:
+                        if app_deployment_status == "True" and app_db_status == "True":
+                            app['app_running_status'] = "running"
+                        else:
+                            app['app_running_status'] = "failed"
                     else:
-                        app['app_running_status'] = "failed"
-                elif app_deployment_status and app_db_status:
-                    if app_deployment_status == "True" and app_db_status == "True":
-                        app['app_running_status'] = "running"
-                    else:
-                        app['app_running_status'] = "failed"
-                else:
-                    app['app_running_status'] = "unknown"
-            if errors:
-                return dict(status='error', error=errors, data=dict(apps=apps_data_list)), 409
+                        app['app_running_status'] = "unknown"
+            except ValidationError as err:
+                return dict(status='error', error=err.messages, data=dict(apps=apps_data_list)), 409
             return dict(status='success',
                         data=dict(pagination=pagination, apps=apps_data_list)), 200
 
@@ -366,14 +366,14 @@ class ProjectAppsView(Resource):
 
 class AppDetailView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, app_id):
         """
         get single application details
         """
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app_schema = AppSchema()
 
@@ -391,98 +391,94 @@ class AppDetailView(Resource):
                 if not is_authorised_project_user(project, current_user_id, 'member'):
                     return dict(status='fail', message='Unauthorised'), 403
 
-            app_data, errors = app_schema.dumps(app)
-
-            # if errors:
-            #     return dict(status='fail', message=errors), 500
-
-            app_list = json.loads(app_data)
-
-            cluster = Cluster.get_by_id(project.cluster_id)
-
-            if not cluster:
-                return dict(
-                    status='fail',
-                    message=f'cluster with id {project.cluster_id} does not exist'), 404
-
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            app_status_object = \
-                kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias'] + "-deployment", project.alias)
-
-            app_deployment_status_conditions = app_status_object.status.conditions
-
-            app_list["image"] = app_status_object.spec.template.spec.containers[0].image
-            app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
-            app_list["replicas"] = app_status_object.spec.replicas
-            app_list["revision"] = app_status_object.metadata.annotations.get(
-                'deployment.kubernetes.io/revision')
-
-            # Get app command
-            app_command = app_status_object.spec.template.spec.containers[0].command
-            if app_command:
-                app_list["command"] = ' '.join(app_command)
-            else:
-                app_list["command"] = app_command
-            app_list["working_dir"] = app_status_object.spec.template.spec.containers[0].working_dir
-            # Get environment variables
-            env_list = app_status_object.spec.template.spec.containers[0].env
-            envs = {}
-            if not env_list:
-                app_list["env_vars"] = env_list
-            else:
-                for item in env_list:
-                    envs[item.name] = item.value
-                app_list["env_vars"] = envs
-
-            for deplyoment_status_condition in app_deployment_status_conditions:
-                if deplyoment_status_condition.type == "Available":
-                    app_deployment_status = deplyoment_status_condition.status
-
             try:
-                app_db_status_object = \
+                app_data = app_schema.dumps(app)
+                app_list = json.loads(app_data)
+
+                cluster = Cluster.get_by_id(project.cluster_id)
+
+                if not cluster:
+                    return dict(
+                        status='fail',
+                        message=f'cluster with id {project.cluster_id} does not exist'), 404
+
+                kube_host = cluster.host
+                kube_token = cluster.token
+                kube_client = create_kube_clients(kube_host, kube_token)
+
+                app_status_object = \
                     kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app_list['alias'] + "-postgres-db", project.alias)
+                        app_list['alias'] + "-deployment", project.alias)
 
-                app_db_state_conditions = app_db_status_object.status.conditions
+                app_deployment_status_conditions = app_status_object.status.conditions
 
-                for app_db_condition in app_db_state_conditions:
-                    if app_db_condition.type == "Available":
-                        app_db_status = app_db_condition.status
+                app_list["image"] = app_status_object.spec.template.spec.containers[0].image
+                app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
+                app_list["replicas"] = app_status_object.spec.replicas
+                app_list["revision"] = app_status_object.metadata.annotations.get(
+                    'deployment.kubernetes.io/revision')
 
-            except client.rest.ApiException:
-                app_db_status = None
-            if app.disabled:
-                # Dont check status of disabled apps
-                app_list['app_running_status'] = "disabled"
-            elif app_deployment_status and not app_db_status:
-                if app_deployment_status == "True":
-                    app_list['app_running_status'] = "running"
+                # Get app command
+                app_command = app_status_object.spec.template.spec.containers[0].command
+                if app_command:
+                    app_list["command"] = ' '.join(app_command)
                 else:
-                    app_list['app_running_status'] = "failed"
-            elif app_deployment_status and app_db_status:
-                if app_deployment_status == "True" and app_db_status == "True":
-                    app_list['app_running_status'] = "running"
+                    app_list["command"] = app_command
+                app_list["working_dir"] = app_status_object.spec.template.spec.containers[0].working_dir
+                # Get environment variables
+                env_list = app_status_object.spec.template.spec.containers[0].env
+                envs = {}
+                if not env_list:
+                    app_list["env_vars"] = env_list
                 else:
-                    app_list['app_running_status'] = "failed"
-            else:
-                app_list['app_running_status'] = "unknown"
+                    for item in env_list:
+                        envs[item.name] = item.value
+                    app_list["env_vars"] = envs
 
-            # Get deployment version history
-            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
-                project.alias, label_selector=f"app={app_list['alias']}")
+                for deplyoment_status_condition in app_deployment_status_conditions:
+                    if deplyoment_status_condition.type == "Available":
+                        app_deployment_status = deplyoment_status_condition.status
 
-            for item in version_history.items:
-                # set revision_id basing on the current revision
-                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
-                    app_list["revision_id"] = int(
-                        item.metadata.creation_timestamp.timestamp())
+                try:
+                    app_db_status_object = \
+                        kube_client.appsv1_api.read_namespaced_deployment_status(
+                            app_list['alias'] + "-postgres-db", project.alias)
 
-            if errors:
-                return dict(status='error', error=errors, data=dict(apps=app_list)), 409
+                    app_db_state_conditions = app_db_status_object.status.conditions
+
+                    for app_db_condition in app_db_state_conditions:
+                        if app_db_condition.type == "Available":
+                            app_db_status = app_db_condition.status
+
+                except client.rest.ApiException:
+                    app_db_status = None
+                if app.disabled:
+                    # Dont check status of disabled apps
+                    app_list['app_running_status'] = "disabled"
+                elif app_deployment_status and not app_db_status:
+                    if app_deployment_status == "True":
+                        app_list['app_running_status'] = "running"
+                    else:
+                        app_list['app_running_status'] = "failed"
+                elif app_deployment_status and app_db_status:
+                    if app_deployment_status == "True" and app_db_status == "True":
+                        app_list['app_running_status'] = "running"
+                    else:
+                        app_list['app_running_status'] = "failed"
+                else:
+                    app_list['app_running_status'] = "unknown"
+
+                # Get deployment version history
+                version_history = kube_client.appsv1_api.list_namespaced_replica_set(
+                    project.alias, label_selector=f"app={app_list['alias']}")
+
+                for item in version_history.items:
+                    # set revision_id basing on the current revision
+                    if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
+                        app_list["revision_id"] = int(
+                            item.metadata.creation_timestamp.timestamp())
+            except ValidationError as err:
+                return dict(status='error', error=err.messages, data=dict(apps=app_list)), 409
             return dict(status='success', data=dict(apps=app_list)), 200
 
         except client.rest.ApiException as exc:
@@ -495,7 +491,7 @@ class AppDetailView(Resource):
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
-    @jwt_required
+    @jwt_required()
     def delete(self, app_id):
         """
         """
@@ -503,7 +499,7 @@ class AppDetailView(Resource):
         try:
 
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app = App.get_by_id(app_id)
             if not app:
@@ -563,18 +559,17 @@ class AppDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
-    @jwt_required
+    @jwt_required()
     def patch(self, app_id):
 
         app_schema = AppSchema(partial=True, exclude=["name"])
 
         update_data = request.get_json()
 
-        validated_update_data, errors = app_schema.load(
-            update_data, partial=True)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_update_data = app_schema.load(update_data, partial=True)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         app_image = validated_update_data.get('image', None)
         command = validated_update_data.get('command', None)
@@ -592,7 +587,7 @@ class AppDetailView(Resource):
 
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app = App.get_by_id(app_id)
 
@@ -820,14 +815,14 @@ class AppDetailView(Resource):
 
 
 class AppRevisionsView(Resource):
-    @jwt_required
+    @jwt_required()
     def get(self, app_id):
         """
         get application revisions
         """
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             # get pagination params
             page = request.args.get('page', 1, type=int)
@@ -849,66 +844,67 @@ class AppRevisionsView(Resource):
                 if not is_authorised_project_user(project, current_user_id, 'member'):
                     return dict(status='fail', message='Unauthorised'), 403
 
-            app_data, errors = app_schema.dumps(app)
+            try:
+                app_data = app_schema.dumps(app)
 
-            app_list = json.loads(app_data)
+                app_list = json.loads(app_data)
 
-            cluster = Cluster.get_by_id(project.cluster_id)
+                cluster = Cluster.get_by_id(project.cluster_id)
 
-            if not cluster:
-                return dict(
-                    status='fail',
-                    message=f'cluster with id {project.cluster_id} does not exist'), 404
+                if not cluster:
+                    return dict(
+                        status='fail',
+                        message=f'cluster with id {project.cluster_id} does not exist'), 404
 
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
+                kube_host = cluster.host
+                kube_token = cluster.token
+                kube_client = create_kube_clients(kube_host, kube_token)
 
-            app_status_object = \
-                kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias'] + "-deployment", project.alias)
+                app_status_object = \
+                    kube_client.appsv1_api.read_namespaced_deployment_status(
+                        app_list['alias'] + "-deployment", project.alias)
 
-            # this is needed in the subsequent executions to determine the current revision
-            app_list["revision"] = app_status_object.metadata.annotations.get(
-                'deployment.kubernetes.io/revision')
+                # this is needed in the subsequent executions to determine the current revision
+                app_list["revision"] = app_status_object.metadata.annotations.get(
+                    'deployment.kubernetes.io/revision')
 
-            # Get deployment version history
-            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
-                project.alias, label_selector=f"app={app_list['alias']}")
+                # Get deployment version history
+                version_history = kube_client.appsv1_api.list_namespaced_replica_set(
+                    project.alias, label_selector=f"app={app_list['alias']}")
 
-            revisions = []
-            for item in version_history.items:
-                replica_command = item.spec.template.spec.containers[0].command
-                if replica_command:
-                    replica_command = ' '.join(replica_command)
-                else:
-                    replica_command = replica_command
-                # TODO Add deployment status to replicas
-                replica_set = {
-                    'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
-                    'revision_id': int(item.metadata.creation_timestamp.timestamp()),
-                    'replicas': item.status.ready_replicas,
-                    'created_at': str(item.metadata.creation_timestamp),
-                    'image': item.spec.template.spec.containers[0].image,
-                    'port': item.spec.template.spec.containers[0].ports[0].container_port,
-                    'command': replica_command
-                }
+                revisions = []
+                for item in version_history.items:
+                    replica_command = item.spec.template.spec.containers[0].command
+                    if replica_command:
+                        replica_command = ' '.join(replica_command)
+                    else:
+                        replica_command = replica_command
+                    # TODO Add deployment status to replicas
+                    replica_set = {
+                        'revision': item.metadata.annotations.get('deployment.kubernetes.io/revision'),
+                        'revision_id': int(item.metadata.creation_timestamp.timestamp()),
+                        'replicas': item.status.ready_replicas,
+                        'created_at': str(item.metadata.creation_timestamp),
+                        'image': item.spec.template.spec.containers[0].image,
+                        'port': item.spec.template.spec.containers[0].ports[0].container_port,
+                        'command': replica_command
+                    }
 
-                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
-                    replica_set["current"] = True
-                    app_list["revision_id"] = int(
-                        item.metadata.creation_timestamp.timestamp())
-                revisions.append(replica_set)
+                    if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
+                        replica_set["current"] = True
+                        app_list["revision_id"] = int(
+                            item.metadata.creation_timestamp.timestamp())
+                    revisions.append(replica_set)
 
-            # sort revisions
-            revisions.sort(key=lambda x: x['revision_id'], reverse=True)
+                # sort revisions
+                revisions.sort(key=lambda x: x['revision_id'], reverse=True)
 
-            # add pagination to these revisions
-            pagination_meta_data, paginated_items = paginate(
-                revisions, per_page=per_page, page=page)
+                # add pagination to these revisions
+                pagination_meta_data, paginated_items = paginate(
+                    revisions, per_page=per_page, page=page)
 
-            if errors:
-                return dict(status='error', error=errors), 409
+            except ValidationError as err:
+                return dict(status='error', error=err.messages), 409
             return dict(status='success',
                         data=dict(pagination=pagination_meta_data, revisions=paginated_items)), 200
 
@@ -924,14 +920,14 @@ class AppRevisionsView(Resource):
 
 
 class AppRevertView(Resource):
-    @jwt_required
+    @jwt_required()
     def patch(self, app_id):
         """
         revert app custom domain back to crane cloud domain
         """
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app = App.get_by_id(app_id)
 
@@ -1055,14 +1051,14 @@ class AppRevertView(Resource):
 
 
 class AppReviseView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, app_id, revision_id):
         """
         Revise app to a previous revision
         """
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app = App.get_by_id(app_id)
 
@@ -1189,7 +1185,7 @@ class AppReviseView(Resource):
 
 
 class AppRedeployView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, app_id):
         """
         Redeploy application
@@ -1198,7 +1194,7 @@ class AppRedeployView(Resource):
         app_schema = AppSchema()
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             app = App.get_by_id(app_id)
 
@@ -1409,12 +1405,12 @@ class AppDockerWebhookListenerView(Resource):
 
 
 class AppDisableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, app_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         app = App.get_by_id(app_id)
         if not app:
@@ -1437,12 +1433,12 @@ class AppDisableView(Resource):
 
 
 class AppEnableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, app_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         app = App.get_by_id(app_id)
         if not app:
@@ -1473,7 +1469,7 @@ class AppEnableView(Resource):
 
 class AppMemoryUsageView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, app_id):
         """
         """
@@ -1481,11 +1477,10 @@ class AppMemoryUsageView(Resource):
         app_memory_schema = MetricsSchema()
         app_query_data = request.get_json()
 
-        validated_query_data, errors = app_memory_schema.load(
-            app_query_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = app_memory_schema.load(app_query_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         current_time = datetime.datetime.now()
         yesterday_time = current_time + datetime.timedelta(days=-1)
@@ -1495,7 +1490,7 @@ class AppMemoryUsageView(Resource):
         step = validated_query_data.get('step', '1h')
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
 
@@ -1543,19 +1538,19 @@ class AppMemoryUsageView(Resource):
 
 
 class AppCpuUsageView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, app_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         app_memory_schema = MetricsSchema()
         app_cpu_data = request.get_json()
 
-        validated_query_data, errors = app_memory_schema.load(app_cpu_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = app_memory_schema.load(app_cpu_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -1614,20 +1609,19 @@ class AppCpuUsageView(Resource):
 
 
 class AppNetworkUsageView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, app_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         app_network_schema = MetricsSchema()
         app_network_data = request.get_json()
 
-        validated_query_data, errors = app_network_schema.load(
-            app_network_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = app_network_schema.load(app_network_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -1687,19 +1681,19 @@ class AppNetworkUsageView(Resource):
 
 
 class AppLogsView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, app_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         logs_schema = PodsLogsSchema()
         logs_data = request.get_json()
 
-        validated_query_data, errors = logs_schema.load(logs_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = logs_schema.load(logs_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -1813,11 +1807,11 @@ class AppLogsView(Resource):
 
 
 class AppStorageUsageView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, app_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
 

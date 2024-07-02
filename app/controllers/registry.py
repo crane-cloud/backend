@@ -1,13 +1,14 @@
 import json
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 from app.models.registry import Registry
 from app.schemas import RegistrySchema
 
 
 class RegistriesView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self):
         """
         """
@@ -15,9 +16,9 @@ class RegistriesView(Resource):
 
         registries = Registry.find_all()
 
-        validated_reg_data, errors = registery_schema.dumps(registries)
-
-        if errors:
+        try:
+            validated_reg_data = registery_schema.dumps(registries)
+        except ValidationError:
             return dict(status='fail', message='Internal Server Error'), 500
 
         return dict(status='success',

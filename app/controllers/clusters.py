@@ -2,6 +2,7 @@ import json
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 from app.schemas import ClusterSchema
 from app.models.clusters import Cluster
 from app.helpers.kube import create_kube_clients, check_kube_error_code
@@ -20,10 +21,10 @@ class ClustersView(Resource):
 
         cluster_data = request.get_json()
 
-        validated_cluster_data, errors = cluster_schema.load(cluster_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_cluster_data = cluster_schema.load(cluster_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         try:
             kube_host = validated_cluster_data['host']
@@ -41,14 +42,14 @@ class ClustersView(Resource):
             if not saved:
                 return dict(status='fail', message='Internal Server Error, possible duplicates'), 500
 
-            new_cluster_data, errors = cluster_schema.dump(new_cluster)
+            new_cluster_data = cluster_schema.dump(new_cluster)
 
             return dict(status='success', data=dict(cluster=new_cluster_data)), 201
 
         except Exception:
             return dict(status='fail', message='Connection to cluster failed'), 500
 
-    @jwt_required
+    @jwt_required()
     def get(self):
         """
         """
@@ -56,10 +57,10 @@ class ClustersView(Resource):
 
         clusters = Cluster.find_all()
 
-        validated_cluster_data, errors = cluster_schema.dumps(clusters)
-
-        if errors:
-            return dict(status='fail', message='Internal Server Error'), 500
+        try:
+            validated_cluster_data = cluster_schema.dumps(clusters)
+        except ValidationError as err:
+            return dict(status="fail", message='Internal Server Error'), 500
 
         clusters_data_list = json.loads(validated_cluster_data)
         cluster_count = len(clusters_data_list)
@@ -84,10 +85,10 @@ class ClusterDetailView(Resource):
             if not cluster:
                 return dict(status='fail', message=f'Cluster with id {cluster_id} does not exist'), 404
 
-            validated_cluster_data, errors = cluster_schema.dumps(cluster)
-
-            if errors:
-                return dict(status='fail', message=errors), 500
+            try:
+                validated_cluster_data = cluster_schema.dumps(cluster)
+            except ValidationError as err:
+                return dict(status="fail", message=err.message), 500
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -151,10 +152,10 @@ class ClusterDetailView(Resource):
 
         new_cluster_data = request.get_json()
 
-        validated_cluster_data, errors = cluster_schema.load(new_cluster_data)
-
-        if errors:
-            return dict(status='fail', messgae=errors), 400
+        try:
+            validated_cluster_data = cluster_schema.load(new_cluster_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         cluster = Cluster.get_by_id(cluster_id)
 

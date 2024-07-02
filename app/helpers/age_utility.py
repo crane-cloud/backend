@@ -1,20 +1,20 @@
 from datetime import datetime
 
 
-def get_item_age(time=False):
+def get_item_age(time=None):
     """
-    Get a datetime object or a int() Epoch timestamp and return a
+    Get a datetime object or an int() Epoch timestamp and return a
     pretty string like 'an hour ago', 'Yesterday', '3 months ago',
-    'just now', etc
+    'just now', etc.
     """
-    
-    diff = 0
+
     now = datetime.now()
-    if not time:
-        diff = now - now
+
+    if time is None:
+        return "Invalid time provided"
 
     diff = now - time
- 
+
     second_diff = diff.seconds
     day_diff = diff.days
 

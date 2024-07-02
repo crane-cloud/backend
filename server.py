@@ -91,7 +91,7 @@ def create_app(config_name):
         response.status_code = 500
         return response
 
-    @jwt.user_claims_loader
+    @jwt.additional_claims_loader
     def add_claims_to_access_token(user):
         return {
             'roles': user.get('roles', None),

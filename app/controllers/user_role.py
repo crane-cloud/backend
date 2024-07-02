@@ -3,6 +3,7 @@ from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import UserRoleSchema, UserSchema
 from app.models.user_role import UserRole
+from marshmallow import ValidationError
 from app.schemas.role import RoleSchema
 from app.models.user import User
 from app.models.role import Role
@@ -20,11 +21,10 @@ class UserRolesView(Resource):
 
         user_role_data = request.get_json()
 
-        validated_user_role_data, errors = user_role_schema.load(
-            user_role_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_user_role_data = user_role_schema.load(user_role_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get User
         user = User.get_by_id(user_id)
@@ -54,7 +54,10 @@ class UserRolesView(Resource):
         if not saved_user_role:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        new_user_role_data, errors = user_schema.dumps(user)
+        try:
+            new_user_role_data = user_schema.dumps(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -74,9 +77,9 @@ class UserRolesView(Resource):
 
         user_roles = user.roles
 
-        user_role_data, errors = role_schema.dumps(user_roles)
-
-        if errors:
+        try:
+            user_role_data = role_schema.dumps(user_roles)
+        except ValidationError:
             return dict(status="fail", message="Internal Server Error"), 500
 
         return dict(
@@ -94,11 +97,10 @@ class UserRolesView(Resource):
 
         user_role_data = request.get_json()
 
-        validated_user_role_data, errors = user_role_schema.load(
-            user_role_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_user_role_data = user_role_schema.load(user_role_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # Get User
         user = User.get_by_id(user_id)
@@ -125,7 +127,10 @@ class UserRolesView(Resource):
         if not saved_user_role:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        new_user_role_data, errors = user_schema.dumps(user)
+        try:
+            new_user_role_data = user_schema.dumps(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
