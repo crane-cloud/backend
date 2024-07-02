@@ -3,9 +3,8 @@ from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.schemas.project_tags import ProjectTagSchema
 from app.models.project_tag import ProjectTag
-import json
-import uuid
-from app.helpers.admin import is_admin
+from app.helpers.decorators import admin_required
+
 
 
 
@@ -16,25 +15,16 @@ class ProjectTagsView(Resource):
         tags_data = request.get_json()
 
         project_tag_schema = ProjectTagSchema()
-        
-        saved_tags = []
-        already_existing = []
-        
+                
         for _tag in tags_data:
             validated_tag_data , errors = project_tag_schema.load({'name' : _tag})
             if not ProjectTag.find_first(name=validated_tag_data['name']):
                 tag = ProjectTag(**validated_tag_data)
                 tag.save()
-                saved_tags.append(tag)
-            else :
-                already_existing.append(_tag)
-
-        new_tags_data , errs = ProjectTagSchema(many=True).dump(saved_tags)
-
+            
         return dict(
             status='success',
-            data=new_tags_data,
-            Isexisting=already_existing
+            message='Tags saved successfully'
         ) , 201
     
     def get(self):
@@ -59,7 +49,7 @@ class ProjectTagsDetailView(Resource):
 
         project_tag_id_schema = ProjectTagSchema()
 
-        project_tag = ProjectTag.get_by_id(uuid.UUID(tag_id))
+        project_tag = ProjectTag.get_by_id(tag_id)
 
         tags_data = project_tag_id_schema.dump(project_tag)
 
@@ -68,16 +58,10 @@ class ProjectTagsDetailView(Resource):
             data=tags_data.data
         ) , 200
     
-    @jwt_required
+    @admin_required
     def delete(self, tag_id):
 
         current_user_roles = get_jwt_claims()['roles']
-
-        if not is_admin(current_user_roles):
-            return dict(
-                status='fail',
-                message='Only admins are allowed to delete tags'
-            ) , 401
 
         tag = ProjectTag.get_by_id(tag_id)
 
