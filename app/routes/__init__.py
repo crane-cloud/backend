@@ -14,8 +14,8 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
-    ProjectTagsView,ProjectTagsDetailView,
-    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView)
+    ProjectTagsView, ProjectTagsDetailView,
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, UserProfileSummaryView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -46,6 +46,8 @@ api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
 
 api.add_resource(UserFollowView, '/users/<string:user_id>/following')
 api.add_resource(UserFollowersView, '/users/<string:user_id>/followers')
+api.add_resource(UserProfileSummaryView,
+                 '/users/profile_summary/<string:user_id>')
 
 # Activity Feed
 api.add_resource(ActivityFeedView, '/activity_feed')
