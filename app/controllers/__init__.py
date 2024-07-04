@@ -30,4 +30,4 @@ from .billing_invoice import (
 from .system_status import SystemSummaryView
 from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView, ProjectFollowingView
 from .activity_feed import ActivityFeedView
-from .project_tags import ProjectTagsView, ProjectTagsDetailView
+from .tags import TagsView, TagsDetailView
