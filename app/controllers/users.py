@@ -9,6 +9,7 @@ from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
+from app.models.project_users import ProjectFollowers
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.email import send_email
@@ -31,6 +32,7 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
+from collections import Counter
 
 
 class UsersView(Resource):
@@ -376,10 +378,22 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
+        # A count of the project records that they own in the ProjectFollowers' table is the count of users that follow their projects
+        count_of_projects_followers = (
+            db.session.query(func.count(ProjectFollowers.user_id))
+            .join(Project, ProjectFollowers.project_id == Project.id)
+            .filter(Project.owner_id == user_id)
+            .scalar()
+        )
+
         user_data = json.loads(user_data)
+
         user_data['projects_count'] = len(user.projects)
         user_data['following_count'] = user.followed.count()
         user_data['follower_count'] = user.followers.count()
+        user_data['followed_projects_count'] = len(user.followed_projects)
+        user_data['projects_followers_count'] = count_of_projects_followers
+
         # Identify if the person making the details request follows the user or not
         user_data['requesting_user_follows'] = user.is_followed_by(
             current_user)
