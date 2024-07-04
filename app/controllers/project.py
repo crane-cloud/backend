@@ -577,7 +577,7 @@ class UserProjectsView(Resource):
         ).all()
 
         pagination_meta_data, projects = paginate(
-            user.projects, per_page, page)
+            user.projects[::-1], per_page, page)
 
         user_projects, errors = project_schema.dumps(
             projects)
