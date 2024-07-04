@@ -3641,10 +3641,10 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/projects/tags/{tag_id}":
+  "/tags/{tag_id}":
     get:
       tags:
-        - projects
+        - tags
       consumes:
         - application/json
       produces:
@@ -3670,7 +3670,7 @@ paths:
 
     delete:
       tags:
-        - projects
+        - tags
       consumes:
         - application/json
       produces:
@@ -3696,10 +3696,10 @@ paths:
           description: "Internal Server Error"
 
 
-  "/projects/tags":
+  "/tags":
     post:
       tags:
-        - projects
+        - tags
       consumes:
         - application/json
       parameters:
@@ -3729,7 +3729,7 @@ paths:
 
     get:
       tags:
-        - projects
+        - tags
       consumes:
         - application/json
       produces:
