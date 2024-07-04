@@ -378,10 +378,22 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
+        # A count of the project records that they own in the ProjectFollowers' table is the count of users that follow their projects
+        count_of_projects_followers = (
+            db.session.query(func.count(ProjectFollowers.user_id))
+            .join(Project, ProjectFollowers.project_id == Project.id)
+            .filter(Project.owner_id == user_id)
+            .scalar()
+        )
+
         user_data = json.loads(user_data)
+
         user_data['projects_count'] = len(user.projects)
         user_data['following_count'] = user.followed.count()
         user_data['follower_count'] = user.followers.count()
+        user_data['followed_projects_count'] = len(user.followed_projects)
+        user_data['projects_followers_count'] = count_of_projects_followers
+
         # Identify if the person making the details request follows the user or not
         user_data['requesting_user_follows'] = user.is_followed_by(
             current_user)
@@ -1266,47 +1278,3 @@ class UserFollowersView(Resource):
             status='success',
             data=dict(followers=json.loads(users_data))
         ), 200
-
-
-class UserProfileSummaryView(Resource):
-
-    @ jwt_required
-    def get(self, user_id):
-        """
-        Returns metrics about a user's following information and their resource counts.
-        """
-        try:
-            user = User.get_by_id(user_id)
-
-            if not user:
-                return dict(status='fail', message='User not found'), 404
-
-            print('hdf')
-
-            project_app_counts = Counter(len(project.apps)
-                                         for project in user.projects)
-            # A count of the project records that they own in the ProjectFollowers' table is the count of users that follow their projects
-            count_of_projects_followers = (
-                db.session.query(func.count(ProjectFollowers.user_id))
-                .join(Project, ProjectFollowers.project_id == Project.id)
-                .filter(Project.owner_id == user_id)
-                .scalar()
-            )
-
-            user_data = {
-                'projects_count': len(user.projects),
-                'following_count': user.followed.count(),
-                'follower_count': user.followers.count(),
-                'followed_projects_count': len(user.followed_projects),
-                'projects_followers_count': count_of_projects_followers,
-                'apps_count': project_app_counts.total()
-            }
-            print(user_data)
-
-            return dict(
-                status='success',
-                data=user_data
-            ), 200
-
-        except Exception as e:
-            return dict(status='fail', message=str(e)), 500
