@@ -1,34 +1,37 @@
 from sqlalchemy import inspect, func, column
 from sqlalchemy.exc import SQLAlchemyError
-from flask_sqlalchemy import BaseQuery
+from sqlalchemy.orm import Query
 from ..models import db
 from sqlalchemy import or_
 import time
 from types import SimpleNamespace
 
 
-class SoftDeleteQuery(BaseQuery):
-    def __new__(cls, *args, **kwargs):
-        obj = super(SoftDeleteQuery, cls).__new__(cls)
-        with_deleted = kwargs.pop('_with_deleted', False)
-        if len(args) > 0:
-            super(SoftDeleteQuery, obj).__init__(*args, **kwargs)
-            entities = obj._entities
-            filtered_entities = [
-                entity for entity in entities if hasattr(entity, 'deleted')]
-            if not with_deleted:
-                deleted_column = getattr(
-                    obj._entities[0].mapper.class_, 'deleted')
-                return obj.filter(*filtered_entities).filter(
-                    or_(deleted_column == False, deleted_column == None))
-        return obj
+class SoftDeleteQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(SoftDeleteQuery, self).__init__(*args, **kwargs)
+        self._with_deleted = kwargs.pop('_with_deleted', False)
+
+    def __iter__(self):
+        if not self._with_deleted:
+            mappers = self._entities
+            if mappers:
+                # Assuming the first entity has the 'deleted' column
+                entity = mappers[0].entity_zero.class_
+                if hasattr(entity, 'deleted'):
+                    deleted_column = getattr(entity, 'deleted')
+                    self = self.filter(or_(deleted_column == False, deleted_column == None))
+        return super(SoftDeleteQuery, self).__iter__()
+
 
     def with_deleted(self):
         return self.__class__(self._only_full_mapper_zero('get'),
-                              session=db.session(), _with_deleted=True)
+                              session=self.session).enable_deleted()
+
+    def enable_deleted(self):
+        self._with_deleted = True
+        return self
 
 
 class ModelMixin(db.Model):
@@ -69,7 +72,7 @@ class ModelMixin(db.Model):
             setattr(self, 'name', f"{self.name}_deleted_{int(time.time())}")
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 

@@ -7,6 +7,7 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
+from marshmallow import ValidationError
 from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, disable_user_app, enable_project, enable_user_app, check_kube_error_code
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
@@ -19,7 +20,7 @@ import datetime
 from prometheus_http_client import Prometheus
 from flask_restful import Resource, request
 from kubernetes import client
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,20 +32,21 @@ from app.helpers.email import send_email
 
 class ProjectsView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_schema = ProjectSchema()
 
         project_data = request.get_json()
 
-        validated_project_data, errors = project_schema.load(project_data)
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_project_data = project_schema.load(project_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         if not has_role(current_user_roles, 'administrator'):
             validated_project_data['owner_id'] = current_user_id
@@ -175,7 +177,10 @@ class ProjectsView(Resource):
                     status='fail',
                     message='An error occured during creation of a new invoice record'), 400
 
-            new_project_data, errors = project_schema.dump(project)
+            try:
+                new_project_data = project_schema.dump(project)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
@@ -198,13 +203,13 @@ class ProjectsView(Resource):
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
-    @jwt_required
+    @jwt_required()
     def get(self):
         """
         """
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords', '')
@@ -307,10 +312,10 @@ class ProjectsView(Resource):
                 pagination = None
                 return dict(status='fail', message='Internal Server Error'), 500
 
-        project_data, errors = project_schema.dumps(projects)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            project_data = project_schema.dumps(projects)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         # Updating user's last login
         user = User.get_by_id(current_user_id)
@@ -327,12 +332,12 @@ class ProjectsView(Resource):
 
 class ProjectDetailView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_schema = ProjectSchema()
 
@@ -348,14 +353,14 @@ class ProjectDetailView(Resource):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
 
-        project_data, errors = project_schema.dumps(project)
-        if errors:
-            return dict(status='fail', message=errors), 500
-
-        # return cluster information
-        cluster_schema = ClusterSchema()
-        project_cluster = project.cluster
-        cluster_data, errors = cluster_schema.dumps(project_cluster)
+        try:
+            project_data = project_schema.dumps(project)
+            # return cluster information
+            cluster_schema = ClusterSchema()
+            project_cluster = project.cluster
+            cluster_data = cluster_schema.dumps(project_cluster)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         # if user not an admin
         if not is_admin(current_user_roles):
@@ -368,9 +373,12 @@ class ProjectDetailView(Resource):
             apps = project.apps
             databases = project.project_databases
             users = project.users
-            apps_data, errors = apps_schema.dumps(apps)
-            databases_data, errors = database_schema.dumps(databases)
-            users_data, errors = users_schema.dumps(users)
+            try:
+                apps_data = apps_schema.dumps(apps)
+                databases_data = database_schema.dumps(databases)
+                users_data = users_schema.dumps(users)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
             return dict(status='success', data=dict(
                 project=dict(**json.loads(project_data),
                              apps=json.loads(apps_data),
@@ -379,13 +387,13 @@ class ProjectDetailView(Resource):
                              cluster=json.loads(cluster_data)
                              ))), 200
 
-    @jwt_required
+    @jwt_required()
     def delete(self, project_id):
         """
         """
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
 
@@ -554,26 +562,25 @@ class ProjectDetailView(Resource):
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=str(e)), 500
 
-    @jwt_required
+    @jwt_required()
     def patch(self, project_id):
         """
         """
 
         try:
             current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
 
             project_schema = ProjectSchema(
                 only=("name", "description", "organisation", "project_type"), partial=True)
 
             project_data = request.get_json()
 
-            validate_project_data, errors = project_schema.load(project_data)
-
-            existing_project = False
-
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validate_project_data = project_schema.load(project_data)
+                existing_project = False
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             if 'name' in validate_project_data:
                 existing_project = Project.find_first(
@@ -622,13 +629,13 @@ class ProjectDetailView(Resource):
 
 class UserProjectsView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, user_id):
         """
         """
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         if not is_current_or_admin(user_id, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -641,9 +648,9 @@ class UserProjectsView(Resource):
 
         projects = user.projects
 
-        projects_json, errors = project_schema.dumps(projects)
-
-        if errors:
+        try:
+            projects_json = project_schema.dumps(projects)
+        except ValidationError:
             return dict(status='fail', message='Internal server error'), 500
 
         return dict(
@@ -660,7 +667,7 @@ class ClusterProjectsView(Resource):
         Get projects in a cluster
         """
 
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
 
@@ -677,9 +684,9 @@ class ClusterProjectsView(Resource):
         projects = Project.find_all(
             cluster_id=cluster_id, paginate=True, page=page, per_page=per_page)
 
-        projects_json, errors = project_schema.dumps(projects.items)
-
-        if errors:
+        try:
+            projects_json = project_schema.dumps(projects.items)
+        except ValidationError:
             return dict(status='fail', message='Internal server error'), 500
 
         return dict(
@@ -692,17 +699,16 @@ class ClusterProjectsView(Resource):
 
 class ProjectMemoryUsageView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         project_memory_schema = MetricsSchema()
         project_query_data = request.get_json()
 
-        validated_query_data, errors = project_memory_schema.load(
-            project_query_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = project_memory_schema.load(project_query_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         current_time = datetime.datetime.now()
         yesterday_time = current_time + datetime.timedelta(days=-1)
@@ -712,7 +718,7 @@ class ProjectMemoryUsageView(Resource):
         step = validated_query_data.get('step', '1h')
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
         project = Project.get_by_id(project_id)
 
         if not project:
@@ -753,19 +759,18 @@ class ProjectMemoryUsageView(Resource):
 
 
 class ProjectCPUView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_memory_schema = MetricsSchema()
         project_cpu_data = request.get_json()
 
-        validated_query_data, errors = project_memory_schema.load(
-            project_cpu_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = project_memory_schema.load(project_cpu_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -817,19 +822,18 @@ class ProjectCPUView(Resource):
 
 
 class ProjectNetworkRequestView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_network_schema = MetricsSchema()
         project_network_data = request.get_json()
 
-        validated_query_data, errors = project_network_schema.load(
-            project_network_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = project_network_schema.load(project_network_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -880,11 +884,11 @@ class ProjectNetworkRequestView(Resource):
 
 
 class ProjectStorageUsageView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
 
@@ -928,16 +932,18 @@ class ProjectStorageUsageView(Resource):
 
 
 class ProjectGetCostsView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project_billing_schema = BillingMetricsSchema()
         project_billing_data = request.get_json()
 
-        validated_query_data, errors = project_billing_schema.load(
-            project_billing_data)
+        try:
+            validated_query_data = project_billing_schema.load(project_billing_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         project = Project.get_by_id(project_id)
 
@@ -985,12 +991,12 @@ class ProjectGetCostsView(Resource):
 
 
 class ProjectDisableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
@@ -1043,12 +1049,12 @@ class ProjectDisableView(Resource):
 
 
 class ProjectEnableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:

@@ -7,6 +7,7 @@ from app.helpers.kube import disable_project, enable_project
 from flask import current_app, render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
+from marshmallow import ValidationError
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
 from app.models.role import Role
@@ -24,7 +25,7 @@ from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
@@ -43,24 +44,24 @@ class UsersView(Resource):
 
         user_data = request.get_json()
 
-        validated_user_data, errors = user_schema.load(user_data)
+        try:
+            validated_user_data = user_schema.load(user_data)
 
-        email = validated_user_data.get('email', None)
-        client_base_url = os.getenv(
-            'CLIENT_BASE_URL',
-            f'https://{request.host}/users'
-        )
+            email = validated_user_data.get('email', None)
+            client_base_url = os.getenv(
+                'CLIENT_BASE_URL',
+                f'https://{request.host}/users'
+            )
 
-        # To do change to a frontend url
-        verification_url = f"{client_base_url}/verify/"
-        secret_key = current_app.config["SECRET_KEY"]
-        password_salt = current_app.config["VERIFICATION_SALT"]
-        sender = current_app.config["MAIL_DEFAULT_SENDER"]
-        template = "user/verify.html"
-        subject = "Please confirm your email"
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+            # To do change to a frontend url
+            verification_url = f"{client_base_url}/verify/"
+            secret_key = current_app.config["SECRET_KEY"]
+            password_salt = current_app.config["VERIFICATION_SALT"]
+            sender = current_app.config["MAIL_DEFAULT_SENDER"]
+            template = "user/verify.html"
+            subject = "Please confirm your email"
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         # get the customer role
         user_role = Role.find_first(name='customer')
@@ -114,7 +115,10 @@ class UsersView(Resource):
             if not deleted_anonymous_user:
                 return dict(status='fail', message=f'Internal Server Error'), 500
 
-        new_user_data, errors = user_schema.dumps(user)
+        try:
+            new_user_data = user_schema.dumps(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -198,10 +202,10 @@ class UsersView(Resource):
                 'prev': paginated.prev_num
             }
 
-        users_data, errors = user_schema.dumps(users)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            users_data = user_schema.dumps(users)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -220,10 +224,10 @@ class UserAdminUpdateView(Resource):
             user_data = request.get_json()
             user_id = user_data["user_id"]
 
-            validate_user_data, errors = user_schema.load(user_data)
-
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validate_user_data = user_schema.load(user_data)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             user = User.get_by_id(user_id)
             if not user:
@@ -264,10 +268,10 @@ class UserLoginView(Resource):
         if login_data is None:
             return {"message": "No input data provided"}, 400
 
-        validated_user_data, errors = user_schema.load(login_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_user_data = user_schema.load(login_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         email = validated_user_data.get('email', None)
         password = validated_user_data.get('password', None)
@@ -293,7 +297,11 @@ class UserLoginView(Resource):
         user.last_seen = datetime.now()
         user.save()
 
-        user_dict, errors = token_schema.dump(user)
+        try:
+            user_dict = token_schema.dump(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
+
         if user and user.password_is_valid(password):
 
             access_token = user.generate_token(user_dict)
@@ -334,18 +342,16 @@ class UserDetailView(Resource):
                 status='fail',
                 message=f'user {user_id} not found'
             ), 404
-
-        user_data, errors = user_schema.dumps(user)
-
-        new_user_data = json.loads(user_data)
-        new_user_data['projects_count'] = len(user.projects)
-        new_user_data['apps_count'] = sum(
-            len(project.apps) for project in user.projects)
-        new_user_data['database_count'] = sum(
-            len(project.project_databases) for project in user.projects)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            user_data = user_schema.dumps(user)
+            new_user_data = json.loads(user_data)
+            new_user_data['projects_count'] = len(user.projects)
+            new_user_data['apps_count'] = sum(
+                len(project.apps) for project in user.projects)
+            new_user_data['database_count'] = sum(
+                len(project.project_databases) for project in user.projects)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(status='success', data=dict(
             user=new_user_data)), 200
@@ -384,10 +390,10 @@ class UserDetailView(Resource):
 
             user_data = request.get_json()
 
-            validate_user_data, errors = user_schema.load(user_data)
-
-            if errors:
-                return dict(status='fail', message=errors), 400
+            try:
+                validate_user_data = user_schema.load(user_data)
+            except ValidationError as err:
+                return dict(status='fail', message=err.messages), 400
 
             user = User.get_by_id(user_id)
 
@@ -426,10 +432,10 @@ class AdminLoginView(Resource):
 
         login_data = request.get_json()
 
-        validated_user_data, errors = user_schema.load(login_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_user_data = user_schema.load(login_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         email = validated_user_data.get('email', None)
         password = validated_user_data.get('password', None)
@@ -447,7 +453,10 @@ class AdminLoginView(Resource):
                 data=dict(verified=user.verified)
             ), 401
 
-        user_dict, errors = token_schema.dump(user)
+        try:
+            user_dict = token_schema.dump(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         if user and user.password_is_valid(password):
 
@@ -536,10 +545,10 @@ class EmailVerificationRequest(Resource):
 
         request_data = request.get_json()
 
-        validated_data, errors = email_schema.load(request_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_data = email_schema.load(request_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         email = validated_data.get('email', None)
         client_base_url = os.getenv(
@@ -591,10 +600,10 @@ class ForgotPasswordView(Resource):
         email_schema = UserSchema(only=("email",))
 
         request_data = request.get_json()
-        validated_data, errors = email_schema.load(request_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_data = email_schema.load(request_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         email = validated_data.get('email', None)
         client_base_url = os.getenv(
@@ -740,8 +749,11 @@ class OAuthView(Resource):
         if not updated_user:
             return dict(status='fail', message='Internal Server Error'), 500
 
-        # create user token
-        user_dict, errors = token_schema.dump(user)
+        try:
+            # create user token
+            user_dict = token_schema.dump(user)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         access_token = user.generate_token(user_dict)
 
@@ -772,11 +784,11 @@ class ResetPasswordView(Resource):
         secret = current_app.config["SECRET_KEY"]
         salt = current_app.config["PASSWORD_SALT"]
 
-        request_data = request.get_json()
-        validated_data, errors = password_schema.load(request_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            request_data = request.get_json()
+            validated_data = password_schema.load(request_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         password = validated_data['password']
 
@@ -847,10 +859,10 @@ class UserDataSummaryView(Resource):
 
         filter_schema = UserGraphSchema()
 
-        validated_query_data, errors = filter_schema.load(user_filter_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = filter_schema.load(user_filter_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         start = validated_query_data.get('start', '2018-01-01')
         end = validated_query_data.get('end', datetime.now())
@@ -929,12 +941,12 @@ class UserDataSummaryView(Resource):
 
 class UserActivitesView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self):
 
         try:
 
-            current_user_roles = get_jwt_claims()['roles']
+            current_user_roles = get_jwt()['roles']
             current_user_id = get_jwt_identity()
 
             activity_schema = ActivityLogSchema()
@@ -945,10 +957,10 @@ class UserActivitesView(Resource):
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 10, type=int)
 
-            validated_data_query, errors = activity_schema.load(query_params)
-
-            if errors:
-                return {"message": "Validation errors", "errors": errors}, 400
+            try:
+                validated_data_query = activity_schema.load(query_params)
+            except ValidationError as err:
+                return {"message": "Validation errors", "errors": err.messages}, 400
 
             user_id = validated_data_query.get('user_id', None)
 
@@ -1118,10 +1130,10 @@ class InActiveUsersView(Resource):
             'prev': paginated.prev_num
         }
 
-        users_data, errors = user_schema.dumps(users)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            users_data = user_schema.dumps(users)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -1187,7 +1199,7 @@ class UserDisableView(Resource):
 
 
 class UserEnableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, user_id):
 
         user = User.get_by_id(user_id)

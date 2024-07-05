@@ -2,6 +2,7 @@ import json
 from flask import current_app
 from flask_restful import Resource, request
 from app.schemas import RoleSchema
+from marshmallow import ValidationError
 from app.models.role import Role
 from app.helpers.decorators import admin_required
 
@@ -16,12 +17,11 @@ class RolesView(Resource):
 
         roles_data = request.get_json()
 
-        validated_role_data, errors = roles_schema.load(roles_data)
-
-        role_name = validated_role_data.get('name', None)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_role_data = roles_schema.load(roles_data)
+            role_name = validated_role_data.get('name', None)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         role_existant = Role.find_first(name=role_name)
 
@@ -37,7 +37,10 @@ class RolesView(Resource):
         if not saved_role:
             return dict(status='fail', message=f'Internal Server Error'), 500
 
-        new_role_data, errors = roles_schema.dumps(role)
+        try:
+            new_role_data = roles_schema.dumps(role)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -52,10 +55,10 @@ class RolesView(Resource):
 
         roles = Role.find_all()
 
-        roles_data, errors = role_schema.dumps(roles)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            roles_data = role_schema.dumps(roles)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         return dict(
             status='success',
@@ -79,10 +82,10 @@ class RolesDetailView(Resource):
                 message=f"Role with id {role_id} not found"
             ), 404
 
-        role_data, errors = role_schema.dumps(role)
-
-        if errors:
-            return dict(status="fail", message=errors), 500
+        try:
+            role_data = role_schema.dumps(role)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(
             status='success',
@@ -100,10 +103,10 @@ class RolesDetailView(Resource):
 
         update_data = request.get_json()
 
-        validated_update_data, errors = role_schema.load(update_data)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_update_data = role_schema.load(update_data)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 400
 
         role = Role.get_by_id(role_id)
 

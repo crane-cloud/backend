@@ -2,8 +2,9 @@
 
 import json
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.admin import is_owner_or_admin
+from marshmallow import ValidationError
 from app.models.project import Project
 from app.models.transaction_record import TransactionRecord
 from app.schemas.billing_receipts import BillingReceiptSchema
@@ -14,11 +15,11 @@ class BillingReceiptsView(Resource):
     - Billing receipts view
     """
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -41,10 +42,10 @@ class BillingReceiptsView(Resource):
                 message=f'billing receipt records not found'
             ), 404
 
-        billing_receipts_data, errors = billing_receipt_schema.dumps(billing_receipts.items)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            billing_receipts_data = billing_receipt_schema.dumps(billing_receipts.items)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(status='success', data=dict(
             pagination=billing_receipts.pagination, billing_receipts=json.loads(billing_receipts_data))), 200
@@ -52,11 +53,11 @@ class BillingReceiptsView(Resource):
 
 class BillingReceiptsDetailView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id ,receipt_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         billing_invoice_schema = BillingReceiptSchema()
         project = Project.get_by_id(project_id)
@@ -75,10 +76,10 @@ class BillingReceiptsDetailView(Resource):
                 message=f'billing receipt with invoice id {receipt_id} not found'
             ), 404
 
-        billing_receipt_data, errors = billing_invoice_schema.dumps(billing_receipt)
-        
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            billing_receipt_data = billing_invoice_schema.dumps(billing_receipt)
+        except ValidationError as err:
+            return dict(status='fail', message=err.messages), 500
 
         return dict(status='success', data=dict(
             billing_receipt=json.loads(billing_receipt_data))), 200

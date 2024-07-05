@@ -7,7 +7,7 @@ def get_item_age(time=False):
     pretty string like 'an hour ago', 'Yesterday', '3 months ago',
     'just now', etc
     """
-    
+
     diff = 0
     now = datetime.now()
     if not time:

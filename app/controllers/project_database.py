@@ -4,12 +4,13 @@ import os
 from types import SimpleNamespace
 from app.schemas.monitoring_metrics import UserGraphSchema
 from flask import current_app
+from marshmallow import ValidationError
 from flask_restful import Resource, request
 from app.schemas import ProjectDatabaseSchema
 from app.models.project_database import ProjectDatabase
 from app.helpers.database_service import MysqlDbService, PostgresqlDbService, generate_db_credentials
 from app.models.project import Project
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.decorators import admin_required
 from app.helpers.db_flavor import disable_database, enable_database, get_db_flavour, database_flavours
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
@@ -21,12 +22,12 @@ from app.models import db
 
 class ProjectDatabaseView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database_schema = ProjectDatabaseSchema()
 
@@ -34,9 +35,10 @@ class ProjectDatabaseView(Resource):
 
         credentials = generate_db_credentials()
 
-        validated_database_data, errors = database_schema.load(databases_data)
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(databases_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         project = Project.get_by_id(project_id)
         if not project:
@@ -72,11 +74,10 @@ class ProjectDatabaseView(Resource):
             port=db_flavour['port']
         )
 
-        validated_database_data, errors = database_schema.load(
-            new_database_info)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(new_database_info)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         validated_database_data['project_id'] = project_id
 
@@ -152,7 +153,11 @@ class ProjectDatabaseView(Resource):
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=f'Internal Server Error'), 500
 
-        new_database_data, errors = database_schema.dumps(database)
+        try:
+            new_database_data = database_schema.dumps(database)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
+
         log_activity('Database', status='Success',
                      operation='Create',
                      description=f'Database {database_name} created successfully',
@@ -164,12 +169,12 @@ class ProjectDatabaseView(Resource):
             data=dict(database=json.loads(new_database_data))
         ), 201
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -187,10 +192,10 @@ class ProjectDatabaseView(Resource):
         databases = ProjectDatabase.find_all(
             project_id=project_id, paginate=True, page=page, per_page=per_page)
 
-        database_data, errors = database_schema.dumps(databases.items)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_data = database_schema.dumps(databases.items)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         database_data_list = json.loads(database_data)
         pagination = databases.pagination
@@ -229,12 +234,12 @@ class ProjectDatabaseView(Resource):
 
 class ProjectDatabaseDetailView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def delete(self, project_id, database_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
@@ -314,12 +319,12 @@ class ProjectDatabaseDetailView(Resource):
                      a_db_id=database_id)
         return dict(status='success', message="Database Successfully deleted"), 200
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id, database_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database_schema = ProjectDatabaseSchema()
 
@@ -339,10 +344,10 @@ class ProjectDatabaseDetailView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
-        database_data, errors = database_schema.dumps(database_existant)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_data = database_schema.dumps(database_existant)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         # Check the database status on host
         flavour_name = database_existant.database_flavour_name
@@ -387,21 +392,20 @@ class ProjectDatabaseDetailView(Resource):
 
 class ProjectDatabasePasswordResetView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, database_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
-        validated_database_data, errors = database_schema.load(
-            database_data, partial=("database_flavour_name",))
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(database_data, partial=("database_flavour_name",))
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         new_database_password = validated_database_data.get(
             'password', None)
@@ -484,12 +488,12 @@ class ProjectDatabasePasswordResetView(Resource):
 
 class ProjectDatabaseRetrievePasswordView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id, database_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database_schema = ProjectDatabaseSchema()
 
@@ -512,10 +516,10 @@ class ProjectDatabaseRetrievePasswordView(Resource):
 
         password_data = dict(password=database_existant.password)
 
-        database_password_data, errors = database_schema.dumps(password_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_password_data = database_schema.dumps(password_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         return dict(status='success', data=json.loads(database_password_data)), 200
 
@@ -531,10 +535,10 @@ class ProjectDatabaseAdminView(Resource):
 
         credentials = generate_db_credentials()
 
-        validated_database_data, errors = database_schema.load(databases_data)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(databases_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         database_flavour_name = validated_database_data.get(
             'database_flavour_name', None)
@@ -570,11 +574,10 @@ class ProjectDatabaseAdminView(Resource):
         else:
             del new_database_info["project_id"]
 
-        validated_database_data, errors = database_schema.load(
-            new_database_info)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(new_database_info)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         database_existant = ProjectDatabase.find_first(
             name=database_name)
@@ -638,7 +641,11 @@ class ProjectDatabaseAdminView(Resource):
                          a_cluster_id=project.cluster_id,)
             return dict(status='fail', message=f'Internal Server Error'), 500
 
-        new_database_data, errors = database_schema.dumps(database)
+        try:
+            new_database_data = database_schema.dumps(database)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
+
         log_activity('Database', status='Success',
                      operation='Create',
                      description='Admin Created Database Successfully',
@@ -685,10 +692,10 @@ class ProjectDatabaseAdminView(Resource):
         metadata['users_number'] = query.with_entities(
             db_user, func.count(db_user)).group_by(db_user).distinct().count()
 
-        database_data, errors = database_schema.dumps(databases.items)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_data = database_schema.dumps(databases.items)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         database_data_list = json.loads(database_data)
         pagination = databases.pagination
@@ -716,9 +723,10 @@ class ProjectDatabaseGraphAdminView(Resource):
 
         filter_schema = UserGraphSchema()
 
-        validated_query_data, errors = filter_schema.load(graph_filter_data)
-        if errors:
-            return dict(status='fail', message=errors), 400
+        try:
+            validated_query_data = filter_schema.load(graph_filter_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         start = validated_query_data.get('start')
         end = validated_query_data.get('end')
@@ -865,10 +873,10 @@ class ProjectDatabaseAdminDetailView(Resource):
                 message=f"Database with id {database_id} not found."
             ), 404
 
-        database_data, errors = database_schema.dumps(database_existant)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_data = database_schema.dumps(database_existant)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         # Check the database status on host
         flavour_name = database_existant.database_flavour_name
@@ -911,13 +919,13 @@ class ProjectDatabaseAdminDetailView(Resource):
 
 class ProjectDatabaseResetView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def post(self, project_id, database_id):
         """
         Reset Database
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         project = Project.get_by_id(project_id)
         if not project:
@@ -1062,10 +1070,11 @@ class ProjectDatabaseAdminPasswordResetView(Resource):
         database_schema = ProjectDatabaseSchema()
         database_data = request.get_json()
 
-        validated_database_data, errors = database_schema.load(
-            database_data, partial=("database_flavour_name",))
-        if errors:
-            return dict(status="fail", message=errors), 400
+        try:
+            validated_database_data = database_schema.load(
+                database_data, partial=("database_flavour_name",))
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 400
 
         new_database_password = validated_database_data.get(
             'password', None)
@@ -1155,10 +1164,10 @@ class ProjectDatabaseAdminRetrievePasswordView(Resource):
 
         password_data = dict(password=database_existant.password)
 
-        database_password_data, errors = database_schema.dumps(password_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            database_password_data = database_schema.dumps(password_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.message), 500
 
         return dict(status='success', data=json.loads(database_password_data)), 200
 
@@ -1188,12 +1197,12 @@ class DatabaseStatsView(Resource):
 
 
 class ProjectDatabaseDisableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, database_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database = ProjectDatabase.get_by_id(database_id)
         if not database:
@@ -1219,12 +1228,12 @@ class ProjectDatabaseDisableView(Resource):
 
 
 class ProjectDatabaseEnableView(Resource):
-    @jwt_required
+    @jwt_required()
     def post(self, database_id):
 
         # check credentials
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         database = ProjectDatabase.get_by_id(database_id)
         if not database:

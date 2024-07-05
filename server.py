@@ -7,6 +7,8 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
 from flask_migrate import Migrate
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 from app.routes import api
 from manage import admin_user, create_registries, create_roles
@@ -91,7 +93,7 @@ def create_app(config_name):
         response.status_code = 500
         return response
 
-    @jwt.user_claims_loader
+    @jwt.additional_claims_loader
     def add_claims_to_access_token(user):
         return {
             'roles': user.get('roles', None),
@@ -111,6 +113,14 @@ app = create_app(os.getenv('FLASK_ENV'))
 # Celery
 celery = update_celery(app)
 
+@event.listens_for(Engine, "connect")
+def create_postgres_extension(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+    except Exception as e:
+        app.logger.error(f"Failed to create PostgreSQL extension: {e}")
+    cursor.close()
 
 if __name__ == '__main__':
     app.run()

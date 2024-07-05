@@ -5,7 +5,8 @@ from app.schemas import CreditAssignmentSchema
 from app.models.credit_assignments import CreditAssignment
 from app.helpers.admin import is_owner_or_admin, is_current_or_admin
 from app.models.credits import Credit
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from marshmallow import ValidationError
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.helpers.decorators import admin_required
 from app.models.user import User
 from app.helpers.credit_assignment_notification import send_credit_assignment
@@ -23,13 +24,13 @@ class CreditAssignmentView(Resource):
 
         credit_assignment_data = request.get_json()
 
-        validated_credit_assignment_data, errors = credit_assignment_schema.load(credit_assignment_data)
+        try:
+            validated_credit_assignment_data = credit_assignment_schema.load(credit_assignment_data)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
 
         user_id = validated_credit_assignment_data.get('user_id', None)
         amount = validated_credit_assignment_data.get('amount', None)
-
-        if errors:
-            return dict(status="fail", message=errors), 400
 
         user_id_existant = Credit.find_first(user_id=user_id)
 
@@ -124,12 +125,12 @@ class CreditAssignmentView(Resource):
 class CreditAssignmentDetailView(Resource):
 
     # get single user user credit assignment records
-    @jwt_required
+    @jwt_required()
     def get(self, user_id):
         """
         """
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         if not is_current_or_admin(user_id, current_user_id, current_user_roles):
             return dict(status='fail', message='unauthorised'), 403
@@ -142,12 +143,11 @@ class CreditAssignmentDetailView(Resource):
             return dict(status='fail', message=f'user {user_id} not found'), 404
 
         credit_assignment_records = user.credit_assignments
-        
 
-        credit_assignments_json, errors = credit_assignment_schema.dumps(credit_assignment_records)
-
-        if errors:
-            return dict(status='fail', message='Internal server error'), 500
+        try:
+            credit_assignments_json = credit_assignment_schema.dumps(credit_assignment_records)
+        except ValidationError:
+            return dict(status="fail", message='Internal server error'), 500
 
         return dict(
             status='success',

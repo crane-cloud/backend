@@ -53,9 +53,11 @@ def test_user_login_success(test_client):
     response = test_client.post(
         '/users/login',
         content_type='application/json',
-        data=json.dumps(user_client.user_data),)
-    
+        data=json.dumps(user_client.user_data_login),)
+    response_data = response.get_json()
     assert response.status_code == 200
+    assert 'email' in response_data['data']
+    assert 'access_token' in response_data['data']
 
 
 def test_user_login_invalid_info(test_client):
@@ -89,7 +91,7 @@ def test_user_login_failure(test_client):
     response = test_client.post(
         '/users/login',
         content_type='application/json',
-        data=json.dumps(user_client.user_data_2),)
+        data=json.dumps(user_client.invalid_user_login),)
     
     assert response.status_code == 401
 
@@ -108,7 +110,7 @@ def test_admin_login_success(test_client):
     response = test_client.post(
         '/users/admin_login',
         content_type='application/json',
-        data=json.dumps(user_client.admin_data),)
+        data=json.dumps(user_client.admin_data_login),)
     
     assert response.status_code == 200
 
@@ -130,7 +132,7 @@ def test_admin_login_unauthorised(test_client):
     response = test_client.post(
         '/users/admin_login',
         content_type='application/json',
-        data=json.dumps(user_client.user_data),)
+        data=json.dumps(user_client.user_data_login),)
     
     assert response.status_code == 401
 
@@ -167,6 +169,6 @@ def test_admin_login_failure(test_client):
     response = test_client.post(
         '/users/admin_login',
         content_type='application/json',
-        data=json.dumps(user_client.user_data_2),)
+        data=json.dumps(user_client.invalid_user_login),)
     
     assert response.status_code == 401
