@@ -1,7 +1,6 @@
 from sqlalchemy import inspect, func, column
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
-from sqlalchemy import or_
 from ..models import db
 from sqlalchemy import or_
 import time
@@ -33,8 +32,6 @@ class SoftDeleteQuery(Query):
     def enable_deleted(self):
         self._with_deleted = True
         return self
-
-
 
 
 class ModelMixin(db.Model):

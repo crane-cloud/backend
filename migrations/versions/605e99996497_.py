@@ -78,7 +78,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user_role',
-    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text('uuid_generate_v4()')),
     sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('role_id', postgresql.UUID(as_uuid=True), nullable=True),
     sa.ForeignKeyConstraint(['role_id'], ['role.id'], ),

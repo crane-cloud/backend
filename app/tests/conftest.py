@@ -3,9 +3,7 @@ from types import SimpleNamespace
 from app.helpers.admin import create_default_roles
 from app.schemas.user import UserSchema
 from app.tests.user import UserBaseTestCase
-from sqlalchemy import text
 import pytest
-import logging
 
 from app.models.user import User
 from server import create_app, db
