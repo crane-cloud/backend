@@ -591,7 +591,7 @@ class UserProjectsView(Resource):
             status='success',
             data=dict(
                 pagination={**pagination_meta_data,
-                            'pinned_count': len(pinned_projects)},
+                            'pinned_count': len(json.loads(pinned_projects))},
                 pinned=json.loads(pinned_projects),
                 projects=json.loads(user_projects),
             )
