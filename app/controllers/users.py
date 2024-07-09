@@ -1215,8 +1215,18 @@ class UserFollowView(Resource):
         saved_user = current_user.save()
 
         if not saved_user:
+            log_activity('User', status='Failed',
+                         operation='Follow',
+                         description=f'Failed to follow user: {user.name} ',
+                         a_user_id=user_id
+                         )
             return dict(status='fail', message='Internal Server Error'), 500
 
+        log_activity('User', status='Success',
+                     operation='Follow',
+                     description=f'Started following user: {user.name}',
+                     a_user_id=user_id
+                     )
         return dict(
             status='success',
             message=f'You are now following user with id {user_id}'
@@ -1254,8 +1264,18 @@ class UserFollowView(Resource):
         saved_user = current_user.save()
 
         if not saved_user:
+            log_activity('User', status='Failed',
+                         operation='Unfollow',
+                         description=f'Failed to un-follow user:  {user.name}',
+                         a_user_id=user_id
+                         )
             return dict(status='fail', message='Internal Server Error'), 500
 
+        log_activity('User', status='Success',
+                     operation='Unfollow',
+                     description=f'Un-followed user: {user.name}',
+                     a_user_id=user_id
+                     )
         return dict(
             status='success',
             message=f'You have unfollowed user with id {user_id}'
