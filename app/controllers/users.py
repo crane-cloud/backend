@@ -31,8 +31,7 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
-
-
+from app.helpers.email_validator import  is_valid_email
 class UsersView(Resource):
 
     def post(self):
@@ -44,8 +43,14 @@ class UsersView(Resource):
         user_data = request.get_json()
 
         validated_user_data, errors = user_schema.load(user_data)
-
+        
         email = validated_user_data.get('email', None)
+        print(email)
+        if not is_valid_email(email):
+            print(email)
+            return dict(status='fail', message=f'Invalid email address'), 400
+            
+    
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'

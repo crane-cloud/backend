@@ -35,7 +35,6 @@ Flask-RESTful==0.3.9
 Flask-SQLAlchemy==2.4.0
 google-auth==1.6.3
 gunicorn==20.1.0
-idna==2.8
 importlib-metadata==4.8.3
 iniconfig==1.1.1
 ipaddress==1.0.22
@@ -78,7 +77,6 @@ pyxdg==0.25
 PyYAML==6.0
 rave-python==1.2.16
 redis==4.3.6
-requests==2.27.1
 requests-oauthlib==1.2.0
 rsa==4.0
 SecretStorage==2.3.1
@@ -95,3 +93,6 @@ wcwidth==0.2.5
 websocket-client==0.56.0
 Werkzeug==2.0.3
 zipp==3.6.0
+py3-validate-email==1.0.5.post2
+requests>=2.27.1
+idna>=2.5
