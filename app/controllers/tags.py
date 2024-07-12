@@ -1,7 +1,7 @@
 
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required
-from app.schemas.tags import TagSchema
+from app.schemas.tags import TagSchema, TagsDetailSchema
 from app.models.tags import Tag
 from app.helpers.decorators import admin_required
 
@@ -62,11 +62,11 @@ class TagsDetailView(Resource):
 
     @jwt_required
     def get(self, tag_id):
-        tag_id_schema = TagSchema()
+        tag_schema = TagsDetailSchema()
 
         tag = Tag.get_by_id(tag_id)
 
-        tags_data = tag_id_schema.dump(tag)
+        tags_data = tag_schema.dump(tag)
 
         return dict(
             status="success",

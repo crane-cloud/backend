@@ -12,4 +12,25 @@ class Tag(ModelMixin):
                    server_default=sa_text("uuid_generate_v4()"))
     name = db.Column(db.String)
     deleted = db.Column(db.Boolean, default=False)
+    is_super_tag = db.Column(db.Boolean, default=False)
+    projects = db.relationship("ProjectTag", back_populates="tag")
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f"<Tag {self.name}>"
+
+
+class ProjectTag(ModelMixin):
+    __tablename__ = "project_tag"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True,
+                   server_default=sa_text("uuid_generate_v4()"))
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey("project.id"))
+    tag_id = db.Column(UUID(as_uuid=True), db.ForeignKey("tag.id"))
+
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    project = db.relationship("Project", back_populates="tags")
+    tag = db.relationship("Tag", back_populates="projects")
+    
+    def __repr__(self):
+        return f"<ProjectTag {self.project.name}, {self.tag.name}>"

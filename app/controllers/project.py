@@ -1,12 +1,14 @@
 import datetime
 import json
 from types import SimpleNamespace
+import uuid
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, enable_project, check_kube_error_code
+from app.helpers.tags import add_tags_to_project, create_tags, remove_tags_from_project
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
@@ -15,6 +17,7 @@ from app.models.project import Project
 from app.schemas import ProjectSchema, AppSchema, ProjectUserSchema, ClusterSchema
 from app.helpers.decorators import admin_required
 import datetime
+from app.schemas.tags import TagSchema
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -57,6 +60,7 @@ class ProjectsView(Resource):
                 message=f'''project with name {
                     validated_project_data["name"]} already exists'''
             ), 409
+
         try:
             validated_project_data['alias'] =\
                 create_alias(validated_project_data['name'])
@@ -130,6 +134,9 @@ class ProjectsView(Resource):
                     user_id=project.owner_id
                 )
                 project.users.append(new_role)
+
+            if validated_project_data['tags']:
+                tags = create_tags(validated_project_data['tags'])
 
             saved = project.save()
 
@@ -491,7 +498,7 @@ class ProjectDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             project_schema = ProjectSchema(
-                only=("name", "description", "organisation", "project_type"), partial=True)
+                only=("name", "description", "organisation", "project_type", "tags_add", "tags_remove"), partial=True)
 
             project_data = request.get_json()
 
@@ -522,6 +529,15 @@ class ProjectDetailView(Resource):
             if not is_owner_or_admin(project, current_user_id, current_user_roles):
                 if not is_authorised_project_user(project, current_user_id, 'admin'):
                     return dict(status='fail', message='unauthorised'), 403
+
+            if validate_project_data.get('tags_add'):
+                add_tags_to_project(
+                    validate_project_data['tags_add'], project)
+                validate_project_data.pop('tags_add', None)
+            if validate_project_data.get('tags_remove'):
+                remove_tags_from_project(
+                    validate_project_data['tags_remove'], project)
+                validate_project_data.pop('tags_remove', None)
 
             updated = Project.update(project, **validate_project_data)
 

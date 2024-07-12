@@ -130,7 +130,7 @@ class ModelMixin(db.Model):
 
         if result > 0:
             return False
-        return False
+        return True
 
     @classmethod
     def get_by_id(cls, id):

@@ -35,6 +35,7 @@ class Project(ModelMixin):
     deleted = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    tags = relationship('ProjectTag', back_populates='project')
 
     def is_followed_by(self, user):
         return any(follower.user_id == user.id for follower in self.followers)
