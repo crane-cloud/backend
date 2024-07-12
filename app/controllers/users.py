@@ -44,10 +44,12 @@ class UsersView(Resource):
 
         validated_user_data, errors = user_schema.load(user_data)
         
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
         email = validated_user_data.get('email', None)
-        print(email)
+        
         if not is_valid_email(email):
-            print(email)
             return dict(status='fail', message=f'Invalid email address'), 400
             
     
@@ -64,8 +66,7 @@ class UsersView(Resource):
         template = "user/verify.html"
         subject = "Please confirm your email"
 
-        if errors:
-            return dict(status="fail", message=errors), 400
+        
 
         # get the customer role
         user_role = Role.find_first(name='customer')
