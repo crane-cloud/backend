@@ -16,11 +16,12 @@ def create_tags(tag_names):
             existing_tags.append(tag_rec)
         if none_existing_tags:
             Tag.bulk_save(none_existing_tags)
-
-    new_tags = [Tag.find_first(name=tag.name)
-                for tag in none_existing_tags]
+    new_tags = []
+    for tag in none_existing_tags:
+        new_tag = Tag.find_first(name=tag.name)
+        new_tags.append(new_tag)
     if new_tags:
-        existing_tags.append(new_tags)
+        existing_tags.extend(new_tags)
     return existing_tags
 
 
@@ -39,6 +40,7 @@ def add_tags_to_project(tag_names, project):
         if not saved_tags:
             return False
     return True
+
 
 def remove_tags_from_project(tag_names, project):
     for tag in tag_names:

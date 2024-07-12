@@ -11,6 +11,21 @@ class ProjectListSchema(Schema):
     description = fields.String()
 
 
+class ProjectIndexSchema(Schema):
+    id = fields.Method("get_id", dump_only=True)
+    name = fields.Method("get_name", dump_only=True)
+    description = fields.Method("get_description", dump_only=True)
+
+    def get_id(self, obj):
+        return str(obj.project.id)
+
+    def get_name(self, obj):
+        return obj.project.name
+
+    def get_description(self, obj):
+        return obj.project.description
+
+
 class ProjectSchema(Schema):
 
     id = fields.UUID(dump_only=True)

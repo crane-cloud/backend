@@ -1,6 +1,6 @@
-from app.schemas.project import ProjectListSchema
+from app.schemas.project import ProjectIndexSchema
 from app.schemas.project_users import UserRoleSchema
-from marshmallow import Schema, fields, validate, pre_load
+from marshmallow import Schema, fields
 
 
 class TagSchema(Schema):
@@ -9,6 +9,10 @@ class TagSchema(Schema):
     name = fields.String(required=True)
     is_super_tag = fields.Boolean()
     date_created = fields.Date(dump_only=True)
+    projects_count = fields.Method("get_projects_count", dump_only=True)
+
+    def get_projects_count(self, obj):
+        return len(obj.projects)
 
 
 class TagsProjectsSchema(TagSchema):
@@ -27,7 +31,7 @@ class TagsProjectsSchema(TagSchema):
 
 
 class TagsDetailSchema(TagSchema):
-    projects = fields.Nested(ProjectListSchema, many=False, dump_only=True)
+    projects = fields.Nested(ProjectIndexSchema, many=True, dump_only=True)
 
 
 class TagFollowerSchema(Schema):

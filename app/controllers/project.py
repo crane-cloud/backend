@@ -135,8 +135,9 @@ class ProjectsView(Resource):
                 )
                 project.users.append(new_role)
 
-            if validated_project_data['tags']:
-                tags = create_tags(validated_project_data['tags'])
+            if validated_project_data['tags_add']:
+                tags = validated_project_data['tags']
+                validated_project_data.pop('tags', None)
 
             saved = project.save()
 
@@ -150,6 +151,8 @@ class ProjectsView(Resource):
                 kube_client.kube.delete_namespace(namespace_name)
 
                 return dict(status="fail", message="Internal Server Error"), 500
+            if tags:
+                add_tags_to_project(tags, project)
 
             # create a billing invoice on project creation
             new_invoice = BillingInvoice(project_id=project.id)
