@@ -1,8 +1,10 @@
 
-from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required
+import json
+from app.schemas.project_users import UserIndexSchema
 from app.schemas.tags import TagSchema, TagsDetailSchema
-from app.models.tags import Tag
+from flask_restful import Resource, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models.tags import Tag, TagFollowers
 from app.helpers.decorators import admin_required
 
 
@@ -90,3 +92,71 @@ class TagsDetailView(Resource):
             status='success',
             message=f"Tag {tag_id} successfully deleted"
         ), 200
+
+
+class TagFollowingView(Resource):
+    @ jwt_required
+    def post(self, tag_id):
+        current_user_id = get_jwt_identity()
+        tag = Tag.get_by_id(tag_id)
+
+        if not tag:
+            return dict(status='fail', message=f'Tag with id {tag_id} not found'), 404
+
+
+        existing_tag_follow = TagFollowers.find_first(
+            user_id=current_user_id, tag_id=tag_id)
+        if existing_tag_follow:
+            return dict(status='fail', message=f'You are already following tag with id {tag_id}'), 409
+
+        new_tag_follow = TagFollowers(
+            user_id=current_user_id, tag_id=tag_id)
+
+        saved_tag_follow = new_tag_follow.save()
+
+        if not saved_tag_follow:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You are now following tag with id {tag_id}'
+        ), 201
+
+    @ jwt_required
+    def get(self, tag_id):
+        tag = Tag.get_by_id(tag_id)
+        follower_schema = UserIndexSchema(many=True)
+
+        followers = tag.followers
+        users_data, errors = follower_schema.dumps(followers)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(followers=json.loads(users_data))
+        ), 200
+
+    @ jwt_required
+    def delete(self, tag_id):
+        current_user_id = get_jwt_identity()
+        tag = Tag.get_by_id(tag_id)
+
+        if not tag:
+            return dict(status='fail', message=f'Tag with id {tag_id} not found'), 404
+
+        existing_tag_follow = TagFollowers.find_first(
+            user_id=current_user_id, tag_id=tag_id)
+        if not existing_tag_follow:
+            return dict(status='fail', message=f'You are not following tag with id {tag_id}'), 409
+
+        deleted_tag = existing_tag_follow.delete()
+
+        if not deleted_tag:
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        return dict(
+            status='success',
+            message=f'You are nolonger following tag with id {tag_id}'
+        ), 201

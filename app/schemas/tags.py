@@ -1,4 +1,5 @@
 from app.schemas.project import ProjectListSchema
+from app.schemas.project_users import UserRoleSchema
 from marshmallow import Schema, fields, validate, pre_load
 
 
@@ -27,3 +28,7 @@ class TagsProjectsSchema(TagSchema):
 
 class TagsDetailSchema(TagSchema):
     projects = fields.Nested(ProjectListSchema, many=False, dump_only=True)
+
+
+class TagFollowerSchema(Schema):
+    user = fields.Nested(UserRoleSchema, many=False, dump_only=True)

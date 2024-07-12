@@ -5,6 +5,17 @@ class UserRoleSchema(Schema):
     id = fields.UUID()
     email = fields.String()
     name = fields.String()
+
+class UserIndexSchema(Schema):
+    id = fields.Method("get_id", dump_only=True)
+    email = fields.Method("get_email", dump_only=True)
+    name = fields.Method("get_name", dump_only=True)
+    def get_id(self, obj):
+        return str(obj.user.id)
+    def get_email(self, obj):
+        return obj.user.email
+    def get_name(self, obj):
+        return obj.user.name
 class ProjectUserSchema(Schema):
 
     # id = fields.UUID(dump_only=True)
