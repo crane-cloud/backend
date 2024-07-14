@@ -14,7 +14,7 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
-    TagsView, TagsDetailView,
+    TagsView, TagsDetailView, TagFollowingView,
     UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
@@ -153,6 +153,7 @@ api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
 # Tags Routes
 api.add_resource(TagsView, '/tags')
 api.add_resource(TagsDetailView, '/tags/<string:tag_id>')
+api.add_resource(TagFollowingView, '/tags/<string:tag_id>/following')
 # App routes
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')

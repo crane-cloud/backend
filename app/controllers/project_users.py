@@ -1,8 +1,7 @@
-from functools import partial
 import json
 from app.models.project_users import ProjectUser
 from flask_restful import Resource, request
-from app.schemas import ProjectUserSchema, UserSchema, AnonymousUsersSchema, ProjectFollowerSchema
+from app.schemas import ProjectUserSchema, AnonymousUsersSchema, UserIndexSchema
 from app.models.user import User
 from app.models.role import User
 from app.models.project import Project
@@ -549,7 +548,7 @@ class ProjectFollowingView(Resource):
     @ jwt_required
     def get(self, project_id):
         project = Project.get_by_id(project_id)
-        follower_schema = ProjectFollowerSchema(many=True)
+        follower_schema = UserIndexSchema(many=True)
 
         followers = project.followers
         users_data, errors = follower_schema.dumps(followers)

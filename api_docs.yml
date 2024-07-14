@@ -2529,6 +2529,14 @@ paths:
                 type: string
               project_type:
                 type: string
+              tags_add:
+                type: array
+                items:
+                  type: string
+              tags_remove:
+                type: array
+                items:
+                  type: string
       responses:
         200:
           description: "Success"
@@ -3747,6 +3755,95 @@ paths:
       responses:
         200:
           description: "Success"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/tags/{tag_id}/following":
+    get:
+      tags:
+        - tags
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+        - in: path
+          name: tag_id
+          required: true
+          type: string
+        - in: query
+          name: page
+          type: integer
+          description: Page number
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of items per page
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Tag not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    post:
+      tags:
+        - tags
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: tag_id
+          required: true
+          type: string
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "Tag not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+    delete:
+      tags:
+        - tags
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: tag_id
+          required: true
+          type: string
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Tag not found"
         400:
           description: "Bad request"
         500:
