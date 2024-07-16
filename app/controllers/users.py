@@ -32,8 +32,10 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
-from collections import Counter
 
+from app.helpers.email_validator import  is_valid_email
+
+from collections import Counter
 
 class UsersView(Resource):
 
@@ -46,8 +48,16 @@ class UsersView(Resource):
         user_data = request.get_json()
 
         validated_user_data, errors = user_schema.load(user_data)
-
+        
+        if errors:
+            return dict(status="fail", message=errors), 400
+        
         email = validated_user_data.get('email', None)
+
+        if not is_valid_email(email):
+            return dict(status='fail', message=f'Invalid email address'), 400
+            
+    
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
@@ -61,8 +71,7 @@ class UsersView(Resource):
         template = "user/verify.html"
         subject = "Please confirm your email"
 
-        if errors:
-            return dict(status="fail", message=errors), 400
+        
 
         # get the customer role
         user_role = Role.find_first(name='customer')
