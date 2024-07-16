@@ -20,7 +20,7 @@ from .credits import CreditView, CreditDetailView
 from .user_role import UserRolesView
 from .transactions import TransactionRecordView, TransactionRecordDetailView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView
 from .project import (
-    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView, ClusterProjectsView,ProjectPinView,
+    ProjectsView, ProjectDetailView, UserProjectsView, ProjectGetCostsView, ClusterProjectsView, ProjectPinView,
     ProjectDisableView, ProjectEnableView)
 from .app import (AppsView, ProjectAppsView, AppDetailView, AppLogsView,
                   AppRevertView, AppReviseView, AppRedeployView, AppDisableView, AppEnableView, AppDockerWebhookListenerView)
@@ -30,4 +30,4 @@ from .billing_invoice import (
 from .system_status import SystemSummaryView
 from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUsersHandleInviteView, ProjectFollowingView
 from .activity_feed import ActivityFeedView
-from .project_tags import ProjectTagsView, ProjectTagsDetailView
+from .tags import TagsView, TagsDetailView, TagFollowingView

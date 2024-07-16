@@ -53,6 +53,8 @@ class User(ModelMixin):
     followed_projects = db.relationship(
         'ProjectFollowers', back_populates='user')
     is_public = db.Column(db.Boolean, default=True)
+    followed_tags = db.relationship(
+        'TagFollowers', back_populates='user')
 
     def __init__(self, email, name, password, organisation=None):
         """ initialize with email, username and password """

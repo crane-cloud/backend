@@ -1,6 +1,7 @@
 from app.models.app import App
 from app.schemas.app import AppSchema
 from app.schemas.project import ProjectSchema
+from app.schemas.user import UserSchema
 from flask import current_app
 from flask_restful import Resource, request
 from app.models.user import User
@@ -16,12 +17,13 @@ class ActivityFeedView(Resource):
         current_user = User.get_by_id(current_user_id)
         project_schema = ProjectSchema()
         app_schema = AppSchema()
+        user_schema = UserSchema()
 
         params = {
             'general': True,
-            'operations': ['Create', 'Update', 'Delete'],
+            'operations': ['Create', 'Update', 'Delete', 'Follow'],
             'statuses': ['Success'],
-            'models': ['Project', 'App', 'Database', ]
+            'models': ['Project', 'App', 'Database', 'User' ]
         }
         user_id = request.args.get('user_id', None)
         if user_id:
@@ -60,6 +62,10 @@ class ActivityFeedView(Resource):
                 app = App.get_by_id(item['a_app_id'])
                 app_data, _ = app_schema.dump(app)
                 item['app'] = app_schema.dump(app_data)[0]
+            if item['model'] == 'User' and item['a_user_id'] != None:
+                user = User.get_by_id(item['a_user_id'])
+                user_data, _ = user_schema.dump(user)
+                item['a_user'] = user_schema.dump(user_data)[0]
             elif item['model'] == 'Database':
                 pass
         user_feed['data']['activity'] = user_activities

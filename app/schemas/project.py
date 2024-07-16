@@ -5,6 +5,27 @@ from flask_jwt_extended import get_jwt_identity
 from app.models.user import User
 
 
+class ProjectListSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    name = fields.String()
+    description = fields.String()
+
+
+class ProjectIndexSchema(Schema):
+    id = fields.Method("get_id", dump_only=True)
+    name = fields.Method("get_name", dump_only=True)
+    description = fields.Method("get_description", dump_only=True)
+
+    def get_id(self, obj):
+        return str(obj.project.id)
+
+    def get_name(self, obj):
+        return obj.project.name
+
+    def get_description(self, obj):
+        return obj.project.description
+
+
 class ProjectSchema(Schema):
 
     id = fields.UUID(dump_only=True)
@@ -32,6 +53,9 @@ class ProjectSchema(Schema):
     admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
+    tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
+    tags_add = fields.List(fields.String, load_only=True)
+    tags_remove = fields.List(fields.String, load_only=True)
 
     def get_is_following(self, obj):
         # Assuming current_user is available in the view context

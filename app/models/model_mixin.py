@@ -63,13 +63,13 @@ class ModelMixin(db.Model):
             db.session.rollback()
             return False
 
-    def soft_delete(self):
+    @classmethod
+    def bulk_save(cls, objects):
         try:
-            setattr(self, 'deleted', True)
-            setattr(self, 'name', f"{self.name}_deleted_{int(time.time())}")
+            db.session.bulk_save_objects(objects)
             db.session.commit()
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return False
 
@@ -130,7 +130,7 @@ class ModelMixin(db.Model):
 
         if result > 0:
             return False
-        return False
+        return True
 
     @classmethod
     def get_by_id(cls, id):
