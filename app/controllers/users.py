@@ -48,7 +48,7 @@ class UsersView(Resource):
             return dict(status="fail", message=errors), 400
         
         email = validated_user_data.get('email', None)
-        
+
         if not is_valid_email(email):
             return dict(status='fail', message=f'Invalid email address'), 400
             

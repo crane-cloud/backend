@@ -4,14 +4,14 @@ from app.models.user import User
 
 class UserBaseTestCase():
     user_data = {
-        'email': 'test_email@testdomain.com',
+        'email': 'rhodin@cranecloud.io',
         'name': 'Test User',
         'password': 'Compl3xPassw0rd',
         'organisation': 'Makerere',
         'phone_number': '+256777777777'
         }
     user_data_2 = {
-        'email': 'test_email_2@testdomain.com',
+        'email': 'henry@cranecloud.io',
         'name': 'Test User 2',
         'organisation': 'Makerere',
         'password': 'Compl3xPassw0rd',
@@ -23,7 +23,7 @@ class UserBaseTestCase():
     }
     
     admin_data = {
-        'email': 'test_admin@testdomain.com',
+        'email': 'admin@cranecloud.io',
         'name': 'Test Admin',
         'password': 'Compl3xPassw0rd',
         'phone_number': '+256777777777',
