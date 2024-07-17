@@ -4,6 +4,7 @@ import os
 from types import SimpleNamespace
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import disable_project, enable_project
+from app.schemas.user import UserUpdateSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
@@ -429,8 +430,8 @@ class UserDetailView(Resource):
         """
         """
         try:
-            user_schema = UserSchema(only=("name", "is_public"))
-
+            
+            user_schema = UserUpdateSchema()
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()
