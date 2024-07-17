@@ -43,10 +43,6 @@ class UserSchema(Schema):
     def get_age(self, obj):
         return get_item_age(obj.date_created)
     
-class UserUpdateSchema(Schema):
-    name = fields.Str(required=False)
-    is_public = fields.Boolean(required=False)
-    organisation = fields.Str(required=False)
 
 
 class ActivityLogSchema(Schema):
