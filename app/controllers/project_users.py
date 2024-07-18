@@ -512,7 +512,6 @@ class ProjectFollowingView(Resource):
         current_user_id = get_jwt_identity()
         project = Project.get_by_id(project_id)
 
-
         if not project:
             return dict(status='fail', message=f'Project with id {project_id} not found'), 404
 
@@ -532,14 +531,15 @@ class ProjectFollowingView(Resource):
         if not saved_project_follow:
             log_activity('Project', status='Failed',
                          operation='Follow',
-                         description=f'Failed to follow project: {project.name}',
-                         a_project_id=project.id)
+                         description=f'''Failed to follow project: {
+                             project.name}''',
+                         a_project=project)
             return dict(status='fail', message='Internal Server Error'), 500
 
         log_activity('Project', status='Success',
-                         operation='Follow',
-                         description=f'Started following project: {project.name}',
-                         a_project_id=project.id)
+                     operation='Follow',
+                     description=f'Started following project: {project.name}',
+                     a_project=project)
         return dict(
             status='success',
             message=f'You are now following project with id {project_id}'
@@ -579,14 +579,15 @@ class ProjectFollowingView(Resource):
         if not deleted_project:
             log_activity('Project', status='Failed',
                          operation='Unfollow',
-                         description=f'Failed to un-follow project: {project.name} ',
-                         a_project_id=project.id)
+                         description=f'''Failed to un-follow project: {
+                             project.name} ''',
+                         a_project=project)
             return dict(status='fail', message='Internal Server Error'), 500
 
         log_activity('Project', status='Success',
-                         operation='Unfollow',
-                         description=f'Un-followed project: {project.name}',
-                         a_project_id=project.id)
+                     operation='Unfollow',
+                     description=f'Un-followed project: {project.name}',
+                     a_project=project)
         return dict(
             status='success',
             message=f'You are nolonger following project with id {project_id}'

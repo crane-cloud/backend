@@ -188,7 +188,7 @@ class ProjectsView(Resource):
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=cluster_id)
 
             return dict(status='success', data=dict(project=new_project_data)), 201
@@ -445,7 +445,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Delete',
                          description='Deleted project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -470,7 +470,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Success',
                              operation='Delete',
                              description='Deleted project Successfully',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
@@ -548,7 +548,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Failed',
                              operation='Update',
                              description='Internal Server Error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id
                              )
                 return dict(status='fail', message='internal server error'), 500
@@ -556,7 +556,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Update',
                          description='Updated project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
