@@ -501,7 +501,7 @@ class ProjectDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             project_schema = ProjectSchema(
-                only=("name", "description", "organisation", "project_type", "tags_add", "tags_remove"), partial=True)
+                only=("name", "description", "organisation", "project_type", "is_public","tags_add", "tags_remove"), partial=True)
 
             project_data = request.get_json()
 
