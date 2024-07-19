@@ -211,7 +211,8 @@ paths:
                 type: string
               is_public:
                 type: boolean
-
+              organisation:
+                type: string
       responses:
         200:
           description: "Success"

@@ -42,6 +42,7 @@ class UserSchema(Schema):
    
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+    
 
 
 class ActivityLogSchema(Schema):
