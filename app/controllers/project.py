@@ -134,8 +134,9 @@ class ProjectsView(Resource):
                     user_id=project.owner_id
                 )
                 project.users.append(new_role)
-
-            if validated_project_data['tags_add']:
+                
+            tags = None
+            if validated_project_data.get('tags_add'):
                 tags = validated_project_data['tags']
                 validated_project_data.pop('tags', None)
 
@@ -201,9 +202,13 @@ class ProjectsView(Resource):
             return dict(status='fail', message=str(e.body)), check_kube_error_code(e.status)
 
         except Exception as err:
+            try:
+                err = err.body
+            except:
+                err = str(err)
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=err.body,
+                         description=err,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 

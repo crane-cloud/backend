@@ -1,6 +1,8 @@
 from app.models.app import App
+from app.models.tags import Tag
 from app.schemas.app import AppSchema
-from app.schemas.project import ProjectSchema
+from app.schemas.project import ProjectListSchema
+from app.schemas.tags import TagListSchema
 from app.schemas.user import UserSchema
 from flask import current_app
 from flask_restful import Resource, request
@@ -13,17 +15,17 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 class ActivityFeedView(Resource):
     @jwt_required
     def get(self):
-        current_user_id = get_jwt_identity()
-        current_user = User.get_by_id(current_user_id)
-        project_schema = ProjectSchema()
+        current_user = User.get_by_id(get_jwt_identity())
+        project_schema = ProjectListSchema()
         app_schema = AppSchema()
+        tag_schema = TagListSchema()
         user_schema = UserSchema()
 
         params = {
             'general': True,
             'operations': ['Create', 'Update', 'Delete', 'Follow'],
             'statuses': ['Success'],
-            'models': ['Project', 'App', 'Database', 'User' ]
+            'models': ['Project', 'App', 'Database', 'User']
         }
         user_id = request.args.get('user_id', None)
         if user_id:
@@ -32,12 +34,15 @@ class ActivityFeedView(Resource):
                 return dict(status='fail', message='User not found'), 404
             params['user_id'] = user_id
 
-        following = current_user.followed
+        following = current_user.followed.all()
         if following and not user_id:
             params['user_ids'] = [user.id for user in following]
 
-        LOGGER_APP_URL = current_app.config.get('LOGGER_APP_URL')
+        tags_followed = current_user.followed_tags
+        if tags_followed:
+            params['a_tag_ids'] = [tag.tag_id for tag in tags_followed]
 
+        LOGGER_APP_URL = current_app.config.get('LOGGER_APP_URL')
         user_feed = requests.get(
             f"{LOGGER_APP_URL}/api/activities",
             params=params,
@@ -58,6 +63,14 @@ class ActivityFeedView(Resource):
                 project = Project.get_by_id(item['a_project_id'])
                 project_data, _ = project_schema.dump(project)
                 item['project'] = project_schema.dump(project_data)[0]
+            tags_list = item.get('a_tag_ids', [])
+            if tags_list and len(tags_list) > 0:
+                tags = []
+                for tag_id in item['a_tag_ids']:
+                    tag = Tag.get_by_id(tag_id)
+                    tag_data, _ = tag_schema.dump(tag)
+                    tags.append(tag_data)
+                item['tags'] = tags
             if item['model'] == 'App':
                 app = App.get_by_id(item['a_app_id'])
                 app_data, _ = app_schema.dump(app)

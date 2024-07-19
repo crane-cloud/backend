@@ -1,7 +1,10 @@
 from app.schemas.project import ProjectIndexSchema
 from app.schemas.project_users import UserRoleSchema
 from marshmallow import Schema, fields
-
+class TagListSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    name = fields.String(required=True)
+    is_super_tag = fields.Boolean()
 
 class TagSchema(Schema):
 

@@ -8,8 +8,6 @@ from datetime import timedelta
 from ..models import db
 
 from app.models.model_mixin import ModelMixin
-from app.models.credits import Credit
-from app.models.credit_assignments import CreditAssignment
 
 class Followers(ModelMixin):
     """ followers table definition """
