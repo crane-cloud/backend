@@ -430,7 +430,7 @@ class UserDetailView(Resource):
         """
         try:
             
-            user_schema = UserSchema(partial=True)
+            user_schema = UserSchema(only=("name","is_public", "organisation"),partial=True)
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()
