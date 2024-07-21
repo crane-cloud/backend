@@ -352,7 +352,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             log_activity('App', status='Failed',
                          operation='Create',
                          description='Internal Server Error',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return SimpleNamespace(
                 message='Internal Server Error',
@@ -362,7 +362,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         # log_activity('App', status='Success',
         #              operation='Create',
         #              description='Created app Successfully',
-        #              a_project_id=project.id,
+        #              a_project=project,
         #              a_cluster_id=project.cluster_id,
         #              a_app_id=new_app.id)
         return new_app
@@ -379,7 +379,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         log_activity('App', status='Failed',
                      operation='Create',
                      description=json.loads(e.body),
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id,
                      )
 
@@ -399,7 +399,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         log_activity('App', status='Failed',
                      operation='Create',
                      description=str(e),
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id,
                      )
 
@@ -688,7 +688,7 @@ def disable_project(project: Project, is_admin=False):
         log_activity('Project', status='Success',
                      operation='Disable',
                      description='Disabled project Successfully',
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id)
         return True
     except client.rest.ApiException as e:
@@ -702,13 +702,13 @@ def disable_project(project: Project, is_admin=False):
             log_activity('Project', status='Success',
                          operation='Disable',
                          description='Disabled project but doesnt exist in the cluster',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return True
         log_activity('Project', status='Failed',
                      operation='Disable',
                      description='Error disabling application',
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id)
         return SimpleNamespace(
             message=str(e.body),
@@ -720,7 +720,7 @@ def disable_project(project: Project, is_admin=False):
         log_activity('Project', status='Failed',
                      operation='Disable',
                      description=err.body,
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id)
         return SimpleNamespace(
             message=str(err),
@@ -750,7 +750,7 @@ def enable_project(project: Project):
                              operation='Enable',
                              description=f'''Error enabling the project. {
                                  e.body}''',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return SimpleNamespace(
                     message=str(e.body),
@@ -765,7 +765,7 @@ def enable_project(project: Project):
         log_activity('Project', status='Success',
                      operation='Enable',
                      description='Enabled project Successfully',
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id)
         return True
 
@@ -774,7 +774,7 @@ def enable_project(project: Project):
         log_activity('Project', status='Failed',
                      operation='Enable',
                      description=err.body,
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id)
         return SimpleNamespace(
             message=str(err),
@@ -824,7 +824,7 @@ def sort_apps_for_deployment(apps_data, project, kube_client, user, app_schema):
             log_activity('App', status='Failed',
                          operation='Create',
                          description=f'App {app_item["name"]} already exists',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             failed_apps_data.append(dict(
                 status='fail',
@@ -854,7 +854,7 @@ def sort_apps_for_deployment(apps_data, project, kube_client, user, app_schema):
         log_activity('App', status='Success',
                      operation='Create',
                      description='Deployed app Successfully',
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id,
                      a_app_id=new_app.id)
         results.append(new_app_data)

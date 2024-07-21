@@ -134,8 +134,9 @@ class ProjectsView(Resource):
                     user_id=project.owner_id
                 )
                 project.users.append(new_role)
-
-            if validated_project_data['tags_add']:
+                
+            tags = None
+            if validated_project_data.get('tags_add'):
                 tags = validated_project_data['tags']
                 validated_project_data.pop('tags', None)
 
@@ -188,7 +189,7 @@ class ProjectsView(Resource):
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=cluster_id)
 
             return dict(status='success', data=dict(project=new_project_data)), 201
@@ -201,9 +202,13 @@ class ProjectsView(Resource):
             return dict(status='fail', message=str(e.body)), check_kube_error_code(e.status)
 
         except Exception as err:
+            try:
+                err = err.body
+            except:
+                err = str(err)
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=err.body,
+                         description=err,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
@@ -445,7 +450,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Delete',
                          description='Deleted project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -470,7 +475,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Success',
                              operation='Delete',
                              description='Deleted project Successfully',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
@@ -548,7 +553,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Failed',
                              operation='Update',
                              description='Internal Server Error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id
                              )
                 return dict(status='fail', message='internal server error'), 500
@@ -556,7 +561,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Update',
                          description='Updated project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',

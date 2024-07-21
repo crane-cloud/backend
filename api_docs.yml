@@ -2419,6 +2419,10 @@ paths:
                 type: string
               project_type:
                 type: string
+              tags_add:
+                type: array
+                items:
+                  type: string
       produces:
         - application/json
       responses:
@@ -3703,7 +3707,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
   "/tags":
     post:

@@ -26,6 +26,13 @@ class ProjectIndexSchema(Schema):
         return obj.project.description
 
 
+class ProjectListSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    name = fields.String()
+    description = fields.String()
+    tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
+
+
 class ProjectSchema(Schema):
 
     id = fields.UUID(dump_only=True)

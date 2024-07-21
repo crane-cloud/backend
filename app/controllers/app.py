@@ -47,7 +47,8 @@ class AppsView(Resource):
         if existing_app:
             return dict(
                 status='fail',
-                message=f'App with name {validated_app_data["name"]} already exists'
+                message=f'''App with name {
+                    validated_app_data["name"]} already exists'''
             ), 409
 
         if errors:
@@ -75,7 +76,7 @@ class AppsView(Resource):
             log_activity('App', status='Failed',
                          operation='Create',
                          description=f'App {app_name} already exists',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=f'App {app_name} already exists'), 409
 
@@ -98,7 +99,7 @@ class AppsView(Resource):
         log_activity('App', status='Success',
                      operation='Create',
                      description='Deployed app Successfully',
-                     a_project_id=project.id,
+                     a_project=project,
                      a_cluster_id=project.cluster_id,
                      a_app_id=new_app.id)
 
@@ -225,7 +226,7 @@ class ProjectAppsView(Resource):
                 log_activity('App', status='Failed',
                              operation='Create',
                              description=f'App {app_name} already exists',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='fail',
@@ -243,7 +244,7 @@ class ProjectAppsView(Resource):
             log_activity('App', status='Success',
                          operation='Create',
                          description='Deployed app Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
                          a_app_id=new_app.id)
 
@@ -523,9 +524,9 @@ class AppDetailView(Resource):
                 log_activity('App', status='Failed',
                              operation='Delete',
                              description='Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(status='fail', message='Internal server error'), 500
 
             kube_host = cluster.host
@@ -542,17 +543,17 @@ class AppDetailView(Resource):
                 log_activity('App', status='Failed',
                              operation='Delete',
                              description='Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(status='fail', message='Internal server error'), 500
 
             log_activity('App', status='Success',
                          operation='Delete',
                          description=f'App {app_id} deleted successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(status='success', message=f'App {app_id} deleted successfully'), 200
 
         except client.rest.ApiException as e:
@@ -615,9 +616,9 @@ class AppDetailView(Resource):
                 log_activity('App', status='Failed',
                              operation='Update',
                              description='Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(status='fail', message='Internal server error'), 500
 
             kube_host = cluster.host
@@ -650,9 +651,9 @@ class AppDetailView(Resource):
                             log_activity('App', status='Failed',
                                          operation='Update',
                                          description='Internal server error',
-                                         a_project_id=project.id,
+                                         a_project=project,
                                          a_cluster_id=project.cluster_id,
-                                         a_app_id=app_id)
+                                         a_app=app)
                             return dict(status='fail', message=str(e)), 500
 
                     # Create new secret
@@ -780,9 +781,9 @@ class AppDetailView(Resource):
                 log_activity('App', status='Failed',
                              operation='Update',
                              description='Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(
                     status='fail',
                     message='Internal Server Error'
@@ -790,9 +791,9 @@ class AppDetailView(Resource):
             log_activity('App', status='Success',
                          operation='Update',
                          description=f'App {app_id} updated successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(
                 status='success',
                 message=f'App updated successfully'
@@ -802,18 +803,18 @@ class AppDetailView(Resource):
             log_activity('App', status='Failed',
                          operation='Update',
                          description=exc.reason,
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',
                          operation='Update',
                          description=str(exc),
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(status='fail', message=str(exc)), 500
 
 
@@ -1027,9 +1028,9 @@ class AppRevertView(Resource):
                 log_activity('App', status='Failed',
                              operation='Update',
                              description='App url revert Failed, Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(
                     status='fail',
                     message='Internal Server Error'
@@ -1037,9 +1038,9 @@ class AppRevertView(Resource):
             log_activity('App', status='Success',
                          operation='Update',
                          description='App url reverted successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(
                 status='success',
                 message=f'App url reverted successfully'
@@ -1102,9 +1103,9 @@ class AppReviseView(Resource):
                 log_activity('App', status='Failed',
                              operation='Update',
                              description=f'App revision Failed, Internal Server Error No project found',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(
                     status='fail',
                     message='Internal Server Error, No project found'
@@ -1112,7 +1113,8 @@ class AppReviseView(Resource):
 
             associated_replica_sets = kube_client.appsv1_api.list_namespaced_replica_set(
                 namespace=namespace,
-                label_selector=f'app={deployment.spec.template.metadata.labels["app"]}'
+                label_selector=f'''app={
+                    deployment.spec.template.metadata.labels["app"]}'''
             )
 
             template = None
@@ -1125,10 +1127,11 @@ class AppReviseView(Resource):
             if not template:
                 log_activity('App', status='Failed',
                              operation='Update',
-                             description=f'App revision Failed, Revision with id {revision_id} not found',
-                             a_project_id=project.id,
+                             description=f'''App revision Failed, Revision with id {
+                                 revision_id} not found''',
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app_id)
+                             a_app=app)
                 return dict(
                     status='fail',
                     message=f'Revision with id {revision_id} not found'
@@ -1158,9 +1161,9 @@ class AppReviseView(Resource):
             log_activity('App', status='Successful',
                          operation='Update',
                          description='App revised successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
 
             return dict(
                 status='success',
@@ -1171,18 +1174,18 @@ class AppReviseView(Resource):
             log_activity('App', status='Failed',
                          operation='Update',
                          description=f'App revision Failed, {exc.reason}',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             log_activity('App', status='Failed',
                          operation='Update',
                          description=f'App revision Failed, {str(exc)}',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app_id)
+                         a_app=app)
             return dict(status='fail', message=str(exc)), 500
 
 
@@ -1240,7 +1243,7 @@ class AppRedeployView(Resource):
             log_activity('App', status='Success',
                          operation='Create',
                          description='Redeployed app Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
                          a_app_id=new_app.id)
             return dict(status='success', data=dict(app=new_app_data)), 201
@@ -1248,7 +1251,7 @@ class AppRedeployView(Resource):
             log_activity('App', status='Failed',
                          operation='Create',
                          description=str(e),
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
                          )
             return dict(status='fail', message=str(e)), 500
@@ -1320,8 +1323,9 @@ class AppDockerWebhookListenerView(Resource):
             if not cluster or not namespace:
                 log_activity('App', status='Failed',
                              operation='Auto Update',
-                             description=f'{app_image}: Cluster or namespace not found',
-                             a_project_id=project.id,
+                             description=f'''{
+                                 app_image}: Cluster or namespace not found''',
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
                              a_app_id=app.id)
                 logger.error('Cluster or namespace not found')
@@ -1353,8 +1357,9 @@ class AppDockerWebhookListenerView(Resource):
                     if e.status != 404:
                         log_activity('App', status='Failed',
                                      operation='Auto Update',
-                                     description=f'{app_image}: Internal server error',
-                                     a_project_id=project.id,
+                                     description=f'''{
+                                         app_image}: Internal server error''',
+                                     a_project=project,
                                      a_cluster_id=project.cluster_id,
                                      a_app_id=app.id)
 
@@ -1377,7 +1382,7 @@ class AppDockerWebhookListenerView(Resource):
                 log_activity('App', status='Failed',
                              operation='Auto Update',
                              description=f'{app_image}: Internal server error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id,
                              a_app_id=app.id)
                 logger.error('Unable to update app in database')
@@ -1388,8 +1393,9 @@ class AppDockerWebhookListenerView(Resource):
 
             log_activity('App', status='Success',
                          operation='Auto Update',
-                         description=f'{app_image}: App {app.id} updated successfully',
-                         a_project_id=project.id,
+                         description=f'''{app_image}: App {
+                             app.id} updated successfully''',
+                         a_project=project,
                          a_cluster_id=project.cluster_id,
                          a_app_id=app.id)
             return dict(
@@ -1467,6 +1473,7 @@ class AppEnableView(Resource):
             return dict(status='fail', message=enabled_app.message), status_code
 
         return dict(status='success', message=f'App has been enabled successfully'), 201
+
 
 class AppLogsView(Resource):
     @jwt_required
@@ -1585,11 +1592,11 @@ class AppLogsView(Resource):
                         message = state['waiting'].get('message')
 
                     reason = state['waiting']['reason']
-                    pod_infor = f'type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{reason}\t{message}'
+                    pod_infor = f'''type\tstatus\treason\t\t\tmessage\n----\t------\t------\t\t\t------\nwaiting\tfailed\t{
+                        reason}\t{message}'''
                     pods_logs.append(pod_infor)
 
         if not pods_logs or not pods_logs[0]:
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
-
