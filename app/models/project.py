@@ -26,6 +26,7 @@ class Project(ModelMixin):
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     users = relationship('ProjectUser', back_populates='other_project')
     followers = relationship('ProjectFollowers', back_populates='project')
+    is_public = db.Column(db.Boolean, default=True)
     project_transactions = db.relationship(
         'TransactionRecord', backref='project', lazy=True)
     billing_invoices = db.relationship(

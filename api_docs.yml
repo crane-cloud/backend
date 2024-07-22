@@ -2534,6 +2534,8 @@ paths:
                 type: string
               project_type:
                 type: string
+              is_public:
+                type: string
               tags_add:
                 type: array
                 items:

@@ -60,6 +60,7 @@ class ProjectSchema(Schema):
     admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
+    is_public = fields.Boolean()
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
     tags_add = fields.List(fields.String, load_only=True)
     tags_remove = fields.List(fields.String, load_only=True)
