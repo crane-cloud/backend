@@ -3868,6 +3868,18 @@ paths:
           name: keywords
           type: string
           description: Keywords to search
+        - in: query
+          name: projects_page
+          type: integer
+          description: Enter projects page
+        - in: query
+          name: users_page
+          type: integer
+          description: Enter users page 
+        - in: query
+          name: tags_page
+          type: integer
+          description: Enter tags page
 
       produces:
         - application/json
