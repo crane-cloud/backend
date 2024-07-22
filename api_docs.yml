@@ -3867,7 +3867,7 @@ paths:
         - in: query
           name: keywords
           type: string
-          description: Kyewords to search
+          description: Keywords to search
 
       produces:
         - application/json
