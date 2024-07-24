@@ -2,7 +2,7 @@ from app.models.project import Project
 from app.models.user import User
 from app.models.tags import Tag
 from app.schemas.tags import TagListSchema
-from app.schemas.user import UserSchema
+from app.schemas.user import UserListSchema
 from app.schemas.project import ProjectListSchema
 from flask import current_app
 from flask_restful import Resource, request
@@ -12,24 +12,48 @@ import json
 from sqlalchemy import or_
 
 
-
 class GenericSearchView(Resource):
     @jwt_required
     def get(self):
         keywords = request.args.get('keywords', '')
+        search_type = request.args.get('type', None)
 
-        projects_page=request.args.get('projects_page',1)
-        users_page=request.args.get('users_page',1)
-        tags_page=request.args.get('tags_page',1)
-
-        if not keywords:
+        search_type_enum = ['projects', 'users', 'tags']
+        if search_type and search_type not in search_type_enum:
             return dict(
-                projects=[],
-                users=[],
-                tags = []
-            ),200
-        
+                message=f"""Invalid type provided, should be one of {
+                    search_type_enum}"""
+            ), 400
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+
+        # Schemas
+        projectSchema = ProjectListSchema(many=True)
+        userSchema = UserListSchema(many=True)
+        tagSchema = TagListSchema(many=True)
+
+        overall_pagination = {
+            'total': 0,
+            'pages': 0,
+            'page': page,
+            'per_page': per_page,
+            'next': None,
+            'prev': page-1 if page > 1 else None
+        }
+
         def create_pagination(pagination):
+            overall_pagination['total'] = max(
+                overall_pagination['total'], pagination.total)
+            overall_pagination['pages'] = max(
+                overall_pagination['pages'], pagination.pages)
+            if pagination.next_num:
+                if overall_pagination['next'] != None:
+                    overall_pagination['next'] = max(overall_pagination.get(
+                        'next', 0), pagination.next_num) or None
+                else:
+                    overall_pagination['next'] = pagination.next_num
+
             return {
                 'total': pagination.total,
                 'pages': pagination.pages,
@@ -39,42 +63,54 @@ class GenericSearchView(Resource):
                 'prev': pagination.prev_num
             }
 
-        #Schemas
-        projectSchema = ProjectListSchema(many=True)
-        userSchema = UserSchema(many=True)
-        tagSchema = TagListSchema(many=True)
-        
-        # projects 
-        projects_pagination = Project.query.filter(Project.name.ilike('%'+keywords+'%')).order_by(Project.date_created.desc()).paginate(
-                            page=int(projects_page), per_page=10, error_out=False)
+        return_object = {}
 
-        #Tags
-        tags_pagination = Tag.query.filter(Tag.name.ilike('%'+keywords+'%')).order_by(Tag.date_created.desc()).paginate(
-                            page=int(tags_page), per_page=10, error_out=False)
+        # Projects
+        if not search_type or search_type == 'projects':
+            projects_pagination = Project.query.filter(
+                Project.name.ilike('%'+keywords+'%'),
+                # Project.is_public == True
+            ).order_by(Project.date_created.desc()).paginate(
+                page=int(page), per_page=int(per_page), error_out=False)
+            project_data, _ = projectSchema.dumps(projects_pagination.items)
+            if projects_pagination.total > 0:
+                return_object['projects'] = {
+                    'pagination': create_pagination(projects_pagination),
+                    'items': json.loads(project_data)
+                }
 
-        #users 
-        search_filter = or_(
-            User.name.ilike(f'%{keywords}%'),
-            User.email.ilike(f'%{keywords}%')
-        )
-        users_pagination = User.query.filter(search_filter).order_by(User.date_created.desc()).paginate(
-                            page=int(users_page), per_page=10, error_out=False)
+        # Tags
+        if not search_type or search_type == 'tags':
+            tags_pagination = Tag.query.filter(
+                Tag.name.ilike('%'+keywords+'%')
+            ).order_by(Tag.date_created.desc()).paginate(
+                page=int(page), per_page=int(per_page), error_out=False)
+            tags_data, _ = tagSchema.dumps(tags_pagination.items)
+            if tags_pagination.total > 0:
+                return_object['tags'] = {
+                    'pagination': create_pagination(tags_pagination),
+                    'items': json.loads(tags_data)
+                }
 
-        project_data , _ = projectSchema.dumps(projects_pagination.items)
-        users_data , _ = userSchema.dumps(users_pagination.items)
-        tags_data , _ = tagSchema.dumps(tags_pagination.items)
+        # Users
+        if not search_type or search_type == 'users':
+            search_filter = or_(
+                User.name.ilike(f'%{keywords}%'),
+                User.email.ilike(f'%{keywords}%')
+            )
+            users_pagination = User.query.filter(search_filter).order_by(
+                User.date_created.desc()
+            ).paginate(
+                page=int(page), per_page=int(per_page), error_out=False
+            )
+            users_data, _ = userSchema.dumps(users_pagination.items)
+            if users_pagination.total > 0:
+                return_object['users'] = {
+                    'pagination': create_pagination(users_pagination),
+                    'items': json.loads(users_data)
+                }
 
         return dict(
-            projects={
-                'pagination':create_pagination(projects_pagination),
-                'items':json.loads(project_data)
-            },
-            users={
-                'pagination':create_pagination(users_pagination),
-                'items' : json.loads(users_data)
-            },
-            tags = {
-                'pagination':create_pagination(tags_pagination),
-                'items':json.loads(tags_data)
-            }
-        ) , 200
+            pagination=overall_pagination,
+            data=return_object
+        ), 200

@@ -728,7 +728,7 @@ paths:
   "/activity_feed":
     get:
       tags:
-        - activity_feed
+        - generic
       consumes:
         - application/json
       produces:
@@ -3869,17 +3869,17 @@ paths:
           type: string
           description: Keywords to search
         - in: query
-          name: projects_page
-          type: integer
-          description: Enter projects page
+          name: type
+          type: string
+          description: Enter search type (projects, apps, tags)
         - in: query
-          name: users_page
+          name: page
           type: integer
-          description: Enter users page 
+          description: Enter page number default is 1
         - in: query
-          name: tags_page
+          name: per_page
           type: integer
-          description: Enter tags page
+          description: Enter Items per page default is 10
 
       produces:
         - application/json
@@ -3890,7 +3890,6 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
 
 components:
   securitySchemes:
