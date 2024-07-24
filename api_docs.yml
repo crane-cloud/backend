@@ -728,7 +728,7 @@ paths:
   "/activity_feed":
     get:
       tags:
-        - activity_feed
+        - generic
       consumes:
         - application/json
       produces:
@@ -3850,6 +3850,44 @@ paths:
           description: "Success"
         404:
           description: "Tag not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
+  "/search":
+    get:
+      tags:
+        - generic
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          type: string
+        - in: query
+          name: keywords
+          type: string
+          description: Keywords to search
+        - in: query
+          name: type
+          type: string
+          description: Enter search type (projects, users, tags)
+        - in: query
+          name: page
+          type: integer
+          description: Enter page number default is 1
+        - in: query
+          name: per_page
+          type: integer
+          description: Enter Items per page default is 10
+
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
         400:
           description: "Bad request"
         500:
