@@ -3871,7 +3871,7 @@ paths:
         - in: query
           name: type
           type: string
-          description: Enter search type (projects, apps, tags)
+          description: Enter search type (projects, users, tags)
         - in: query
           name: page
           type: integer
