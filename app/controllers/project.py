@@ -74,6 +74,11 @@ class ProjectsView(Resource):
                     message=f'cluster {cluster_id} not found'
                 ), 404
 
+            tags = None
+            if validated_project_data.get('tags_add'):
+                tags = validated_project_data['tags_add']
+                validated_project_data.pop('tags_add', None)
+
             kube_host = cluster.host
             kube_token = cluster.token
 
@@ -134,11 +139,6 @@ class ProjectsView(Resource):
                     user_id=project.owner_id
                 )
                 project.users.append(new_role)
-                
-            tags = None
-            if validated_project_data.get('tags_add'):
-                tags = validated_project_data['tags']
-                validated_project_data.pop('tags', None)
 
             saved = project.save()
 
@@ -506,7 +506,7 @@ class ProjectDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             project_schema = ProjectSchema(
-                only=("name", "description", "organisation", "project_type", "is_public","tags_add", "tags_remove"), partial=True)
+                only=("name", "description", "organisation", "project_type", "is_public", "tags_add", "tags_remove"), partial=True)
 
             project_data = request.get_json()
 
