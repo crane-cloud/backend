@@ -1,10 +1,15 @@
 from app.schemas.project import ProjectIndexSchema
 from app.schemas.project_users import UserRoleSchema
 from marshmallow import Schema, fields
+from flask_jwt_extended import get_jwt_identity
+from app.models.user import User
+
+
 class TagListSchema(Schema):
     id = fields.UUID(dump_only=True)
     name = fields.String(required=True)
     is_super_tag = fields.Boolean()
+
 
 class TagSchema(Schema):
 
@@ -13,9 +18,15 @@ class TagSchema(Schema):
     is_super_tag = fields.Boolean()
     date_created = fields.Date(dump_only=True)
     projects_count = fields.Method("get_projects_count", dump_only=True)
+    is_following = fields.Method("get_is_following", dump_only=True)
 
     def get_projects_count(self, obj):
         return len(obj.projects)
+
+    def get_is_following(self, obj):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        return obj.is_followed_by(current_user)
 
 
 class TagsProjectsSchema(TagSchema):
