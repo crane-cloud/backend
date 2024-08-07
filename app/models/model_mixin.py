@@ -129,8 +129,8 @@ class ModelMixin(db.Model):
         result = cls.query.filter_by(**kwargs).count()
 
         if result > 0:
-            return False
-        return True
+            return True
+        return False
 
     @classmethod
     def get_by_id(cls, id):

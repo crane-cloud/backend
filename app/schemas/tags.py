@@ -27,7 +27,7 @@ class TagSchema(Schema):
     def get_is_following(self, obj):
         current_user_id = get_jwt_identity()
         tag_id = obj.id
-        return TagFollowers.query.filter_by(user_id=current_user_id, tag_id=tag_id).first() is not None
+        return TagFollowers.check_exists(user_id=current_user_id, tag_id=tag_id)
 
 
 class TagsProjectsSchema(TagSchema):
