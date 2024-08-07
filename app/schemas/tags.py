@@ -3,6 +3,7 @@ from app.schemas.project_users import UserRoleSchema
 from marshmallow import Schema, fields
 from flask_jwt_extended import get_jwt_identity
 from app.models.user import User
+from app.models.tags import TagFollowers
 
 
 class TagListSchema(Schema):
@@ -25,8 +26,8 @@ class TagSchema(Schema):
 
     def get_is_following(self, obj):
         current_user_id = get_jwt_identity()
-        current_user = User.get_by_id(current_user_id)
-        return obj.is_followed_by(current_user)
+        tag_id = obj.id
+        return TagFollowers.query.filter_by(user_id=current_user_id, tag_id=tag_id).first() is not None
 
 
 class TagsProjectsSchema(TagSchema):

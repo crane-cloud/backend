@@ -20,8 +20,6 @@ class Tag(ModelMixin):
     def __repr__(self):
         return f"<Tag {self.name}>"
 
-    def is_followed_by(self, user):
-        return any(follower.user_id == user.id for follower in self.followers)
 
 
 class ProjectTag(ModelMixin):
