@@ -6,7 +6,6 @@ from app.models.user import User
 from app.models.project_users import ProjectFollowers
 
 
-
 class ProjectListSchema(Schema):
     id = fields.UUID(dump_only=True)
     name = fields.String()
@@ -69,7 +68,6 @@ class ProjectSchema(Schema):
     tags_remove = fields.List(fields.String, load_only=True)
 
     def get_is_following(self, obj):
-        # Assuming current_user is available in the view context
         current_user_id = get_jwt_identity()
         current_user = User.get_by_id(current_user_id)
         return obj.is_followed_by(current_user)
@@ -84,4 +82,4 @@ class ProjectSchema(Schema):
         return obj.cluster.prometheus_url
 
     def get_followers_count(self, obj):
-        return ProjectFollowers.count(project_id=obj.id)    
+        return ProjectFollowers.count(project_id=obj.id)

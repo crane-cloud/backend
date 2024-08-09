@@ -21,6 +21,7 @@ class Tag(ModelMixin):
         return f"<Tag {self.name}>"
 
 
+
 class ProjectTag(ModelMixin):
     __tablename__ = "project_tag"
 
