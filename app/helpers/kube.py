@@ -182,9 +182,11 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                     claim_name=pvc_name)
             )]
 
-            mount_path = '/home/jovyan/work'
             new_app.is_ai = True
-            new_app.is_notebook = app_data.get('is_notebook', False)
+            is_notebook = app_data.get('is_notebook', False)
+            if is_notebook:
+                mount_path = '/home/jovyan/work'
+                new_app.is_notebook = True
 
         # EnvVar
         env = []
