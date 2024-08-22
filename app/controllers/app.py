@@ -101,7 +101,7 @@ class AppsView(Resource):
                      description='Deployed app Successfully',
                      a_project=project,
                      a_cluster_id=project.cluster_id,
-                     a_app_id=new_app.id)
+                     a_app=new_app)
 
         return dict(status='success', data=dict(app=new_app_data)), 201
 
@@ -205,6 +205,7 @@ class ProjectAppsView(Resource):
 
         kube_client = create_kube_clients(kube_host, kube_token)
         multi_app = validated_app_data.get('apps', [])
+        is_notebook = validated_app_data.get('is_notebook', False)
         if multi_app:
             deployed_apps = sort_apps_for_deployment(
                 apps_data=multi_app, kube_client=kube_client,
@@ -214,6 +215,19 @@ class ProjectAppsView(Resource):
                 apps=deployed_apps.apps_data)), 201
         else:
             app_name = validated_app_data.get('name', None)
+            if is_notebook:
+                if not app_name:
+                    return dict(status='fail', data=dict(message="Missing data for required field, name"))
+                notebook_data = {
+                    'project_id': project_id,
+                    'image': 'cranecloud/jupyter-notebook:latest',
+                    'port': 8888,
+                    'is_ai': True,
+                    'is_notebook': True,
+                    'name': app_name
+                }
+                validated_app_data = notebook_data
+            
             app_image = validated_app_data.get('image', None)
             if not app_name or not app_image:
                 return dict(status='fail', data=dict(message="Missing data for required field, either name or image"))
@@ -246,7 +260,7 @@ class ProjectAppsView(Resource):
                          description='Deployed app Successfully',
                          a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=new_app.id)
+                         a_app=new_app)
 
             return dict(status='success', data=dict(app=new_app_data)), 201
 
@@ -1245,7 +1259,7 @@ class AppRedeployView(Resource):
                          description='Redeployed app Successfully',
                          a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=new_app.id)
+                         a_app=new_app)
             return dict(status='success', data=dict(app=new_app_data)), 201
         except Exception as e:
             log_activity('App', status='Failed',
@@ -1293,7 +1307,7 @@ class AppDockerWebhookListenerView(Resource):
             log_activity('App', status='Failed',
                          operation='Auto Update',
                          description=f'project for app {app_id} not found',
-                         a_app_id=app.id)
+                         a_app=app.id)
 
             logger.error(
                 f"App update for app id {app_id} is doesnot have a project")
@@ -1327,7 +1341,7 @@ class AppDockerWebhookListenerView(Resource):
                                  app_image}: Cluster or namespace not found''',
                              a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app.id)
+                             a_app=app)
                 logger.error('Cluster or namespace not found')
                 return dict(
                     status='fail',
@@ -1361,7 +1375,7 @@ class AppDockerWebhookListenerView(Resource):
                                          app_image}: Internal server error''',
                                      a_project=project,
                                      a_cluster_id=project.cluster_id,
-                                     a_app_id=app.id)
+                                     a_app=app)
 
                 cluster_deployment.spec.template.spec.image_pull_secrets.append(
                     app_secret)
@@ -1384,7 +1398,7 @@ class AppDockerWebhookListenerView(Resource):
                              description=f'{app_image}: Internal server error',
                              a_project=project,
                              a_cluster_id=project.cluster_id,
-                             a_app_id=app.id)
+                             a_app=app)
                 logger.error('Unable to update app in database')
                 return dict(
                     status="fail",
@@ -1397,7 +1411,7 @@ class AppDockerWebhookListenerView(Resource):
                              app.id} updated successfully''',
                          a_project=project,
                          a_cluster_id=project.cluster_id,
-                         a_app_id=app.id)
+                         a_app=app)
             return dict(
                 status='success',
                 message=f'Apps updated successfully'

@@ -2626,6 +2626,10 @@ paths:
                 type: string
               replicas:
                 type: number
+              is_ai:
+                type: boolean
+              is_notebook:
+                type: boolean
               apps:
                 type: array
                 items:
@@ -2659,6 +2663,10 @@ paths:
                       type: string
                     docker_email:
                       type: string
+                    is_ai:
+                      type: boolean
+                    is_notebook:
+                      type: boolean
       produces:
         - application/json
       responses:

@@ -142,35 +142,53 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             # update registry
             resource_registry['image_pull_secret'] = True
 
-        # create app deployment's pvc meta and spec
-        # pvc_name = f'{app_alias}-pvc'
-        # pvc_meta = client.V1ObjectMeta(name=pvc_name)
-
-        # access_modes = ['ReadWriteOnce']
-        # storage_class = 'openebs-standard'
-        # resources = client.V1ResourceRequirements(
-        #     requests=dict(storage='1Gi'))
-
-        # pvc_spec = client.V1PersistentVolumeClaimSpec(
-        #     access_modes=access_modes, resources=resources, storage_class_name=storage_class)
-
-        # Create a PVC
-        # pvc = client.V1PersistentVolumeClaim(
-        #     api_version="v1",
-        #     kind="PersistentVolumeClaim",
-        #     metadata=pvc_meta,
-        #     spec=pvc_spec
-        # )
-
-        # kube_client.kube.create_namespaced_persistent_volume_claim(
-        #     namespace=namespace,
-        #     body=pvc
-        # )
-
-        # create deployment
+         # create deployment
         dep_name = f'{app_alias}-deployment'
 
-        # # EnvVar
+        mount_path = '/data'
+
+        # create app deployment's pvc meta and spec
+        is_ai = app_data.get('is_ai', False)
+        if is_ai:
+            pvc_name = f'{app_alias}-pvc'
+            pvc_meta = client.V1ObjectMeta(name=pvc_name)
+
+            access_modes = ['ReadWriteOnce']
+            resources = client.V1ResourceRequirements(
+                requests=dict(storage='1Gi'))
+
+            pvc_spec = client.V1PersistentVolumeClaimSpec(
+                access_modes=access_modes, resources=resources
+                # , storage_class_name='openebs-standard'
+            )
+
+            # Create a PVC
+            pvc = client.V1PersistentVolumeClaim(
+                api_version="v1",
+                kind="PersistentVolumeClaim",
+                metadata=pvc_meta,
+                spec=pvc_spec
+            )
+
+            kube_client.kube.create_namespaced_persistent_volume_claim(
+                namespace=namespace,
+                body=pvc
+            )
+
+            # Pod volumes
+            volumes = [client.V1Volume(
+                name=dep_name,
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                    claim_name=pvc_name)
+            )]
+
+            new_app.is_ai = True
+            is_notebook = app_data.get('is_notebook', False)
+            if is_notebook:
+                mount_path = '/home/jovyan/work'
+                new_app.is_notebook = True
+
+        # EnvVar
         env = []
         if env_vars:
             for key, value in env_vars.items():
@@ -178,21 +196,21 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                     name=str(key), value=str(value)
                 ))
 
+        # Define volume mount
+        volume_mount = client.V1VolumeMount(
+            mount_path=mount_path,
+            name=dep_name
+        )
+
         # pod template
         container = client.V1Container(
             name=app_alias,
             image=app_image,
             ports=[client.V1ContainerPort(container_port=app_port)],
             env=env,
-            command=command
-            # volume_mounts=[client.V1VolumeMount(mount_path="/data", name=dep_name)]
+            command=command,
+            volume_mounts=[volume_mount] if is_ai else None
         )
-
-        # pod volumes
-        # volumes = client.V1Volume(
-        #     name=dep_name
-        #     # persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-        # )
 
         # spec
         template = client.V1PodTemplateSpec(
@@ -201,8 +219,8 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             }),
             spec=client.V1PodSpec(
                 containers=[container],
-                image_pull_secrets=[image_pull_secret]
-                # volumes=[volumes]
+                image_pull_secrets=[image_pull_secret],
+                volumes=volumes if is_ai else None
             )
         )
 
@@ -364,7 +382,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         #              description='Created app Successfully',
         #              a_project=project,
         #              a_cluster_id=project.cluster_id,
-        #              a_app_id=new_app.id)
+        #              a_app=new_app)
         return new_app
 
     except client.rest.ApiException as e:
@@ -430,7 +448,6 @@ def create_docker_pull_secret(kube_client, app_alias, namespace, docker_username
             "auth": str(authstring, "utf-8")
         }
     })
-    print(secret_dict)
 
     secret_b64 = base64.b64encode(
         json.dumps(secret_dict).encode("utf-8")
@@ -521,18 +538,20 @@ def delete_cluster_app(kube_client, namespace, app):
             return dict(status='fail', message=str(e)), 500
 
     # delete pvc
-    # pvc_name = f'{app.alias}-pvc'
+    pvc_name = f'{app.alias}-pvc'
+    try:
+        pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
+            name=pvc_name,
+            namespace=namespace
+        )
 
-    # pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
-    #     name=pvc_name,
-    #     namespace=namespace
-    # )
-
-    # if pvc:
-    #     kube_client.kube.delete_namespaced_persistent_volume_claim(
-    #         name=pvc_name,
-    #         namespace=namespace
-    #     )
+        if pvc:
+            kube_client.kube.delete_namespaced_persistent_volume_claim(
+                name=pvc_name,
+                namespace=namespace
+            )
+    except:
+        pass
 
 
 def disable_user_app(app: App, is_admin=False):
@@ -856,7 +875,7 @@ def sort_apps_for_deployment(apps_data, project, kube_client, user, app_schema):
                      description='Deployed app Successfully',
                      a_project=project,
                      a_cluster_id=project.cluster_id,
-                     a_app_id=new_app.id)
+                     a_app=new_app)
         results.append(new_app_data)
 
     return SimpleNamespace(
