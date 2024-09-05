@@ -103,6 +103,6 @@ def docker_image_checker(app_image=None, docker_password=None, project={}):
                      a_project=project,
                      a_cluster_id=project.cluster_id,
                      a_app=None)
-        return None
+        return f"Image {app_image} does not exist or is private. Make sure you have the right credentials if it is a private image"
 
     return True
