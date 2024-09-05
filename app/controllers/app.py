@@ -25,7 +25,7 @@ from app.models.project import Project
 from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
-from app.helpers.dockerhub_images import check_image_existence
+from app.helpers.dockerhub_images import docker_image_checker
 
 
 class AppsView(Resource):
@@ -214,21 +214,9 @@ class ProjectAppsView(Resource):
                 docker_server = app.get('docker_server', 'docker.io')
                 docker_password = app.get('docker_password', None)
                 if 'gcr' not in docker_server:
-                    try:
-                        image_url_exists = check_image_existence(
-                            app_image, docker_password)
-                    except Exception as e:
-                        logger.error(f"Error checking image existence for {app_image}: {e}")
-                        image_url_exists = False
-
-                    if not image_url_exists:
-                        log_activity('App', status='Failed',
-                                     operation='Create',
-                                     description=f'Image url:{app_image} does not exist in docker hub',
-                                     a_project=project,
-                                     a_cluster_id=project.cluster_id,
-                                     a_app=None)
-                        return dict(status='fail', message=f'Image {app_image} does not exist'), 404
+                  validate_docker_image =  docker_image_checker(app_image, docker_password, project)
+                  if validate_docker_image != True:
+                      return validate_docker_image
 
             deployed_apps = sort_apps_for_deployment(
                 apps_data=multi_app, kube_client=kube_client,
@@ -277,20 +265,9 @@ class ProjectAppsView(Resource):
             docker_password = validated_app_data.get('docker_password', None)
             # should be a docker hub image
             if 'gcr' not in docker_server:
-                try:
-                    image_url_exists = check_image_existence(app_image, docker_password)
-                except Exception as e:
-                    logger.error(f"Error checking image existence for {app_image}: {e}")
-                    image_url_exists = False
-
-                if image_url_exists != True:
-                    log_activity('App', status='Failed',
-                                 operation='Create',
-                                 description=f'Image url:{app_image} does not exist in docker hub',
-                                 a_project=project,
-                                 a_cluster_id=project.cluster_id,
-                                 a_app=None)
-                    return dict(status='fail', message=f'Image {app_image} does not exist or is private'), 404
+                validate_docker_image = docker_image_checker(app_image, docker_password,project)
+                if validate_docker_image != True:
+                    return validate_docker_image
 
             new_app = deploy_user_app(
                 kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
@@ -698,20 +675,9 @@ class AppDetailView(Resource):
                 docker_password = validated_update_data.get('docker_password', None)
 
                 if 'gcr' not in docker_server:
-                    try:
-                        image_url_exists = check_image_existence(app_image, docker_password)
-                    except Exception as e:
-                        logger.error(f"Error checking image existence for {app_image}: {e}")
-                        image_url_exists = False
-
-                    if image_url_exists != True:
-                        log_activity('App', status='Failed',
-                                    operation='Create',
-                                    description=f'Image url:{app_image} does not exist in docker hub',
-                                    a_project=project,
-                                    a_cluster_id=project.cluster_id,
-                                    a_app=None)
-                        return dict(status='fail', message=f'Image {app_image} does not exist or is private'), 404
+                    validate_docker_image =  docker_image_checker(app_image, docker_password,project)
+                    if validate_docker_image != True:
+                        return validate_docker_image
 
                 if private_repo:
                     try:
