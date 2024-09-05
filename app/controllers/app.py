@@ -25,6 +25,7 @@ from app.models.project import Project
 from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
+from app.helpers.dockerhub_images import docker_image_checker
 
 
 class AppsView(Resource):
@@ -207,6 +208,16 @@ class ProjectAppsView(Resource):
         multi_app = validated_app_data.get('apps', [])
         is_notebook = validated_app_data.get('is_notebook', False)
         if multi_app:
+            for app in multi_app:
+                # check all image urls
+                app_image = app.get('image', None)
+                docker_server = app.get('docker_server', 'docker.io')
+                docker_password = app.get('docker_password', None)
+                if 'gcr' not in docker_server:
+                  validate_docker_image =  docker_image_checker(app_image, docker_password, project)
+                  if validate_docker_image != True:
+                      return dict(status='fail', message=validate_docker_image), 404
+
             deployed_apps = sort_apps_for_deployment(
                 apps_data=multi_app, kube_client=kube_client,
                 project=project, user=user, app_schema=app_schema)
@@ -246,6 +257,17 @@ class ProjectAppsView(Resource):
                     status='fail',
                     message=f'App with name {app_name} already exists'
                 ), 409
+         
+            # check images existence
+            app_image = validated_app_data.get('image', None)
+            docker_server = validated_app_data.get(
+                'docker_server', 'docker.io')
+            docker_password = validated_app_data.get('docker_password', None)
+            # should be a docker hub image
+            if 'gcr' not in docker_server:
+                validate_docker_image = docker_image_checker(app_image, docker_password,project)
+                if validate_docker_image != True:
+                    return dict(status='fail', message=validate_docker_image), 404
 
             new_app = deploy_user_app(
                 kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
@@ -649,6 +671,14 @@ class AppDetailView(Resource):
             )
 
             if app_image:
+                docker_server = validated_update_data.get('docker_server', 'docker.io')
+                docker_password = validated_update_data.get('docker_password', None)
+
+                if 'gcr' not in docker_server:
+                    validate_docker_image =  docker_image_checker(app_image, docker_password,project)
+                    if validate_docker_image != True:
+                        return dict(status='fail', message=validate_docker_image), 404
+
                 if private_repo:
                     try:
                         app_secret = kube_client.kube.read_namespaced_secret(
