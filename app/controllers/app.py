@@ -216,7 +216,7 @@ class ProjectAppsView(Resource):
                 if 'gcr' not in docker_server:
                   validate_docker_image =  docker_image_checker(app_image, docker_password, project)
                   if validate_docker_image != True:
-                      return validate_docker_image
+                      return dict(status='fail', message=f'Image {app_image} does not exist or is private. Make sure you have the right credentials if it is a private image.'), 404
 
             deployed_apps = sort_apps_for_deployment(
                 apps_data=multi_app, kube_client=kube_client,
@@ -267,7 +267,7 @@ class ProjectAppsView(Resource):
             if 'gcr' not in docker_server:
                 validate_docker_image = docker_image_checker(app_image, docker_password,project)
                 if validate_docker_image != True:
-                    return validate_docker_image
+                    return dict(status='fail', message=f'Image {app_image} does not exist or is private. Make sure you have the right credentials if it is a private image.'), 404
 
             new_app = deploy_user_app(
                 kube_client=kube_client, project=project, user=user, app_data=validated_app_data)
@@ -677,7 +677,7 @@ class AppDetailView(Resource):
                 if 'gcr' not in docker_server:
                     validate_docker_image =  docker_image_checker(app_image, docker_password,project)
                     if validate_docker_image != True:
-                        return validate_docker_image
+                        return dict(status='fail', message=f'Image {app_image} does not exist or is private. Make sure you have the right credentials if it is a private image.'), 404
 
                 if private_repo:
                     try:

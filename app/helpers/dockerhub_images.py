@@ -10,6 +10,7 @@ class ImageCheckError(Exception):
         super().__init__(message)
         self.status_code = status_code
 
+
 def login_and_get_token(username, password):
     login_url = "https://hub.docker.com/v2/users/login"
     login_data = {
@@ -87,7 +88,7 @@ def check_image_existence(image_url, password=None):
 
 
 def docker_image_checker(app_image=None, docker_password=None, project={}):
-    
+
     try:
         image_url_exists = check_image_existence(
             app_image, docker_password)
@@ -102,6 +103,6 @@ def docker_image_checker(app_image=None, docker_password=None, project={}):
                      a_project=project,
                      a_cluster_id=project.cluster_id,
                      a_app=None)
-        return dict(status='fail', message=f'Image {app_image} does not exist or is private. Make sure you have the right credentials if it is a private image.'), 404
+        return None
 
     return True
