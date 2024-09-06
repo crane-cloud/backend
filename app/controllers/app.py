@@ -10,7 +10,7 @@ from kubernetes import client
 from types import SimpleNamespace
 from app.models.app import App
 from app.models.project import Project
-from app.helpers.kube import (create_kube_clients, delete_cluster_app,
+from app.helpers.kube import (create_kube_clients, create_pvc, delete_cluster_app,
                               disable_user_app, enable_user_app, sort_apps_for_deployment, update_app_env_vars)
 from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
@@ -206,18 +206,8 @@ class ProjectAppsView(Resource):
 
         kube_client = create_kube_clients(kube_host, kube_token)
         multi_app = validated_app_data.get('apps', [])
-        is_notebook = validated_app_data.get('is_notebook', False)
-        if multi_app:
-            for app in multi_app:
-                # check all image urls
-                app_image = app.get('image', None)
-                docker_server = app.get('docker_server', 'docker.io')
-                docker_password = app.get('docker_password', None)
-                if 'gcr' not in docker_server:
-                  validate_docker_image =  docker_image_checker(app_image, docker_password, project)
-                  if validate_docker_image != True:
-                      return dict(status='fail', message=validate_docker_image), 404
 
+        if multi_app:
             deployed_apps = sort_apps_for_deployment(
                 apps_data=multi_app, kube_client=kube_client,
                 project=project, user=user, app_schema=app_schema)
@@ -226,19 +216,6 @@ class ProjectAppsView(Resource):
                 apps=deployed_apps.apps_data)), 201
         else:
             app_name = validated_app_data.get('name', None)
-            if is_notebook:
-                if not app_name:
-                    return dict(status='fail', data=dict(message="Missing data for required field, name"))
-                notebook_data = {
-                    'project_id': project_id,
-                    'image': 'cranecloud/jupyter-notebook:latest',
-                    'port': 8888,
-                    'is_ai': True,
-                    'is_notebook': True,
-                    'name': app_name
-                }
-                validated_app_data = notebook_data
-            
             app_image = validated_app_data.get('image', None)
             if not app_name or not app_image:
                 return dict(status='fail', data=dict(message="Missing data for required field, either name or image"))
@@ -258,6 +235,19 @@ class ProjectAppsView(Resource):
                     message=f'App with name {app_name} already exists'
                 ), 409
          
+         
+            # check images existence
+            app_image = validated_app_data.get('image', None)
+            docker_server = validated_app_data.get(
+                'docker_server', 'docker.io')
+            docker_password = validated_app_data.get('docker_password', None)
+            # should be a docker hub image
+            if 'gcr' not in docker_server:
+                validate_docker_image = docker_image_checker(app_image, docker_password,project)
+                if validate_docker_image != True:
+                    return dict(status='fail', message=validate_docker_image), 404
+
+
             # check images existence
             app_image = validated_app_data.get('image', None)
             docker_server = validated_app_data.get(
@@ -623,6 +613,7 @@ class AppDetailView(Resource):
         docker_password = validated_update_data.get('docker_password', None)
         docker_email = validated_update_data.get('docker_email', None)
         custom_domain = validated_update_data.get('custom_domain', None)
+        is_ai = validated_update_data.get('is_ai', False)
         image_pull_secret = None
 
         try:
@@ -669,13 +660,34 @@ class AppDetailView(Resource):
                 name=dep_name,
                 namespace=namespace
             )
+            if is_ai:
+                # create a PVC
+                pvc_name = f'{app.alias}-pvc'
+                volumes, volume_mount = create_pvc(
+                    kube_client, pvc_name, namespace)
+
+                # Add the volume to the pod spec
+                if not cluster_deployment.spec.template.spec.volumes:
+                    cluster_deployment.spec.template.spec.volumes = []
+                    cluster_deployment.spec.template.spec.volumes.append(
+                        volumes[0])
+
+                # Add the volume mount to the container
+                if not cluster_deployment.spec.template.spec.containers[0].volume_mounts:
+                    cluster_deployment.spec.template.spec.containers[0].volume_mounts = [
+                    ]
+                cluster_deployment.spec.template.spec.containers[0].volume_mounts.append(
+                    volume_mount)
 
             if app_image:
-                docker_server = validated_update_data.get('docker_server', 'docker.io')
-                docker_password = validated_update_data.get('docker_password', None)
+                docker_server = validated_update_data.get(
+                    'docker_server', 'docker.io')
+                docker_password = validated_update_data.get(
+                    'docker_password', None)
 
                 if 'gcr' not in docker_server:
-                    validate_docker_image =  docker_image_checker(app_image, docker_password,project)
+                    validate_docker_image = docker_image_checker(
+                        app_image, docker_password, project)
                     if validate_docker_image != True:
                         return dict(status='fail', message=validate_docker_image), 404
 

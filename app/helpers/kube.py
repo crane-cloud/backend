@@ -1,6 +1,7 @@
 from urllib.parse import urlsplit
 from app.helpers.alias import create_alias
 import os
+from app.helpers.dockerhub_images import docker_image_checker
 from flask import current_app
 from types import SimpleNamespace
 from app.models.app import App
@@ -59,9 +60,39 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         'ingress_entry': False
     }
 
+    is_notebook = app_data.get('is_notebook', False)
     app_name = app_data.get('name', None)
-    app_alias = create_alias(app_name)
+    if is_notebook:
+        if not app_name:
+            return SimpleNamespace(
+                message='Missing data for required field, name',
+                status_code=400
+            )
+        notebook_data = {
+            'image': 'cranecloud/jupyter-notebook:latest',
+            'port': 8888,
+            'is_ai': True,
+            'is_notebook': True,
+            'name': app_name
+        }
+        app_data.update(notebook_data)
+
+    # check images existence
     app_image = app_data.get('image', None)
+    docker_server = app_data.get(
+        'docker_server', 'docker.io')
+    docker_password = app_data.get('docker_password', None)
+    # should be a docker hub image
+    if 'gcr' not in docker_server:
+        validate_docker_image = docker_image_checker(
+            app_image, docker_password, project)
+        if validate_docker_image != True:
+            return SimpleNamespace(
+                message=validate_docker_image,
+                status_code=404
+            )
+
+    app_alias = create_alias(app_name)
     command_string = app_data.get('command', None)
     # env_vars = app_data['env_vars']
     env_vars = app_data.get('env_vars', None)
@@ -151,42 +182,12 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         is_ai = app_data.get('is_ai', False)
         if is_ai:
             pvc_name = f'{app_alias}-pvc'
-            pvc_meta = client.V1ObjectMeta(name=pvc_name)
-
-            access_modes = ['ReadWriteOnce']
-            resources = client.V1ResourceRequirements(
-                requests=dict(storage='1Gi'))
-
-            pvc_spec = client.V1PersistentVolumeClaimSpec(
-                access_modes=access_modes, resources=resources
-                # , storage_class_name='openebs-standard'
-            )
-
-            # Create a PVC
-            pvc = client.V1PersistentVolumeClaim(
-                api_version="v1",
-                kind="PersistentVolumeClaim",
-                metadata=pvc_meta,
-                spec=pvc_spec
-            )
-
-            kube_client.kube.create_namespaced_persistent_volume_claim(
-                namespace=namespace,
-                body=pvc
-            )
-
-            # Pod volumes
-            volumes = [client.V1Volume(
-                name=dep_name,
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                    claim_name=pvc_name)
-            )]
-
             new_app.is_ai = True
-            is_notebook = app_data.get('is_notebook', False)
             if is_notebook:
                 mount_path = '/home/jovyan/work'
                 new_app.is_notebook = True
+            volumes, volume_mount = create_pvc(
+                kube_client, pvc_name, namespace, mount_path=mount_path)
 
         # EnvVar
         env = []
@@ -195,12 +196,6 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
                 env.append(client.V1EnvVar(
                     name=str(key), value=str(value)
                 ))
-
-        # Define volume mount
-        volume_mount = client.V1VolumeMount(
-            mount_path=mount_path,
-            name=dep_name
-        )
 
         # pod template
         container = client.V1Container(
@@ -425,6 +420,44 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             message=str(e),
             status_code=500
         )
+
+
+def create_pvc(kube_client, dep_name, namespace, mount_path='/data', storage='1Gi'):
+    pvc_name = f'{dep_name}-pvc'
+    pvc_meta = client.V1ObjectMeta(name=pvc_name)
+
+    access_modes = ['ReadWriteOnce']
+    resources = client.V1ResourceRequirements(
+        requests=dict(storage=storage))
+
+    pvc_spec = client.V1PersistentVolumeClaimSpec(
+        access_modes=access_modes, resources=resources
+    )
+
+    pvc = client.V1PersistentVolumeClaim(
+        api_version="v1",
+        kind="PersistentVolumeClaim",
+        metadata=pvc_meta,
+        spec=pvc_spec
+    )
+
+    kube_client.kube.create_namespaced_persistent_volume_claim(
+        namespace=namespace,
+        body=pvc,
+        _preload_content=False
+    )
+    # Pod volumes
+    volumes = [client.V1Volume(
+        name=dep_name,
+        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+            claim_name=pvc_name)
+    )]
+    # Define volume mount
+    volume_mount = client.V1VolumeMount(
+        mount_path=mount_path,
+        name=dep_name
+    )
+    return volumes, volume_mount
 
 
 def create_docker_pull_secret(kube_client, app_alias, namespace, docker_username, docker_password, docker_email, docker_server):
