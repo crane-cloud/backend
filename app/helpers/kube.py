@@ -58,8 +58,24 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         'app_service': False,
         'ingress_entry': False
     }
-
+    
+    is_notebook = app_data.get('is_notebook', False)
     app_name = app_data.get('name', None)
+    if is_notebook:
+        if not app_name:
+            return SimpleNamespace(
+                message='Missing data for required field, name',
+                status_code=400
+            )
+        notebook_data = {
+            'image': 'cranecloud/jupyter-notebook:latest',
+            'port': 8888,
+            'is_ai': True,
+            'is_notebook': True,
+            'name': app_name
+        }
+        app_data.update(notebook_data)
+
     app_alias = create_alias(app_name)
     app_image = app_data.get('image', None)
     command_string = app_data.get('command', None)
@@ -183,7 +199,6 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             )]
 
             new_app.is_ai = True
-            is_notebook = app_data.get('is_notebook', False)
             if is_notebook:
                 mount_path = '/home/jovyan/work'
                 new_app.is_notebook = True

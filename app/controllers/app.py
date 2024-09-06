@@ -206,7 +206,6 @@ class ProjectAppsView(Resource):
 
         kube_client = create_kube_clients(kube_host, kube_token)
         multi_app = validated_app_data.get('apps', [])
-        is_notebook = validated_app_data.get('is_notebook', False)
         if multi_app:
             for app in multi_app:
                 # check all image urls
@@ -226,19 +225,6 @@ class ProjectAppsView(Resource):
                 apps=deployed_apps.apps_data)), 201
         else:
             app_name = validated_app_data.get('name', None)
-            if is_notebook:
-                if not app_name:
-                    return dict(status='fail', data=dict(message="Missing data for required field, name"))
-                notebook_data = {
-                    'project_id': project_id,
-                    'image': 'cranecloud/jupyter-notebook:latest',
-                    'port': 8888,
-                    'is_ai': True,
-                    'is_notebook': True,
-                    'name': app_name
-                }
-                validated_app_data = notebook_data
-            
             app_image = validated_app_data.get('image', None)
             if not app_name or not app_image:
                 return dict(status='fail', data=dict(message="Missing data for required field, either name or image"))
