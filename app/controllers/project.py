@@ -1,32 +1,33 @@
-import os
 import datetime
 import json
 from types import SimpleNamespace
+import uuid
 from app.helpers.cost_modal import CostModal
 from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, disable_user_app, enable_project, enable_user_app, check_kube_error_code
+from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, enable_project, check_kube_error_code
+from app.helpers.tags import add_tags_to_project, create_tags, remove_tags_from_project
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, MetricsSchema, AppSchema, ProjectDatabaseSchema, ProjectUserSchema, ClusterSchema
+from app.schemas import ProjectSchema, AppSchema, ProjectUserSchema, ClusterSchema
 from app.helpers.decorators import admin_required
 import datetime
-from prometheus_http_client import Prometheus
+from app.schemas.tags import TagSchema
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.db_flavor import get_db_flavour
 from app.schemas.monitoring_metrics import BillingMetricsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, func
 from app.helpers.crane_app_logger import logger
 from flask import current_app, render_template
 from app.helpers.email import send_email
+from app.helpers.pagination import paginate
 
 
 class ProjectsView(Resource):
@@ -56,8 +57,10 @@ class ProjectsView(Resource):
         if existing_project:
             return dict(
                 status='fail',
-                message=f'project with name {validated_project_data["name"]} already exists'
+                message=f'''project with name {
+                    validated_project_data["name"]} already exists'''
             ), 409
+
         try:
             validated_project_data['alias'] =\
                 create_alias(validated_project_data['name'])
@@ -70,6 +73,11 @@ class ProjectsView(Resource):
                     status='fail',
                     message=f'cluster {cluster_id} not found'
                 ), 404
+
+            tags = None
+            if validated_project_data.get('tags_add'):
+                tags = validated_project_data['tags_add']
+                validated_project_data.pop('tags_add', None)
 
             kube_host = cluster.host
             kube_token = cluster.token
@@ -144,6 +152,8 @@ class ProjectsView(Resource):
                 kube_client.kube.delete_namespace(namespace_name)
 
                 return dict(status="fail", message="Internal Server Error"), 500
+            if tags:
+                add_tags_to_project(tags, project)
 
             # create a billing invoice on project creation
             new_invoice = BillingInvoice(project_id=project.id)
@@ -179,7 +189,7 @@ class ProjectsView(Resource):
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=cluster_id)
 
             return dict(status='success', data=dict(project=new_project_data)), 201
@@ -192,9 +202,13 @@ class ProjectsView(Resource):
             return dict(status='fail', message=str(e.body)), check_kube_error_code(e.status)
 
         except Exception as err:
+            try:
+                err = err.body
+            except:
+                err = str(err)
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=err.body,
+                         description=err,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
@@ -363,18 +377,14 @@ class ProjectDetailView(Resource):
                 project=dict(**json.loads(project_data)), cluster=json.loads(cluster_data))), 200
         else:
             apps_schema = AppSchema(many=True)
-            database_schema = ProjectDatabaseSchema(many=True)
             users_schema = ProjectUserSchema(many=True)
             apps = project.apps
-            databases = project.project_databases
             users = project.users
             apps_data, errors = apps_schema.dumps(apps)
-            databases_data, errors = database_schema.dumps(databases)
             users_data, errors = users_schema.dumps(users)
             return dict(status='success', data=dict(
                 project=dict(**json.loads(project_data),
                              apps=json.loads(apps_data),
-                             databases=json.loads(databases_data),
                              users=json.loads(users_data),
                              cluster=json.loads(cluster_data)
                              ))), 200
@@ -398,74 +408,6 @@ class ProjectDetailView(Resource):
             return dict(status='fail', message='unauthorised'), 403
 
         try:
-            # check for dbs in project and delete them from host and CC db
-            databases_list = project.project_databases
-
-            if databases_list:
-                for database in databases_list:
-
-                    database_flavour_name = database.database_flavour_name
-                    if not database_flavour_name:
-                        database_flavour_name = "mysql"
-
-                    db_flavour = get_db_flavour(database_flavour_name)
-
-                    if not db_flavour:
-                        message = f"Database flavour with name {database.database_flavour_name} is not mysql or postgres."
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description=message,
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=message
-                        ), 409
-
-                    # Delete the database
-                    database_service = db_flavour['class']
-                    database_connection = database_service.check_db_connection()
-
-                    if not database_connection:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Failed to connect to database service',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Failed to connect to the database service"
-                        ), 500
-
-                    delete_database = database_service.delete_database(
-                        database.name)
-
-                    if not delete_database:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Unable to delete database',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(
-                            status="fail",
-                            message=f"Unable to delete database"
-                        ), 500
-
-                    # Delete database record from database
-                    deleted_database = database.soft_delete()
-
-                    if not deleted_database:
-                        log_activity('Project', status='Failed',
-                                     operation='Delete',
-                                     description='Internal server error',
-                                     a_project_id=project_id,
-                                     a_database_id=database.id,
-                                     a_cluster_id=project.cluster_id)
-                        return dict(status='fail', message=f'Internal Server Error'), 500
-
             # get cluster for the project
             cluster = Cluster.get_by_id(project.cluster_id)
 
@@ -508,7 +450,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Delete',
                          description='Deleted project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -533,7 +475,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Success',
                              operation='Delete',
                              description='Deleted project Successfully',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
@@ -564,7 +506,7 @@ class ProjectDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             project_schema = ProjectSchema(
-                only=("name", "description", "organisation", "project_type"), partial=True)
+                only=("name", "description", "organisation", "project_type", "is_public", "tags_add", "tags_remove"), partial=True)
 
             project_data = request.get_json()
 
@@ -583,7 +525,8 @@ class ProjectDetailView(Resource):
             if existing_project:
                 return dict(
                     status='fail',
-                    message=f'project with name {validate_project_data["name"]} already exists'
+                    message=f'''project with name {
+                        validate_project_data["name"]} already exists'''
                 ), 409
 
             project = Project.get_by_id(project_id)
@@ -595,13 +538,22 @@ class ProjectDetailView(Resource):
                 if not is_authorised_project_user(project, current_user_id, 'admin'):
                     return dict(status='fail', message='unauthorised'), 403
 
+            if validate_project_data.get('tags_add'):
+                add_tags_to_project(
+                    validate_project_data['tags_add'], project)
+                validate_project_data.pop('tags_add', None)
+            if validate_project_data.get('tags_remove'):
+                remove_tags_from_project(
+                    validate_project_data['tags_remove'], project)
+                validate_project_data.pop('tags_remove', None)
+
             updated = Project.update(project, **validate_project_data)
 
             if not updated:
                 log_activity('Project', status='Failed',
                              operation='Update',
                              description='Internal Server Error',
-                             a_project_id=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id
                              )
                 return dict(status='fail', message='internal server error'), 500
@@ -609,7 +561,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Update',
                          description='Updated project Successfully',
-                         a_project_id=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -628,27 +580,45 @@ class UserProjectsView(Resource):
         """
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user = User.get_by_id(current_user_id)
+        # current_user_roles = get_jwt_claims()['roles']
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
-        if not is_current_or_admin(user_id, current_user_id, current_user_roles):
-            return dict(status='fail', message='unauthorised'), 403
+        # open endpoint
+        # if not is_current_or_admin(user_id, current_user_id, current_user_roles):
+        #     return dict(status='fail', message='unauthorised'), 403
 
         project_schema = ProjectSchema(many=True)
         user = User.get_by_id(user_id)
 
-        if not user:
-            return dict(status='fail', message=f'user {user_id} not found'), 404
+        pinned_projects = Project.query.join(
+            ProjectUser, Project.id == ProjectUser.project_id
+        ).filter(
+            ProjectUser.user_id == user_id,
+            ProjectUser.pinned == True,
+            Project.deleted == False
+        ).all()
 
-        projects = user.projects
+        pagination_meta_data, projects = paginate(
+            user.projects[::-1], per_page, page)
 
-        projects_json, errors = project_schema.dumps(projects)
+        user_projects, errors = project_schema.dumps(
+            projects)
 
-        if errors:
+        pinned_projects, errs = project_schema.dumps(pinned_projects)
+
+        if errors and errs:
             return dict(status='fail', message='Internal server error'), 500
 
         return dict(
             status='success',
-            data=dict(projects=json.loads(projects_json))
+            data=dict(
+                pagination={**pagination_meta_data,
+                            'pinned_count': len(json.loads(pinned_projects))},
+                pinned=json.loads(pinned_projects),
+                projects=json.loads(user_projects),
+            )
         ), 200
 
 
@@ -688,243 +658,6 @@ class ClusterProjectsView(Resource):
                 pagination=projects.pagination,
                 projects=json.loads(projects_json))
         ), 200
-
-
-class ProjectMemoryUsageView(Resource):
-
-    @jwt_required
-    def post(self, project_id):
-
-        project_memory_schema = MetricsSchema()
-        project_query_data = request.get_json()
-
-        validated_query_data, errors = project_memory_schema.load(
-            project_query_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        current_time = datetime.datetime.now()
-        yesterday_time = current_time + datetime.timedelta(days=-1)
-
-        start = validated_query_data.get('start', yesterday_time.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        namespace = project.alias
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        prom_memory_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_memory_usage_bytes{container_name!="POD", image!="", namespace="'+namespace+'"}[5m]))')
-
-        new_data = json.loads(prom_memory_data)
-        final_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                mem_case = {'timestamp': float(
-                    value[0]), 'value': float(value[1])}
-                final_data_list.append(mem_case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=final_data_list)), 200
-
-
-class ProjectCPUView(Resource):
-    @jwt_required
-    def post(self, project_id):
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project_memory_schema = MetricsSchema()
-        project_cpu_data = request.get_json()
-
-        validated_query_data, errors = project_memory_schema.load(
-            project_cpu_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_cpu_usage_seconds_total{container!="POD", image!="",namespace="' +
-            namespace+'"}[5m]))'
-        )
-
-        #  change array values to json"values"
-        new_data = json.loads(prom_data)
-        cpu_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': value[0], 'value': value[1]}
-                cpu_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=cpu_data_list)), 200
-
-
-class ProjectNetworkRequestView(Resource):
-    @jwt_required
-    def post(self, project_id):
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project_network_schema = MetricsSchema()
-        project_network_data = request.get_json()
-
-        validated_query_data, errors = project_network_schema.load(
-            project_network_data)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        # Get current time
-        current_time = datetime.datetime.now()
-        yesterday = current_time + datetime.timedelta(days=-1)
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        start = validated_query_data.get('start', yesterday.timestamp())
-        end = validated_query_data.get('end', current_time.timestamp())
-        step = validated_query_data.get('step', '1h')
-
-        prom_data = prometheus.query_rang(
-            start=start,
-            end=end,
-            step=step,
-            metric='sum(rate(container_network_receive_bytes_total{namespace="' +
-            namespace+'"}[5m]))'
-        )
-        #  change array values to json"values"
-        new_data = json.loads(prom_data)
-        network_data_list = []
-
-        try:
-            for value in new_data["data"]["result"][0]["values"]:
-                case = {'timestamp': float(value[0]), 'value': float(value[1])}
-                network_data_list.append(case)
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(values=network_data_list)), 200
-
-
-class ProjectStorageUsageView(Resource):
-    @jwt_required
-    def post(self, project_id):
-
-        current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
-
-        project = Project.get_by_id(project_id)
-
-        if not project:
-            return dict(
-                status='fail',
-                message=f'project {project_id} not found'
-            ), 404
-
-        if not is_owner_or_admin(project, current_user_id, current_user_roles):
-            if not is_authorised_project_user(project, current_user_id, 'member'):
-                return dict(status='fail', message='unauthorised'), 403
-
-        namespace = project.alias
-
-        if not project.cluster.prometheus_url:
-            return dict(status='fail', message='No prometheus url provided'), 404
-
-        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
-        prometheus = Prometheus()
-
-        try:
-            prom_data = prometheus.query(metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
-                                         namespace+'"})'
-                                         )
-            #  change array values to json
-            new_data = json.loads(prom_data)
-            values = new_data["data"]
-
-            percentage_data = prometheus.query(metric='sum(100*(kubelet_volume_stats_used_bytes{namespace="' +
-                                               namespace+'"}/kubelet_volume_stats_capacity_bytes{namespace="' +
-                                               namespace+'"}))'
-                                               )
-
-            data = json.loads(percentage_data)
-            volume_perc_value = data["data"]
-        except:
-            return dict(status='fail', message='No values found'), 404
-
-        return dict(status='success', data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200
 
 
 class ProjectGetCostsView(Resource):
@@ -1099,3 +832,60 @@ class ProjectEnableView(Resource):
             status='success',
             message=f'project {project_id} enabled successfully'
         ), 201
+
+
+class ProjectPinView(Resource):
+    @jwt_required
+    def post(self, project_id):
+
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        project_user = ProjectUser.query.filter_by(
+            user_id=current_user_id, project_id=project_id).first()
+
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
+
+        if project_user.pinned:
+            return dict(
+                message='The project is already pinned',
+                status='fail'
+            ), 409
+
+        pinned_projects_count = ProjectUser.count(
+            user_id=current_user_id, pinned=True)
+
+        if pinned_projects_count >= 6:
+            return dict(
+                status='Fail',
+                message='Pinned projects cant be more than 6'
+            ), 409
+
+        project_user.pinned = True
+        project_user.save()
+
+        return dict(
+            status='Success',
+            message=f'Project {project_id} pinned successfully'
+        ), 200
+
+    @jwt_required
+    def delete(self, project_id):
+
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+
+        project_user = ProjectUser.query.filter_by(
+            user_id=current_user_id, project_id=project_id).first()
+
+        if not is_authorised_project_user(project, current_user_id, 'member'):
+            return dict(status='fail', message='unauthorised'), 403
+
+        project_user.pinned = False
+        project_user.save()
+
+        return dict(
+            status='Success',
+            message=f'Project {project_id} unpinned successfully'
+        ), 200

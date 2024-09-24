@@ -42,6 +42,9 @@ class Base:
     SYSTEM_DOCKER_PASSWORD = os.getenv("SYSTEM_DOCKER_PASSWORD")
     SYSTEM_DOCKER_SERVER = os.getenv("SYSTEM_DOCKER_SERVER", 'docker.io')
 
+    # logger app url
+    LOGGER_APP_URL = os.getenv('LOGGER_APP_URL', None)
+
 
 class Development(Base):
     """ development config """

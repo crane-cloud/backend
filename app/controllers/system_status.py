@@ -7,7 +7,6 @@ from app.helpers.decorators import admin_required
 from app.models.user import User
 from app.models.project import Project
 from app.models.app import App
-from app.models.project_database import ProjectDatabase
 
 class SystemSummaryView(Resource):
     @admin_required
@@ -21,10 +20,7 @@ class SystemSummaryView(Resource):
         disabled_projects = Project.query.filter(Project.disabled == True).count()
         #apps
         app_count = App.query.count()
-        #Databases
-        database_count = ProjectDatabase.query.count()
-        mysql_database_count = ProjectDatabase.query.filter(ProjectDatabase.database_flavour_name == 'mysql').count()
-        postgres_database_count = ProjectDatabase.query.filter(ProjectDatabase.database_flavour_name == 'postgres').count()
+
         return dict(status='success' , data={
             'Users' : {
                 'total_count' : user_count,
@@ -38,11 +34,7 @@ class SystemSummaryView(Resource):
             'Apps' : {
                 'total_count' : app_count,
             },
-            'Databases' : {
-                'total_count' : database_count,
-                'mysql' : mysql_database_count,
-                'postgres' : postgres_database_count
-            }
+            
         }) , 200
 
 

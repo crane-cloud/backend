@@ -29,3 +29,5 @@ class App(ModelMixin):
     admin_disabled = db.Column(db.Boolean, default=False)
     app_status = db.relationship(
         "AppState", backref='app_state', lazy=True)
+    is_ai = db.Column(db.Boolean, default=False)
+    is_notebook = db.Column(db.Boolean, default=False)

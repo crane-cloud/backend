@@ -9,16 +9,18 @@ from flask_restful import Resource, request
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
+from app.models.project_users import ProjectFollowers
 from app.models.role import Role
 from app.helpers.confirmation import send_verification
 from app.helpers.email import send_email
 from app.helpers.token import validate_token
 from app.helpers.decorators import admin_required
 from app.helpers.pagination import paginate
+from app.helpers.admin import is_admin
 import requests
 import secrets
 import string
-from sqlalchemy import Date, func, column, cast, and_, select
+from sqlalchemy import Date, func, column, cast, and_, or_
 from app.models import db
 from datetime import datetime, timedelta
 from app.models.anonymous_users import AnonymousUser
@@ -28,9 +30,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
-from app.models.project_database import ProjectDatabase
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
+
+from app.helpers.email_validator import is_valid_email
 
 
 class UsersView(Resource):
@@ -45,7 +48,14 @@ class UsersView(Resource):
 
         validated_user_data, errors = user_schema.load(user_data)
 
+        if errors:
+            return dict(status="fail", message=errors), 400
+
         email = validated_user_data.get('email', None)
+
+        if not is_valid_email(email):
+            return dict(status='fail', message=f'Invalid email address'), 400
+
         client_base_url = os.getenv(
             'CLIENT_BASE_URL',
             f'https://{request.host}/users'
@@ -58,9 +68,6 @@ class UsersView(Resource):
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
         template = "user/verify.html"
         subject = "Please confirm your email"
-
-        if errors:
-            return dict(status="fail", message=errors), 400
 
         # get the customer role
         user_role = Role.find_first(name='customer')
@@ -121,10 +128,13 @@ class UsersView(Resource):
             data=dict(user=json.loads(new_user_data))
         ), 201
 
-    @admin_required
+    @jwt_required
     def get(self):
         """
         """
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -134,6 +144,38 @@ class UsersView(Resource):
         total_users = len(User.find_all())
 
         users = []
+        # check if user is admin
+        admin_role = Role.find_first(name='administrator')
+
+        if admin_role not in current_user.roles:
+            query = User.query
+            if keywords:
+                keyword_filter = or_(
+                    User.name.ilike(f'%{keywords}%'),
+                    User.email.ilike(f'%{keywords}%')
+                )
+                query = query.filter(keyword_filter)
+
+            paginated = query.filter(User.verified == True).order_by(
+                User.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            users = paginated.items
+            pagination = {
+                'total': paginated.total,
+                'pages': paginated.pages,
+                'page': paginated.page,
+                'per_page': paginated.per_page,
+                'next': paginated.next_num,
+                'prev': paginated.prev_num
+            }
+            users_data, errors = user_schema.dumps(users)
+            if errors:
+                return dict(status='fail', message=errors), 400
+
+            return dict(
+                status='success',
+                data=dict(pagination=pagination,
+                          users=json.loads(users_data))
+            ), 200
 
         meta_data = dict()
         meta_data['total_users'] = total_users
@@ -212,7 +254,7 @@ class UsersView(Resource):
 
 class UserAdminUpdateView(Resource):
 
-    @admin_required
+    @ admin_required
     def patch(self):
         try:
             user_schema = UserSchema(only=("is_beta_user",))
@@ -280,7 +322,8 @@ class UserLoginView(Resource):
         if user.disabled:
             return dict(
                 status='fail',
-                message=f'User with id {user.id} is disabled, please contact an admin'
+                message=f'''User with id {
+                    user.id} is disabled, please contact an admin'''
             ), 401
 
         if not user.verified:
@@ -322,10 +365,13 @@ class UserLoginView(Resource):
 
 class UserDetailView(Resource):
 
+    @jwt_required
     def get(self, user_id):
         """
         """
         user_schema = UserSchema()
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
 
         user = User.get_by_id(user_id)
 
@@ -337,18 +383,33 @@ class UserDetailView(Resource):
 
         user_data, errors = user_schema.dumps(user)
 
-        new_user_data = json.loads(user_data)
-        new_user_data['projects_count'] = len(user.projects)
-        new_user_data['apps_count'] = sum(
+        # A count of the project records that they own in the ProjectFollowers' table is the count of users that follow their projects
+        count_of_projects_followers = (
+            db.session.query(func.count(ProjectFollowers.user_id))
+            .join(Project, ProjectFollowers.project_id == Project.id)
+            .filter(Project.owner_id == user_id)
+            .scalar()
+        )
+
+        user_data = json.loads(user_data)
+
+        user_data['projects_count'] = len(user.projects)
+        user_data['following_count'] = user.followed.count()
+        user_data['follower_count'] = user.followers.count()
+        user_data['followed_projects_count'] = len(user.followed_projects)
+        user_data['projects_followers_count'] = count_of_projects_followers
+
+        # Identify if the person making the details request follows the user or not
+        user_data['requesting_user_follows'] = user.is_followed_by(
+            current_user)
+        user_data['apps_count'] = sum(
             len(project.apps) for project in user.projects)
-        new_user_data['database_count'] = sum(
-            len(project.project_databases) for project in user.projects)
 
         if errors:
             return dict(status='fail', message=errors), 500
 
         return dict(status='success', data=dict(
-            user=new_user_data)), 200
+            user=user_data)), 200
 
     def delete(self, user_id):
         """
@@ -376,26 +437,31 @@ class UserDetailView(Resource):
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
 
+    @jwt_required
     def patch(self, user_id):
         """
         """
         try:
-            user_schema = UserSchema(only=("name",))
-
+            
+            user_schema = UserSchema(only=("name","is_public", "organisation"),partial=True)
             user_data = request.get_json()
+
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+
+            user = User.get_by_id(user_id)
+
+            if (current_user_id != user_id):
+                if (not is_admin(current_user_roles)):
+                    return dict(
+                        status='UnAuthorised',
+                        message='You are not authorized to edit this users information'
+                    ), 401
 
             validate_user_data, errors = user_schema.load(user_data)
 
             if errors:
                 return dict(status='fail', message=errors), 400
-
-            user = User.get_by_id(user_id)
-
-            if not user:
-                return dict(
-                    status='fail',
-                    message=f'User {user_id} not found'
-                ), 404
 
             updated = User.update(user, **validate_user_data)
 
@@ -812,7 +878,7 @@ class ResetPasswordView(Resource):
 
 class UserDataSummaryView(Resource):
 
-    @admin_required
+    @ admin_required
     def get(self):
         """
         Shows new users per month or year
@@ -927,118 +993,11 @@ class UserDataSummaryView(Resource):
         ), 200
 
 
-class UserActivitesView(Resource):
-
-    @jwt_required
-    def get(self):
-
-        try:
-
-            current_user_roles = get_jwt_claims()['roles']
-            current_user_id = get_jwt_identity()
-
-            activity_schema = ActivityLogSchema()
-            # get query params
-            query_params = request.args
-
-            # get pagination params
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 10, type=int)
-
-            validated_data_query, errors = activity_schema.load(query_params)
-
-            if errors:
-                return {"message": "Validation errors", "errors": errors}, 400
-
-            user_id = validated_data_query.get('user_id', None)
-
-            # check if owner or admin or member for project, database or app
-            project_id = None
-            if validated_data_query.get('a_project_id'):
-                project_id = validated_data_query.get('a_project_id')
-
-            elif validated_data_query.get('a_db_id'):
-                database_id = validated_data_query.get('a_db_id')
-                database_existant = ProjectDatabase.get_by_id(database_id)
-                if not database_existant:
-                    return dict(
-                        status="fail",
-                        message=f"Database with id {database_id} not found."
-                    ), 404
-                project_id = database_existant.project_id
-
-            elif validated_data_query.get('a_app_id'):
-                app_id = validated_data_query.get('a_app_id')
-                app = App.get_by_id(app_id)
-                if not app:
-                    return dict(status='fail', message=f'App {app_id} not found'), 404
-                project_id = app.project_id
-
-            if project_id:
-                project = Project.get_by_id(project_id)
-
-                if not project:
-                    return dict(status='fail', message=f'Project with id {project_id} not found'), 404
-
-                if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                    if is_authorised_project_user(project, current_user_id, 'member'):
-                        if not user_id:
-                            validated_data_query.pop('user_id', None)
-                        elif user_id != current_user_id:
-                            if not is_authorised_project_user(project, user_id, 'member'):
-                                return dict(
-                                    status='fail',
-                                    message=f'User with id {user_id} not a member of the project'
-                                ), 200
-                        else:
-                            validated_data_query.pop('user_id', None)
-
-                    else:
-                        return dict(status='fail', message='unauthorised'), 403
-            else:
-                # check if user is admin if not make sure user_id is current user
-                if not is_admin(current_user_roles) and not user_id:
-                    validated_data_query['user_id'] = current_user_id
-
-            # check for start and end query params
-            if validated_data_query.get('start') and validated_data_query.get('end'):
-
-                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' '),
-                                                         "$lte": datetime.combine(validated_data_query.get('end'), datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('start', None)
-                validated_data_query.pop('end', None)
-
-            elif validated_data_query.get('start') and not validated_data_query.get('end'):
-                validated_data_query['creation_date'] = {"$gte": datetime.combine(validated_data_query.get('start'),
-                                                                                  datetime.min.time()).isoformat(' ')}
-                validated_data_query.pop('start', None)
-
-            elif not validated_data_query.get('start') and validated_data_query.get('end'):
-                validated_data_query['creation_date'] = {"$lte": datetime.combine(validated_data_query.get('end'),
-                                                                                  datetime.max.time()).isoformat(' ')}
-                validated_data_query.pop('end', None)
-
-            # get logs
-            activities = mongo.db['activities'].find(validated_data_query).sort("creation_date", -1)
-            json_data = dumps(activities)
-
-            # Add pagination for these activities
-            pagination_meta_data , paginated_items = paginate(json.loads(json_data), per_page=per_page, page=page)  
-
-            return dict(
-                status='success',
-                data=dict(pagination = pagination_meta_data , activity=paginated_items)
-            ), 200
-        except Exception as err:
-            return dict(status='fail', message=str(err)), 400
-
-
 class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date
 
-    @admin_required
+    @ admin_required
     def get(self):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
@@ -1130,7 +1089,7 @@ class InActiveUsersView(Resource):
 
 
 class UserDisableView(Resource):
-    @admin_required
+    @ admin_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1187,7 +1146,7 @@ class UserDisableView(Resource):
 
 
 class UserEnableView(Resource):
-    @jwt_required
+    @ jwt_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1239,3 +1198,108 @@ class UserEnableView(Resource):
                 status='fail',
                 message=str(err)
             ), 500
+
+
+class UserFollowView(Resource):
+    @ jwt_required
+    def post(self, user_id):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        user = User.get_by_id(user_id)
+
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if user == current_user:
+            return dict(status='fail', message='You cannot follow yourself'), 400
+
+        if user in current_user.followed:
+            return dict(status='fail', message=f'You are already following user with id {user_id}'), 409
+
+        current_user.followed.append(user)
+        saved_user = current_user.save()
+
+        if not saved_user:
+            log_activity('User', status='Failed',
+                         operation='Follow',
+                         description=f'Failed to follow user: {user.name} ',
+                         a_user_id=user_id
+                         )
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        log_activity('User', status='Success',
+                     operation='Follow',
+                     description=f'Started following user: {user.name}',
+                     a_user_id=user_id
+                     )
+        return dict(
+            status='success',
+            message=f'You are now following user with id {user_id}'
+        ), 201
+
+    @ jwt_required
+    def get(self, user_id):
+        user = User.get_by_id(user_id)
+        user_schema = UserSchema(many=True)
+
+        followed = user.followed.all()
+        users_data, errors = user_schema.dumps(followed)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(following=json.loads(users_data))
+        ), 200
+
+    @ jwt_required
+    def delete(self, user_id):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+        user = User.get_by_id(user_id)
+
+        if not user:
+            return dict(status='fail', message=f'User with id {user_id} not found'), 404
+
+        if user not in current_user.followed:
+            return dict(status='fail', message=f'You are not following user with id {user_id}'), 409
+
+        current_user.followed.remove(user)
+        saved_user = current_user.save()
+
+        if not saved_user:
+            log_activity('User', status='Failed',
+                         operation='Unfollow',
+                         description=f'Failed to un-follow user:  {user.name}',
+                         a_user_id=user_id
+                         )
+            return dict(status='fail', message='Internal Server Error'), 500
+
+        log_activity('User', status='Success',
+                     operation='Unfollow',
+                     description=f'Un-followed user: {user.name}',
+                     a_user_id=user_id
+                     )
+        return dict(
+            status='success',
+            message=f'You have unfollowed user with id {user_id}'
+        ), 200
+
+
+class UserFollowersView(Resource):
+    @ jwt_required
+    def get(self, user_id):
+        user = User.get_by_id(user_id)
+        user_schema = UserSchema(many=True)
+
+        followers = user.followers
+        users_data, errors = user_schema.dumps(followers)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        return dict(
+            status='success',
+            data=dict(followers=json.loads(users_data))
+        ), 200

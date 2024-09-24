@@ -4,7 +4,6 @@ from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
 from .credits import CreditSchema
 class UserSchema(Schema):
-
     id = fields.String(dump_only=True)
 
     email = fields.Email(required=True)
@@ -38,9 +37,18 @@ class UserSchema(Schema):
     ])
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
+    is_public = fields.Boolean()
    
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
+
+class UserListSchema(Schema):
+    id = fields.String(dump_only=True)
+    email = fields.Email(required=True)
+    name = fields.String(required=True)
+    organisation = fields.String(required=True)
+    last_seen = fields.Date(dump_only=True)
 
 
 class ActivityLogSchema(Schema):

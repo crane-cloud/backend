@@ -3,7 +3,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.orm import relationship
 from app.models import db
 from app.models.model_mixin import ModelMixin, SoftDeleteQuery
-
+from app.models.project_users import ProjectFollowers
 
 
 class Project(ModelMixin):
@@ -25,8 +25,8 @@ class Project(ModelMixin):
     project_type = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     users = relationship('ProjectUser', back_populates='other_project')
-    project_databases = db.relationship(
-        'ProjectDatabase', backref='project', lazy=True)
+    followers = relationship('ProjectFollowers', back_populates='project')
+    is_public = db.Column(db.Boolean, default=True)
     project_transactions = db.relationship(
         'TransactionRecord', backref='project', lazy=True)
     billing_invoices = db.relationship(
@@ -36,3 +36,8 @@ class Project(ModelMixin):
     deleted = db.Column(db.Boolean, default=False)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    tags = relationship('ProjectTag', back_populates='project')
+
+    def is_followed_by(self, user):
+        return any(follower.user_id == user.id for follower in self.followers)
+

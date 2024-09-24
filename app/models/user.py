@@ -8,8 +8,21 @@ from datetime import timedelta
 from ..models import db
 
 from app.models.model_mixin import ModelMixin
-from app.models.credits import Credit
-from app.models.credit_assignments import CreditAssignment
+
+class Followers(ModelMixin):
+    """ followers table definition """
+
+    _tablename_ = "followers"
+    follower_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False, primary_key=True)
+    followed_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=False, primary_key=True)
+
+    def __init__(self, follower_id, followed_id):
+        """ initialize with follower_id and followed_id """
+        self.follower_id = follower_id
+        self.followed_id = followed_id
+
 
 class User(ModelMixin):
     """ user table definition """
@@ -31,11 +44,17 @@ class User(ModelMixin):
     other_projects = db.relationship('ProjectUser', back_populates='user')
     is_beta_user = db.Column(db.Boolean, nullable=False, default=False)
     credits = db.relationship('Credit', backref='user', lazy=True)
-    credit_assignments = db.relationship('CreditAssignment', backref='user', lazy=True)
+    credit_assignments = db.relationship(
+        'CreditAssignment', backref='user', lazy=True)
     disabled = db.Column(db.Boolean, default=False)
     admin_disabled = db.Column(db.Boolean, default=False)
+    followed_projects = db.relationship(
+        'ProjectFollowers', back_populates='user')
+    is_public = db.Column(db.Boolean, default=True)
+    followed_tags = db.relationship(
+        'TagFollowers', back_populates='user')
 
-    def __init__(self, email, name, password, organisation = None):
+    def __init__(self, email, name, password, organisation=None):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
@@ -54,6 +73,27 @@ class User(ModelMixin):
         expiry = timedelta(days=10)
 
         return create_access_token(user, expires_delta=expiry)
+
+    followed = db.relationship(
+        'User', secondary='followers',
+        primaryjoin=(Followers.follower_id == id),
+        secondaryjoin=(Followers.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'), lazy='dynamic'
+    )
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+
+    def is_following(self, user):
+        return self.followed.filter(Followers.followed_id == user.id).count() > 0
+
+    def is_followed_by(self, user):
+        return self.followers.filter(Followers.follower_id == user.id).count() > 0
 
     def __repr__(self):
         return "<User: {}>".format(self.email)

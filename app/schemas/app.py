@@ -44,6 +44,8 @@ class AppSchema(Schema):
     admin_disabled = fields.Boolean(dump_only=True)
     delete_env_vars = fields.List(fields.Str(), load_only=True)
     app_status = fields.String()
+    is_ai = fields.Boolean(required=False)
+    is_notebook = fields.Boolean(required=False)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
@@ -66,5 +68,7 @@ class AppMultiDeploySchema(AppSchema):
 class AppDeploySchema(AppSchema):
     name = fields.String(required=False)
     image = fields.String(required=False)
+    is_ai = fields.Boolean(required=False)
+    is_notebook = fields.Boolean(required=False)
     project_id = fields.String(required=False)
     apps = fields.List(fields.Nested(AppMultiDeploySchema), load_only=True)

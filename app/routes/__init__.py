@@ -1,6 +1,6 @@
 from flask_restful import Api
 from app.controllers import (
-    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView,
+    IndexView, UsersView, UserLoginView, OAuthView, DeploymentsView, RolesView, InActiveUsersView, ProjectPinView,
     RolesDetailView, CreditAssignmentView, CreditAssignmentDetailView,  CreditView, UserRolesView, UserDataSummaryView, ClustersView,
     ClusterDetailView, ClusterNamespacesView,
     ClusterNamespaceDetailView, ClusterNodesView, ClusterNodeDetailView,
@@ -8,17 +8,14 @@ from app.controllers import (
     ClusterPVDetailView, ClusterPVsView, ClusterPodsView, ClusterPodDetailView,
     ClusterServiceDetailView, ClusterServicesView, ClusterJobsView, ClusterJobDetailView,
     ClusterStorageClassView, ClusterStorageClassDetailView,
-    ProjectsView, ProjectDetailView, UserProjectsView, UserActivitesView, UserEmailVerificationView,
+    ProjectsView, ProjectDetailView, UserProjectsView, UserEmailVerificationView,
     EmailVerificationRequest, ForgotPasswordView, ResetPasswordView, AppsView, UserDetailView, AdminLoginView,
-    ProjectAppsView, AppDetailView, RegistriesView, ProjectMemoryUsageView, ProjectCPUView, AppMemoryUsageView,
-    AppCpuUsageView, AppNetworkUsageView, ProjectNetworkRequestView, AppLogsView, AppStorageUsageView, ProjectStorageUsageView,
-    ProjectDatabaseView, ProjectDatabaseDetailView, ProjectDatabaseAdminView, ProjectDatabaseAdminDetailView,
-    ProjectDatabaseResetView, ProjectDatabaseAdminResetView, ProjectDatabasePasswordResetView, ProjectDatabaseAdminPasswordResetView,
-    ProjectDatabaseRetrievePasswordView, ProjectDatabaseAdminRetrievePasswordView, DatabaseStatsView,
+    ProjectAppsView, AppDetailView, RegistriesView, AppLogsView,
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
-    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, ProjectDatabaseDisableView, ProjectDatabaseEnableView,
-    AppRedeployView, ProjectDatabaseGraphAdminView, AppDisableView, AppEnableView, UserDisableView, UserEnableView, AppDockerWebhookListenerView)
+    ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
+    TagsView, TagsDetailView, TagFollowingView,GenericSearchView,
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -41,16 +38,22 @@ api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
 api.add_resource(UserDataSummaryView, '/users/graph')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
-api.add_resource(UserActivitesView, '/users/activities')
 api.add_resource(InActiveUsersView, '/users/inactive_users',
                  endpoint='inactive_users')
 
 api.add_resource(UserEnableView, '/users/<string:user_id>/enable')
 api.add_resource(UserDisableView, '/users/<string:user_id>/disable')
 
+api.add_resource(UserFollowView, '/users/<string:user_id>/following')
+api.add_resource(UserFollowersView, '/users/<string:user_id>/followers')
 
+# Activity Feed
+api.add_resource(ActivityFeedView, '/activity_feed')
 # Deployments
 api.add_resource(DeploymentsView, '/deployments', endpoint='deployments')
+
+#Generic search
+api.add_resource(GenericSearchView, '/search')
 
 # Clusters
 api.add_resource(ClustersView, '/clusters', endpoint='clusters')
@@ -141,22 +144,19 @@ api.add_resource(ProjectsView, '/projects', endpoint='projects')
 api.add_resource(ProjectDetailView, '/projects/<string:project_id>')
 api.add_resource(
     ProjectAppsView, '/projects/<string:project_id>/apps', endpoint='project_apps')
-api.add_resource(ProjectCPUView, '/projects/<string:project_id>/metrics/cpu')
-api.add_resource(ProjectMemoryUsageView,
-                 '/projects/<string:project_id>/metrics/memory')
-api.add_resource(ProjectNetworkRequestView,
-                 '/projects/<string:project_id>/metrics/network')
-api.add_resource(ProjectStorageUsageView,
-                 '/projects/<string:project_id>/metrics/storage')
 api.add_resource(ProjectGetCostsView,
                  '/projects/<string:project_id>/billing/info')
 api.add_resource(ProjectDisableView,
                  '/projects/<string:project_id>/disable')
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
+api.add_resource(ProjectPinView, '/projects/<string:project_id>/pin')
 # User Project routes
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
-
+# Tags Routes
+api.add_resource(TagsView, '/tags')
+api.add_resource(TagsDetailView, '/tags/<string:tag_id>')
+api.add_resource(TagFollowingView, '/tags/<string:tag_id>/following')
 # App routes
 api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
@@ -173,45 +173,10 @@ api.add_resource(
 api.add_resource(
     AppDockerWebhookListenerView, '/apps/<string:app_id>/<string:user_id>/docker/<string:tag>/webhook')
 api.add_resource(
-    AppCpuUsageView, '/projects/<string:project_id>/apps/<string:app_id>/metrics/cpu')
-api.add_resource(AppMemoryUsageView,
-                 '/projects/<string:project_id>/apps/<string:app_id>/metrics/memory')
-api.add_resource(AppNetworkUsageView,
-                 '/projects/<string:project_id>/apps/<string:app_id>/metrics/network')
-api.add_resource(
     AppLogsView, '/projects/<string:project_id>/apps/<string:app_id>/logs')
-api.add_resource(AppStorageUsageView,
-                 '/projects/<string:project_id>/apps/<string:app_id>/metrics/storage')
 
 # Registry routes
 api.add_resource(RegistriesView, '/registries')
-
-# Databases
-api.add_resource(ProjectDatabaseView,
-                 '/projects/<string:project_id>/databases')
-api.add_resource(ProjectDatabaseDetailView,
-                 '/projects/<string:project_id>/databases/<string:database_id>')
-api.add_resource(ProjectDatabaseAdminView, '/databases')
-api.add_resource(ProjectDatabaseGraphAdminView, '/databases/graph')
-api.add_resource(ProjectDatabaseAdminDetailView,
-                 '/databases/<string:database_id>')
-api.add_resource(ProjectDatabaseResetView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/reset')
-api.add_resource(ProjectDatabaseAdminResetView,
-                 '/databases/<string:database_id>/reset')
-api.add_resource(ProjectDatabasePasswordResetView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/reset_password')
-api.add_resource(ProjectDatabaseAdminPasswordResetView,
-                 '/databases/<string:database_id>/reset_password')
-api.add_resource(ProjectDatabaseRetrievePasswordView,
-                 '/projects/<string:project_id>/databases/<string:database_id>/password')
-api.add_resource(ProjectDatabaseAdminRetrievePasswordView,
-                 '/databases/<string:database_id>/password')
-api.add_resource(DatabaseStatsView, '/databases/stats')
-api.add_resource(ProjectDatabaseDisableView,
-                 '/databases/<string:database_id>/disable')
-api.add_resource(ProjectDatabaseEnableView,
-                 '/databases/<string:database_id>/enable')
 
 # Project Users
 api.add_resource(ProjectUsersView, '/projects/<string:project_id>/users')
@@ -219,5 +184,8 @@ api.add_resource(ProjectUsersTransferView,
                  '/projects/<string:project_id>/users/transfer')
 api.add_resource(ProjectUsersHandleInviteView,
                  '/projects/<string:project_id>/users/handle_invite')
+api.add_resource(ProjectFollowingView,
+                 '/projects/<string:project_id>/following')
+
 # system status
 api.add_resource(SystemSummaryView, '/system_summary')
