@@ -123,8 +123,7 @@ class AppsView(Resource):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
-        disabled = request.args.get('disabled', False) == "true"
-        active = request.args.get('active', False) == "true"
+        disabled = request.args.get('disabled', None)
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -141,14 +140,12 @@ class AppsView(Resource):
         }
 
         if not series:
-            paginated_apps = App.query.paginate(
+            query = App.query
+            if disabled is not None:
+                query = query.filter_by(disabled=disabled)
+
+            paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
-            if disabled:
-                paginated_apps = App.query.filter_by(disabled=True).paginate(
-                    page=page, per_page=per_page, error_out=False)
-            if active:
-                paginated_apps = App.query.filter_by(disabled=False).paginate(
-                    page=page, per_page=per_page, error_out=False)
 
             pagination = {
                 'total': paginated_apps.total,
@@ -160,7 +157,6 @@ class AppsView(Resource):
             }
             apps = paginated_apps.items
             apps_data, errors = apps_schema.dumps(apps)
-            # pagination = apps.pagination
 
             if errors:
                 return dict(status='fail', message=errors), 400
@@ -450,7 +446,6 @@ class AppDetailView(Resource):
             app_list = json.loads(app_data)
 
             cluster = Cluster.get_by_id(project.cluster_id)
-            # st = AppState.query.filter_by(app=app_id).first()
 
             if not cluster:
                 return dict(
@@ -464,7 +459,7 @@ class AppDetailView(Resource):
             app_status_object = \
                 kube_client.appsv1_api.read_namespaced_deployment_status(
                     app_list['alias'] + "-deployment", project.alias)
-
+            # TODO: remove this
             ''' get replica list'''
             replicas = kube_client.appsv1_api.list_namespaced_replica_set(
                 project.alias).to_dict()
@@ -474,6 +469,7 @@ class AppDetailView(Resource):
                 if name.startswith(app_list['alias']):
                     replicasList.append(name)
 
+            # TODO: remove this
             ''' get pods list'''
             pods = kube_client.kube.list_namespaced_pod(project.alias)
             podsList = []
@@ -498,6 +494,8 @@ class AppDetailView(Resource):
                 pod_name = pod_log["metadata"]["name"]
                 # pod_namespace = pod_log["metadata"]["namespace"]
                 pod_status = pod_log["status"]["phase"]
+                # TODO: use this instead
+                pod_status = app_status_object['status']['phase']
 
                 if pod_status == "Running":
                     app_status_messages.append({
@@ -596,9 +594,8 @@ class AppDetailView(Resource):
             reasons = [reason.get("failureReason")
                        for reason in app_status_messages]
 
-            session = sessionmaker(bind=db.engine)()
             update_or_create_app_state(
-                session, {
+                {
                     "status": app_list['app_running_status'],
                     "app": app_list['id'],
                     "failure_reason": ", ".join(reasons) if reasons else "",

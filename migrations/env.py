@@ -1,13 +1,9 @@
 from __future__ import with_statement
-from flask import current_app
-
 import logging
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from app.models.app import App
-from app.models.app import AppState
 
 from alembic import context
 
@@ -24,6 +20,9 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
+
+from flask import current_app
+
 config.set_main_option(
     'sqlalchemy.url', current_app.config.get(
         'SQLALCHEMY_DATABASE_URI').replace('%', '%%'))

@@ -1,6 +1,5 @@
 
 
-from sqlalchemy.orm import sessionmaker
 from app.models.app import AppState
 
 from app.models.clusters import Cluster
@@ -10,10 +9,10 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 
-def update_or_create_app_state(session, app_status_message):
+def update_or_create_app_state(app_status_message):
 
     app_id = app_status_message["app"]
-    existing_state = session.query(AppState).filter_by(app=app_id).first()
+    existing_state = AppState.find_first(app=app_id)
     if existing_state:
         # Update existing entry
         existing_state.failure_reason = app_status_message.get(
@@ -31,9 +30,7 @@ def update_or_create_app_state(session, app_status_message):
             status=app_status_message["status"],
             last_check=app_status_message.get("last_check", datetime.now())
         )
-        session.add(new_state)
-
-    session.commit()
+        new_state.save()
 
 
 def check_app_statuses():
@@ -41,7 +38,6 @@ def check_app_statuses():
     projects = Project.query.all()
     db = SQLAlchemy()
     db.create_all()
-    session = sessionmaker(bind=db.engine)()
     # Iterate over each project
     for project in projects:
         print(f"Project ID: {project.id}, Name: {project.name}")
@@ -54,7 +50,7 @@ def check_app_statuses():
             print(f"App ID: {app.id}, Name: {app.name}")
 
             if app.disabled:
-                update_or_create_app_state(session, {
+                update_or_create_app_state({
                     "app": app.id,
                     "status": "failed",
                     "message": f"Application is disabled",
@@ -64,7 +60,7 @@ def check_app_statuses():
                 continue
 
             if not cluster:
-                update_or_create_app_state(session, {
+                update_or_create_app_state({
                     "app": app.id,
                     "status": "failed",
                     "message": f"Application not connected to cluster",
@@ -80,7 +76,7 @@ def check_app_statuses():
 
             except Exception as e:
                 print(e)
-                update_or_create_app_state(session, {
+                update_or_create_app_state({
                     "app": app.id,
                     "status": "failed",
                     "message": f"Failed to connect to cluster with the application",
@@ -128,7 +124,8 @@ def check_app_statuses():
 
                 if pod_status == "Running":
                     custom_app_message["status"] = "running"
-                    custom_app_message["message"] += f"pod:{index} - is running.\n"
+                    custom_app_message["message"] += f"pod:{
+                        index} - is running.\n"
                 else:
                     container_statuses = pod_log["status"].get(
                         "containerStatuses", [])
@@ -137,13 +134,15 @@ def check_app_statuses():
                             reason = container_status["state"]["waiting"]["reason"]
                             message = container_status["state"]["waiting"]["message"]
                             # Add message with newline
-                            custom_app_message["message"] += f"pod:{index} - down, Message:{message}."
-                            custom_app_message["failure_reason"] += f"pod:{index} - {reason}."
+                            custom_app_message["message"] += f"pod:{
+                                index} - down, Message:{message}."
+                            custom_app_message["failure_reason"] += f"pod:{
+                                index} - {reason}."
                     else:
-                        custom_app_message["message"] += f"Failed to access pod:{index} status. "
-                        custom_app_message["failure_reason"] += f"pod:{index} - Unknown. "
+                        custom_app_message["message"] += f"Failed to access pod:{
+                            index} status. "
+                        custom_app_message["failure_reason"] += f"pod:{
+                            index} - Unknown. "
 
-            update_or_create_app_state(session, custom_app_message)
-
-    session.close()
+            update_or_create_app_state(custom_app_message)
     return True
