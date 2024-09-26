@@ -3166,6 +3166,14 @@ paths:
           type: integer
           description: Number of items per page
         - in: query
+          name: disabled
+          type: boolean
+          description: Returns disabled applications
+        - in: query
+          name: active
+          type: boolean
+          description: Returns active applications
+        - in: query
           name: series
           type: boolean
           description: Returns graph data when set to true

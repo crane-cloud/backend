@@ -43,6 +43,7 @@ class AppSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     delete_env_vars = fields.List(fields.Str(), load_only=True)
+    app_status = fields.String()
     is_ai = fields.Boolean(required=False)
     is_notebook = fields.Boolean(required=False)
 

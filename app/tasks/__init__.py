@@ -18,6 +18,7 @@ from app.models.user import User
 
 from ..helpers.invoice_notification import send_invoice
 from ..helpers.credit_expiration_notification import send_credit_expiration_notification
+from ..helpers.app_status_updater import check_app_statuses
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 celery_app = Celery(__name__, broker=redis_url,
@@ -69,6 +70,8 @@ def setup_periodic_tasks(**kwargs):
         crontab(minute=0, hour=0), updateScheduler.s(), name='check credits expiry')
     celery_app.add_periodic_task(crontab(minute=0, hour=0), sendExpirationNotification.s(
     ), name='send credits expiry notifications')
+    celery_app.add_periodic_task(
+        crontab(minute=0, hour=2), check_app_states.s(), name='check app statuses')
 
 
 @celery_app.task()
@@ -180,6 +183,11 @@ def sendExpirationNotification():
     except SQLAlchemyError as e:
         return dict(status='Fail',
                     message='Internal server error'), 500
+
+
+@celery_app.task()
+def check_app_states():
+    check_app_statuses()
 
 
 @celery_app.task
