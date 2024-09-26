@@ -124,8 +124,7 @@ def check_app_statuses():
 
                 if pod_status == "Running":
                     custom_app_message["status"] = "running"
-                    custom_app_message["message"] += f"pod:{
-                        index} - is running.\n"
+                    custom_app_message["message"] += f"pod:{index} - is running.\n"
                 else:
                     container_statuses = pod_log["status"].get(
                         "containerStatuses", [])
@@ -134,15 +133,11 @@ def check_app_statuses():
                             reason = container_status["state"]["waiting"]["reason"]
                             message = container_status["state"]["waiting"]["message"]
                             # Add message with newline
-                            custom_app_message["message"] += f"pod:{
-                                index} - down, Message:{message}."
-                            custom_app_message["failure_reason"] += f"pod:{
-                                index} - {reason}."
+                            custom_app_message["message"] += f"pod:{index} - down, Message:{message}."
+                            custom_app_message["failure_reason"] += f"pod:{index} - {reason}."
                     else:
-                        custom_app_message["message"] += f"Failed to access pod:{
-                            index} status. "
-                        custom_app_message["failure_reason"] += f"pod:{
-                            index} - Unknown. "
+                        custom_app_message["message"] += f"Failed to access pod:{index} status. "
+                        custom_app_message["failure_reason"] += f"pod:{index} - Unknown. "
 
             update_or_create_app_state(custom_app_message)
     return True

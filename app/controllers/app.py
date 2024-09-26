@@ -412,289 +412,158 @@ class ProjectAppsView(Resource):
 
 
 class AppDetailView(Resource):
-
     @jwt_required
     def get(self, app_id):
-        """
-        get single application details
-        """
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
 
-            app_schema = AppSchema()
-
             app = App.get_by_id(app_id)
-
             if not app:
                 return dict(status='fail', message=f'App {app_id} not found'), 404
 
             project = app.project
-
             if not project:
                 return dict(status='fail', message='Internal server error'), 500
 
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id, 'member'):
-                    return dict(status='fail', message='Unauthorised'), 403
+            if not is_owner_or_admin(project, current_user_id, current_user_roles) and \
+               not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='Unauthorised'), 403
 
+            app_schema = AppSchema()
             app_data, errors = app_schema.dumps(app)
-
-            # if errors:
-            #     return dict(status='fail', message=errors), 500
+            if errors:
+                return dict(status='fail', message=str(errors)), 500
 
             app_list = json.loads(app_data)
 
             cluster = Cluster.get_by_id(project.cluster_id)
-
             if not cluster:
-                return dict(
-                    status='fail',
-                    message=f'cluster with id {project.cluster_id} does not exist'), 404
+                return dict(status='fail', message=f'Cluster with id {project.cluster_id} does not exist'), 404
 
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            app_status_object = \
-                kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias'] + "-deployment", project.alias)
-            # TODO: remove this
-            ''' get replica list'''
-            replicas = kube_client.appsv1_api.list_namespaced_replica_set(
-                project.alias).to_dict()
-            replicasList = []
-            for replica in replicas['items']:
-                name = replica['metadata']['name']
-                if name.startswith(app_list['alias']):
-                    replicasList.append(name)
-
-            # TODO: remove this
-            ''' get pods list'''
-            pods = kube_client.kube.list_namespaced_pod(project.alias)
-            podsList = []
-            for item in pods.items:
-                item = kube_client.api_client.sanitize_for_serialization(item)
-                pod_name = item['metadata']['name']
-                # to avoid repetition
-                added = False
-
-                for replica in replicasList:
-                    if pod_name.startswith(replica):
-                        podsList.append(item)
-                        added = True
-                        continue
-
-                if pod_name.startswith(app_list['alias']) and not added:
-                    podsList.append(item)
-                    continue
-
-            app_status_messages = []
-            for index, pod_log in enumerate(podsList):
-                pod_name = pod_log["metadata"]["name"]
-                # pod_namespace = pod_log["metadata"]["namespace"]
-                pod_status = pod_log["status"]["phase"]
-                # TODO: use this instead
-                pod_status = app_status_object['status']['phase']
-
-                if pod_status == "Running":
-                    app_status_messages.append({
-                        "status": "running",
-                        "message": f"Pod:{index} is running. ",
-                        "replicaNumber": index,
-                        "failureReason": None,
-                    })
-                else:
-                    container_statuses = pod_log["status"].get(
-                        "containerStatuses", [])
-                    if container_statuses:
-                        for container_status in container_statuses:
-
-                            reason = container_status["state"]["waiting"]["reason"]
-                            message = container_status["state"]["waiting"]["message"]
-                            app_status_messages.append({
-                                "status": "down",
-                                "message": f"Pod:{index} is down. Message: {message}. ",
-                                "failureReason": reason,
-                                "replicaNumber": index
-                            })
-                    else:
-                        app_status_messages.append({
-                            "status": "failed",
-                            "message": f"Failed to access pod status",
-                            "failureReason": "unknown",
-                            "replicaNumber": index
-                        })
-
-            app_list["pod_statuses"] = app_status_messages
-            app_deployment_status_conditions = app_status_object.status.conditions
-
-            app_list["image"] = app_status_object.spec.template.spec.containers[0].image
-            app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
-            app_list["replicas"] = app_status_object.spec.replicas
-            app_list["revision"] = app_status_object.metadata.annotations.get(
-                'deployment.kubernetes.io/revision')
-
-            # Get app command
-            app_command = app_status_object.spec.template.spec.containers[0].command
-            if app_command:
-                app_list["command"] = ' '.join(app_command)
-            else:
-                app_list["command"] = app_command
-            app_list["working_dir"] = app_status_object.spec.template.spec.containers[0].working_dir
-            # Get environment variables
-            env_list = app_status_object.spec.template.spec.containers[0].env
-            envs = {}
-            if not env_list:
-                app_list["env_vars"] = env_list
-            else:
-                for item in env_list:
-                    envs[item.name] = item.value
-                app_list["env_vars"] = envs
-
-            deployment_messages = []
-            for deplyoment_status_condition in app_deployment_status_conditions:
-                if deplyoment_status_condition.type == "Available":
-                    app_deployment_status = deplyoment_status_condition.status
-                deployment_messages.append(deplyoment_status_condition.message)
-
-            app_list["deployment_messages"] = deployment_messages
+            kube_client = create_kube_clients(cluster.host, cluster.token)
 
             try:
-                app_db_status_object = \
-                    kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app_list['alias'] + "-postgres-db", project.alias)
+                app_status_object = kube_client.appsv1_api.read_namespaced_deployment_status(
+                    f"{app_list['alias']}-deployment", project.alias)
+            except client.rest.ApiException as exc:
+                if exc.status == 404:
+                    return dict(status='fail', data=app_list, message="Application does not exist on the cluster"), 404
+                return dict(status='fail', message=str(exc)), exc.status or 500
 
-                app_db_state_conditions = app_db_status_object.status.conditions
+            app_list.update(self.extract_app_details(app_status_object))
+            app_list["pod_statuses"] = self.get_pod_statuses(kube_client, project.alias, app_list['alias'])
+            
+            
+            app_list["deployment_messages"] = [
+                condition.message for condition in app_status_object.status.conditions
+                if condition.type == "Available"
+            ]
 
-                for app_db_condition in app_db_state_conditions:
-                    if app_db_condition.type == "Available":
-                        app_db_status = app_db_condition.status
+            app_list["app_running_status"] = self.get_app_running_status(app, app_status_object, kube_client, project.alias)
 
-            except client.rest.ApiException:
-                app_db_status = None
-            if app.disabled:
-                # Dont check status of disabled apps
-                app_list['app_running_status'] = "disabled"
-            elif app_deployment_status and not app_db_status:
-                if app_deployment_status == "True":
-                    app_list['app_running_status'] = "running"
-                else:
-                    app_list['app_running_status'] = "failed"
-            elif app_deployment_status and app_db_status:
-                if app_deployment_status == "True" and app_db_status == "True":
-                    app_list['app_running_status'] = "running"
-                else:
-                    app_list['app_running_status'] = "failed"
-            else:
-                app_list['app_running_status'] = "unknown"
+            self.update_app_state(app_list)
 
-            messages = [message.get("message")
-                        for message in app_status_messages]
-            reasons = [reason.get("failureReason")
-                       for reason in app_status_messages]
-
-            update_or_create_app_state(
-                {
-                    "status": app_list['app_running_status'],
-                    "app": app_list['id'],
-                    "failure_reason": ", ".join(reasons) if reasons else "",
-                    "message": ", ".join(messages) if messages else "",
-                    "last_check": datetime.datetime.now()
-                }
-            )
-
-            # Get deployment version history
-            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
-                project.alias, label_selector=f"app={app_list['alias']}")
-
-            for item in version_history.items:
-                # set revision_id basing on the current revision
-                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
-                    app_list["revision_id"] = int(
-                        item.metadata.creation_timestamp.timestamp())
-
-            if errors:
-                return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success', data=dict(apps=app_list)), 200
-
-        except client.rest.ApiException as exc:
-
-            if exc.status == 404:
-                return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
-
-            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
-    @jwt_required
-    def delete(self, app_id):
-        """
-        """
+    @staticmethod
+    def extract_app_details(app_status_object):
+        container = app_status_object.spec.template.spec.containers[0]
+        return {
+            "image": container.image,
+            "port": container.ports[0].container_port if container.ports else None,
+            "replicas": app_status_object.spec.replicas,
+            "revision": app_status_object.metadata.annotations.get('deployment.kubernetes.io/revision'),
+            "command": ' '.join(container.command) if container.command else None,
+            "working_dir": container.working_dir,
+            "env_vars": {env.name: env.value for env in container.env} if container.env else None,
+        }
+    
+    @staticmethod
+    def get_pod_statuses(kube_client, namespace, app_alias):
+        pods = kube_client.kube.list_namespaced_pod(namespace, label_selector=f"app={app_alias}")
+        pod_statuses = []
 
+        for i, pod in enumerate(pods.items):
+            status = "unknown"
+            message = f"Pod:{i} status unknown."
+            failure_reason = "unknown"
+
+            if pod.status.phase == "Running":
+                status = "running"
+                message = f"Pod:{i} is running."
+                # in the case that the phase is running, we need to check the container statuses for cases where container is terminated
+                if pod.status.container_statuses:
+                    container_status = pod.status.container_statuses[0]
+                
+                if container_status.state.terminated:
+                    status = "terminated"
+                    message = f"Pod:{i} is terminated."
+                    failure_reason = container_status.state.terminated.reason or "unknown"
+                elif container_status.state.waiting:
+                    status = "waiting"
+                    message = f"Pod:{i} is waiting."
+                    failure_reason = container_status.state.waiting.reason or "unknown"
+
+
+            elif pod.status.container_statuses:
+                container_status = pod.status.container_statuses[0]
+                if container_status.state.running:
+                    status = "running"
+                    message = f"Pod:{i} is running."
+                elif container_status.state.waiting:
+                    status = "waiting"
+                    message = f"Pod:{i} is waiting."
+                    failure_reason = container_status.state.waiting.reason or "unknown"
+                elif container_status.state.terminated:
+                    status = "terminated"
+                    message = f"Pod:{i} is terminated."
+                    failure_reason = container_status.state.terminated.reason or "unknown"
+
+            pod_statuses.append({
+                "status": status,
+                "message": message,
+                "failureReason": failure_reason,
+                "replicaNumber": i
+            })
+
+        return pod_statuses
+
+    @staticmethod
+    def get_app_running_status(app, app_status_object, kube_client, namespace):
+        if app.disabled:
+            return "disabled"
+
+        app_deployment_status = next((condition.status for condition in app_status_object.status.conditions if condition.type == "Available"), None)
+        
         try:
+            app_db_status_object = kube_client.appsv1_api.read_namespaced_deployment_status(f"{app.alias}-postgres-db", namespace)
+            app_db_status = next((condition.status for condition in app_db_status_object.status.conditions if condition.type == "Available"), None)
+        except client.rest.ApiException:
+            app_db_status = None
 
-            current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+        if app_deployment_status == "True" and (app_db_status is None or app_db_status == "True"):
+            return "running"
+        elif app_deployment_status == "True" or app_db_status == "True":
+            return "partially_running"
+        else:
+            return "failed"
 
-            app = App.get_by_id(app_id)
-            if not app:
-                return dict(status='fail', message=f'app with id {app_id} not found'), 404
-
-            project = app.project
-
-            if not project:
-                return dict(status='fail', message='Internal server error'), 500
-
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id, 'admin'):
-                    return dict(status='fail', message='Unauthorised'), 403
-
-            cluster = project.cluster
-            namespace = project.alias
-
-            if not cluster or not namespace:
-                log_activity('App', status='Failed',
-                             operation='Delete',
-                             description='Internal server error',
-                             a_project=project,
-                             a_cluster_id=project.cluster_id,
-                             a_app=app)
-                return dict(status='fail', message='Internal server error'), 500
-
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            # delete deployment and service for the app
-            delete_cluster_app(kube_client, namespace, app)
-
-            # delete the app from the database
-            deleted = app.soft_delete()
-
-            if not deleted:
-                log_activity('App', status='Failed',
-                             operation='Delete',
-                             description='Internal server error',
-                             a_project=project,
-                             a_cluster_id=project.cluster_id,
-                             a_app=app)
-                return dict(status='fail', message='Internal server error'), 500
-
-            log_activity('App', status='Success',
-                         operation='Delete',
-                         description=f'App {app_id} deleted successfully',
-                         a_project=project,
-                         a_cluster_id=project.cluster_id,
-                         a_app=app)
-            return dict(status='success', message=f'App {app_id} deleted successfully'), 200
-
-        except client.rest.ApiException as e:
-            return dict(status='fail', message=json.loads(e.body)), 500
-
-        except Exception as e:
-            return dict(status='fail', message=str(e)), 500
+    @staticmethod
+    def update_app_state(app_list):
+        messages = [message.get("message") for message in app_list.get("pod_statuses", [])]
+        reasons = [reason.get("failureReason") for reason in app_list.get("pod_statuses", [])]
+        
+        update_or_create_app_state({
+            "status": app_list['app_running_status'],
+            "app": app_list['id'],
+            "failure_reason": ", ".join(filter(None, reasons)),
+            "message": ", ".join(filter(None, messages)),
+            "last_check": datetime.datetime.now()
+        })
 
     @jwt_required
     def patch(self, app_id):
