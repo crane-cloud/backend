@@ -2,11 +2,12 @@ import datetime
 import json
 from flask import current_app
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 import sqlalchemy
 from app.helpers.admin import is_owner_or_admin
 from app.helpers.cost_modal import CostModal
 from app.helpers.decorators import admin_required
+from marshmallow import ValidationError
 from app.helpers.invoice_notification import send_invoice
 from app.models.billing_invoice import BillingInvoice
 from app.models.user import User
@@ -86,12 +87,10 @@ class BillingInvoiceView(Resource):
                 project_id=project.id,
             )
 
-            validated_invoice_data, errors = billing_invoice_schema.load(
-                new_invoice_data
-            )
-
-            if errors:
-                print('errors', errors)
+            try:
+                validated_invoice_data = billing_invoice_schema.load(new_invoice_data)
+            except ValidationError as err:
+                return dict(status="fail", message=err.messages), 400
 
             if date_created:
                 invoice = BillingInvoice(
@@ -107,8 +106,11 @@ class BillingInvoiceView(Resource):
                     status='fail',
                     message='An error occured during saving of the invoice'), 400
 
-        new_invoice_data, errors = billing_invoice_schema.dump(invoice)
-
+            try:
+                new_invoice_data = billing_invoice_schema.dump(invoice)
+            except ValidationError as err:
+                return dict(status="fail", message=err.messages), 400
+        
         # Invoice Email details
         sender = current_app.config["MAIL_DEFAULT_SENDER"]
         template = "user/invoice.html"
@@ -140,11 +142,11 @@ class BillingInvoiceView(Resource):
             data=dict(invoice=new_invoice_data)
         ), 200
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         page = request.args.get('page', 1,type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -166,11 +168,10 @@ class BillingInvoiceView(Resource):
                 message=f'billing invoice records not found'
             ), 404
 
-        billing_invoice_data, errors = billing_invoice_schema.dumps(
-            billing_invoice.items)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+        try:
+            billing_invoice_data = billing_invoice_schema.dumps(billing_invoice.items)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 500
 
         return dict(status='success', data=dict(
             pagination=billing_invoice.pagination,
@@ -179,11 +180,11 @@ class BillingInvoiceView(Resource):
 
 class BillingInvoiceDetailView(Resource):
 
-    @jwt_required
+    @jwt_required()
     def get(self, project_id, invoice_id):
 
         current_user_id = get_jwt_identity()
-        current_user_roles = get_jwt_claims()['roles']
+        current_user_roles = get_jwt()['roles']
 
         billing_invoice_schema = BillingInvoiceSchema()
         project = Project.get_by_id(project_id)
@@ -205,8 +206,11 @@ class BillingInvoiceDetailView(Resource):
         namespace = project.alias
         cost_url = project.cluster.cost_modal_url
 
-        billing_invoice_data, errors = billing_invoice_schema.dumps(
-            billing_invoice)
+        try:
+            billing_invoice_data = billing_invoice_schema.dumps(billing_invoice)
+        except ValidationError as err:
+            return dict(status="fail", message=err.messages), 400
+        
         if cost_url:
             start = project.date_created.timestamp()
             end = int(datetime.datetime.now().timestamp())
@@ -222,11 +226,10 @@ class BillingInvoiceDetailView(Resource):
             if not new_billing_invoice:
                 return dict(status='fail', message="Internal server error"), 500
 
-            billing_invoice_data, errors = billing_invoice_schema.dumps(
-                new_billing_invoice)
-
-        if errors:
-            return dict(status='fail', message=errors), 500
+            try:
+                billing_invoice_data = billing_invoice_schema.dumps(new_billing_invoice)
+            except ValidationError as err:
+                return dict(status="fail", message=err.messages), 500
 
         return dict(status='success', data=dict(
             billing_invoice=json.loads(billing_invoice_data))), 200
@@ -244,7 +247,7 @@ class BillingInvoiceNotificationView(Resource):
                 BillingInvoice.is_cashed == False).filter(
                 BillingInvoice.date_created < one_month).filter(
                 BillingInvoice.total_amount > 0).all()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             return dict(status='Fail',
                         message='Internal server error'), 500
 

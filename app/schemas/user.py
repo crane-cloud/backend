@@ -1,21 +1,24 @@
-from marshmallow import Schema, fields, validate, pre_load
+import uuid
+from marshmallow import Schema, fields, validate
+from marshmallow import validates, ValidationError
 
 from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
 from .credits import CreditSchema
-class UserSchema(Schema):
 
-    id = fields.String(dump_only=True)
+
+class UserSchema(Schema):
+    id = fields.UUID(dump_only=True)
 
     email = fields.Email(required=True)
-    name = fields.String(required=True, error_message={
+    name = fields.String(required=True, error_messages={
         "required": "name is required"},
         validate=[
             validate.Regexp(
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
     ])
-    password = fields.String(load_only=True, required=True, error_message={
+    password = fields.String(load_only=True, required=True, error_messages={
         "required": "password is required"},
         validate=[
             validate.Regexp(
@@ -24,12 +27,12 @@ class UserSchema(Schema):
     ])
     roles = fields.Nested(RoleSchema, many=True, dump_only=True)
     verified = fields.Boolean(dump_only=True)
-    date_created = fields.Date(dump_only=True)
-    last_seen = fields.Date(dump_only=True)
+    date_created = fields.DateTime(dump_only=True)
+    last_seen = fields.DateTime(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     is_beta_user = fields.Boolean()
     credits = fields.Nested(CreditSchema, many=True, dump_only=True)
-    organisation = fields.String(required=True, error_message={
+    organisation = fields.String(required=True, error_messages={
         "required": "Organisation name is required"},
          validate=[
             validate.Regexp(
@@ -41,11 +44,17 @@ class UserSchema(Schema):
    
     def get_age(self, obj):
         return get_item_age(obj.date_created)
-
+    
+    @validates('id')
+    def validate_id(self, value):
+        try:
+            uuid.UUID(str(value))
+        except ValueError:
+            raise ValidationError('Not a valid UUID.')
 
 class ActivityLogSchema(Schema):
-    id = fields.String(dump_only=True)
-    user_id = fields.String()
+    id = fields.UUID(dump_only=True)
+    user_id = fields.UUID()
     operation = fields.String()
     status = fields.String()
     description = fields.String()
@@ -55,6 +64,6 @@ class ActivityLogSchema(Schema):
     a_db_id = fields.String()
     a_user_id = fields.String()
     a_app_id = fields.String()
-    creation_date = fields.Date()
-    start = fields.Date(load_only=True)
-    end = fields.Date(load_only=True)
+    creation_date = fields.DateTime()
+    start = fields.DateTime(load_only=True)
+    end = fields.DateTime(load_only=True)

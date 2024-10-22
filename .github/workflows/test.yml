@@ -38,7 +38,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
@@ -51,6 +51,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Wait for PostgreSQL to be ready
+      run: |
+        echo "Waiting for PostgreSQL to be ready..."
+        until pg_isready -h localhost -p 5432; do sleep 1; done
+
+    - name: Install uuid-ossp extension
+      run: |
+        PGPASSWORD=${{ secrets.TEST_DATABASE_PASSWORD }} psql -h localhost -U postgres -d ${{ secrets.TEST_DATABASE_NAME }} -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
 
     - name: Test with pytest
       env:

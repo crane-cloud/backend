@@ -10,11 +10,14 @@ def test_credits_assignment(test_client, admin_login_user, login_user):
     assignment_data = {'amount':100, 'description': 'test', 'user_id':'{}'.format(login_user.user.id)}
     response = test_client.post(
         '/credit_assignment',
-        content_type ='application/json',
-        headers = admin_login_user.headers,
-        json=assignment_data,)
-    
+        content_type='application/json',
+        headers=admin_login_user.headers,
+        json=assignment_data
+    )
+    response_data = response.get_json()
     assert response.status_code == 201
+    assert response_data['status'] == "success"
+    assert "Credit for user_id" in response_data['message']
 
 def test_initial_user_credit_assignment_amount(test_client, admin_login_user, login_user):
 
