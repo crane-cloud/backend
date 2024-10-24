@@ -21,6 +21,8 @@ def update_or_create_app_state(app_status_message):
         existing_state.status = app_status_message["status"]
         existing_state.last_check = app_status_message.get(
             "last_check", datetime.now())
+        # update
+        AppState.update(existing_state)
     else:
         # Create new entry
         new_state = AppState(

@@ -555,7 +555,7 @@ class AppDetailView(Resource):
     @staticmethod
     def update_app_state(app_list):
         messages = [message.get("message") for message in app_list.get("pod_statuses", [])]
-        reasons = [reason.get("failureReason") for reason in app_list.get("pod_statuses", [])]
+        reasons = [reason.get("failureReason") for reason in app_list.get("pod_statuses", [])]        
         
         update_or_create_app_state({
             "status": app_list['app_running_status'],

@@ -1,6 +1,7 @@
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 from flask import current_app
+from app.schemas.app_state import AppStateSchema
 
 
 class AppSchema(Schema):
@@ -43,7 +44,7 @@ class AppSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     delete_env_vars = fields.List(fields.Str(), load_only=True)
-    app_status = fields.String()
+    app_status = fields.Nested(AppStateSchema, many=True, dump_only=True)
     is_ai = fields.Boolean(required=False)
     is_notebook = fields.Boolean(required=False)
 

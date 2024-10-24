@@ -11,6 +11,9 @@ class AppStatusList(enum.Enum):
     failed = "failed"
     down = "down"
 
+    def __str__(self):
+        return self.value  
+
 
 class AppState(ModelMixin):
     __tablename__ = 'app_state'
