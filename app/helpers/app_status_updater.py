@@ -32,7 +32,7 @@ def update_or_create_app_state(app_status_message):
         )
         new_state.save()
 
-
+# This is currently not being used 
 def check_app_statuses():
     from app.helpers.kube import create_kube_clients
     projects = Project.query.all()

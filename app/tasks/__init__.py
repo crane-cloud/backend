@@ -185,9 +185,9 @@ def sendExpirationNotification():
                     message='Internal server error'), 500
 
 
-@celery_app.task()
-def check_app_states():
-    check_app_statuses()
+# @celery_app.task()
+# def check_app_states():
+#     check_app_statuses()
 
 
 @celery_app.task
