@@ -19,10 +19,12 @@ from app.helpers.decorators import admin_required
 from app.helpers.kube import create_kube_clients, delete_cluster_app, deploy_user_app, check_kube_error_code
 from app.helpers.url import get_app_subdomain
 from app.models.app import App
+from app.models.app_state import AppState
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import AppSchema, PodsLogsSchema, AppGraphSchema
+from app.helpers.app_status_updater import update_or_create_app_state
+from app.models import db
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 from app.helpers.dockerhub_images import docker_image_checker
@@ -109,16 +111,19 @@ class AppsView(Resource):
     @admin_required
     def get(self):
         """
-        Get overal app information
+        Get overall app information
         """
+
         graph_filter_data = {
             'start': request.args.get('start', '2018-01-01'),
             'end': request.args.get('end', datetime.datetime.now().strftime('%Y-%m-%d')),
-            'set_by': request.args.get('set_by', 'month')
+            'set_by': request.args.get('set_by', 'month'),
+            'disabled': request.args.get('disabled'),
         }
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
+        disabled = request.args.get('disabled', None)
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -126,15 +131,32 @@ class AppsView(Resource):
         filter_schema = AppGraphSchema()
         apps_schema = AppSchema(many=True)
 
+        # since it is a one to one
         metadata = {
             'disabled': App.query.filter_by(disabled=True).count(),
-            'total_apps': App.query.count()
+            'total_apps': App.query.count(),
+            'failing_apps': AppState.query.filter_by(status="failed").count(),
+            'running_apps': AppState.query.filter_by(status="running").count(),
         }
 
         if not series:
-            apps = App.find_all(paginate=True, page=page, per_page=per_page)
-            apps_data, errors = apps_schema.dumps(apps.items)
-            pagination = apps.pagination
+            query = App.query
+            if disabled is not None:
+                query = query.filter_by(disabled=disabled)
+
+            paginated_apps = query.paginate(
+                page=page, per_page=per_page, error_out=False)
+
+            pagination = {
+                'total': paginated_apps.total,
+                'pages': paginated_apps.pages,
+                'page': paginated_apps.page,
+                'per_page': paginated_apps.per_page,
+                'next': paginated_apps.next_num,
+                'prev': paginated_apps.prev_num
+            }
+            apps = paginated_apps.items
+            apps_data, errors = apps_schema.dumps(apps)
 
             if errors:
                 return dict(status='fail', message=errors), 400
@@ -234,8 +256,7 @@ class ProjectAppsView(Resource):
                     status='fail',
                     message=f'App with name {app_name} already exists'
                 ), 409
-         
-         
+
             # check images existence
             app_image = validated_app_data.get('image', None)
             docker_server = validated_app_data.get(
@@ -243,11 +264,11 @@ class ProjectAppsView(Resource):
             docker_password = validated_app_data.get('docker_password', None)
             # should be a docker hub image
             if 'gcr' not in docker_server:
-                validate_docker_image = docker_image_checker(app_image, docker_password,project)
+                validate_docker_image = docker_image_checker(
+                    app_image, docker_password, project)
                 if validate_docker_image != True:
                     return dict(status='fail', message=validate_docker_image), 404
 
-
             # check images existence
             app_image = validated_app_data.get('image', None)
             docker_server = validated_app_data.get(
@@ -255,7 +276,8 @@ class ProjectAppsView(Resource):
             docker_password = validated_app_data.get('docker_password', None)
             # should be a docker hub image
             if 'gcr' not in docker_server:
-                validate_docker_image = docker_image_checker(app_image, docker_password,project)
+                validate_docker_image = docker_image_checker(
+                    app_image, docker_password, project)
                 if validate_docker_image != True:
                     return dict(status='fail', message=validate_docker_image), 404
 
@@ -390,203 +412,158 @@ class ProjectAppsView(Resource):
 
 
 class AppDetailView(Resource):
-
     @jwt_required
     def get(self, app_id):
-        """
-        get single application details
-        """
         try:
             current_user_id = get_jwt_identity()
             current_user_roles = get_jwt_claims()['roles']
 
-            app_schema = AppSchema()
-
             app = App.get_by_id(app_id)
-
             if not app:
                 return dict(status='fail', message=f'App {app_id} not found'), 404
 
             project = app.project
-
             if not project:
                 return dict(status='fail', message='Internal server error'), 500
 
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id, 'member'):
-                    return dict(status='fail', message='Unauthorised'), 403
+            if not is_owner_or_admin(project, current_user_id, current_user_roles) and \
+               not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='Unauthorised'), 403
 
+            app_schema = AppSchema()
             app_data, errors = app_schema.dumps(app)
-
-            # if errors:
-            #     return dict(status='fail', message=errors), 500
+            if errors:
+                return dict(status='fail', message=str(errors)), 500
 
             app_list = json.loads(app_data)
 
             cluster = Cluster.get_by_id(project.cluster_id)
-
             if not cluster:
-                return dict(
-                    status='fail',
-                    message=f'cluster with id {project.cluster_id} does not exist'), 404
+                return dict(status='fail', message=f'Cluster with id {project.cluster_id} does not exist'), 404
 
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            app_status_object = \
-                kube_client.appsv1_api.read_namespaced_deployment_status(
-                    app_list['alias'] + "-deployment", project.alias)
-
-            app_deployment_status_conditions = app_status_object.status.conditions
-
-            app_list["image"] = app_status_object.spec.template.spec.containers[0].image
-            app_list["port"] = app_status_object.spec.template.spec.containers[0].ports[0].container_port
-            app_list["replicas"] = app_status_object.spec.replicas
-            app_list["revision"] = app_status_object.metadata.annotations.get(
-                'deployment.kubernetes.io/revision')
-
-            # Get app command
-            app_command = app_status_object.spec.template.spec.containers[0].command
-            if app_command:
-                app_list["command"] = ' '.join(app_command)
-            else:
-                app_list["command"] = app_command
-            app_list["working_dir"] = app_status_object.spec.template.spec.containers[0].working_dir
-            # Get environment variables
-            env_list = app_status_object.spec.template.spec.containers[0].env
-            envs = {}
-            if not env_list:
-                app_list["env_vars"] = env_list
-            else:
-                for item in env_list:
-                    envs[item.name] = item.value
-                app_list["env_vars"] = envs
-
-            for deplyoment_status_condition in app_deployment_status_conditions:
-                if deplyoment_status_condition.type == "Available":
-                    app_deployment_status = deplyoment_status_condition.status
+            kube_client = create_kube_clients(cluster.host, cluster.token)
 
             try:
-                app_db_status_object = \
-                    kube_client.appsv1_api.read_namespaced_deployment_status(
-                        app_list['alias'] + "-postgres-db", project.alias)
+                app_status_object = kube_client.appsv1_api.read_namespaced_deployment_status(
+                    f"{app_list['alias']}-deployment", project.alias)
+            except client.rest.ApiException as exc:
+                if exc.status == 404:
+                    return dict(status='fail', data=app_list, message="Application does not exist on the cluster"), 404
+                return dict(status='fail', message=str(exc)), exc.status or 500
 
-                app_db_state_conditions = app_db_status_object.status.conditions
+            app_list.update(self.extract_app_details(app_status_object))
+            app_list["pod_statuses"] = self.get_pod_statuses(kube_client, project.alias, app_list['alias'])
+            
+            
+            app_list["deployment_messages"] = [
+                condition.message for condition in app_status_object.status.conditions
+                if condition.type == "Available"
+            ]
 
-                for app_db_condition in app_db_state_conditions:
-                    if app_db_condition.type == "Available":
-                        app_db_status = app_db_condition.status
+            app_list["app_running_status"] = self.get_app_running_status(app, app_status_object, kube_client, project.alias)
 
-            except client.rest.ApiException:
-                app_db_status = None
-            if app.disabled:
-                # Dont check status of disabled apps
-                app_list['app_running_status'] = "disabled"
-            elif app_deployment_status and not app_db_status:
-                if app_deployment_status == "True":
-                    app_list['app_running_status'] = "running"
-                else:
-                    app_list['app_running_status'] = "failed"
-            elif app_deployment_status and app_db_status:
-                if app_deployment_status == "True" and app_db_status == "True":
-                    app_list['app_running_status'] = "running"
-                else:
-                    app_list['app_running_status'] = "failed"
-            else:
-                app_list['app_running_status'] = "unknown"
+            self.update_app_state(app_list)
 
-            # Get deployment version history
-            version_history = kube_client.appsv1_api.list_namespaced_replica_set(
-                project.alias, label_selector=f"app={app_list['alias']}")
-
-            for item in version_history.items:
-                # set revision_id basing on the current revision
-                if app_list["revision"] == item.metadata.annotations.get('deployment.kubernetes.io/revision'):
-                    app_list["revision_id"] = int(
-                        item.metadata.creation_timestamp.timestamp())
-
-            if errors:
-                return dict(status='error', error=errors, data=dict(apps=app_list)), 409
             return dict(status='success', data=dict(apps=app_list)), 200
-
-        except client.rest.ApiException as exc:
-
-            if exc.status == 404:
-                return dict(status='fail', data=json.loads(app_data), message="Application does not exist on the cluster"), 404
-
-            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
 
         except Exception as exc:
             return dict(status='fail', message=str(exc)), 500
 
-    @jwt_required
-    def delete(self, app_id):
-        """
-        """
+    @staticmethod
+    def extract_app_details(app_status_object):
+        container = app_status_object.spec.template.spec.containers[0]
+        return {
+            "image": container.image,
+            "port": container.ports[0].container_port if container.ports else None,
+            "replicas": app_status_object.spec.replicas,
+            "revision": app_status_object.metadata.annotations.get('deployment.kubernetes.io/revision'),
+            "command": ' '.join(container.command) if container.command else None,
+            "working_dir": container.working_dir,
+            "env_vars": {env.name: env.value for env in container.env} if container.env else None,
+        }
+    
+    @staticmethod
+    def get_pod_statuses(kube_client, namespace, app_alias):
+        pods = kube_client.kube.list_namespaced_pod(namespace, label_selector=f"app={app_alias}")
+        pod_statuses = []
 
+        for i, pod in enumerate(pods.items):
+            status = "unknown"
+            message = f"Pod:{i} status unknown."
+            failure_reason = "unknown"
+
+            if pod.status.phase == "Running":
+                status = "running"
+                message = f"Pod:{i} is running."
+                # in the case that the phase is running, we need to check the container statuses for cases where container is terminated
+                if pod.status.container_statuses:
+                    container_status = pod.status.container_statuses[0]
+                
+                if container_status.state.terminated:
+                    status = "terminated"
+                    message = f"Pod:{i} is terminated."
+                    failure_reason = container_status.state.terminated.reason or "unknown"
+                elif container_status.state.waiting:
+                    status = "waiting"
+                    message = f"Pod:{i} is waiting."
+                    failure_reason = container_status.state.waiting.reason or "unknown"
+
+
+            elif pod.status.container_statuses:
+                container_status = pod.status.container_statuses[0]
+                if container_status.state.running:
+                    status = "running"
+                    message = f"Pod:{i} is running."
+                elif container_status.state.waiting:
+                    status = "waiting"
+                    message = f"Pod:{i} is waiting."
+                    failure_reason = container_status.state.waiting.reason or "unknown"
+                elif container_status.state.terminated:
+                    status = "terminated"
+                    message = f"Pod:{i} is terminated."
+                    failure_reason = container_status.state.terminated.reason or "unknown"
+
+            pod_statuses.append({
+                "status": status,
+                "message": message,
+                "failureReason": failure_reason,
+                "replicaNumber": i
+            })
+
+        return pod_statuses
+
+    @staticmethod
+    def get_app_running_status(app, app_status_object, kube_client, namespace):
+        if app.disabled:
+            return "disabled"
+
+        app_deployment_status = next((condition.status for condition in app_status_object.status.conditions if condition.type == "Available"), None)
+        
         try:
+            app_db_status_object = kube_client.appsv1_api.read_namespaced_deployment_status(f"{app.alias}-postgres-db", namespace)
+            app_db_status = next((condition.status for condition in app_db_status_object.status.conditions if condition.type == "Available"), None)
+        except client.rest.ApiException:
+            app_db_status = None
 
-            current_user_id = get_jwt_identity()
-            current_user_roles = get_jwt_claims()['roles']
+        if app_deployment_status == "True" and (app_db_status is None or app_db_status == "True"):
+            return "running"
+        elif app_deployment_status == "True" or app_db_status == "True":
+            return "partially_running"
+        else:
+            return "failed"
 
-            app = App.get_by_id(app_id)
-            if not app:
-                return dict(status='fail', message=f'app with id {app_id} not found'), 404
-
-            project = app.project
-
-            if not project:
-                return dict(status='fail', message='Internal server error'), 500
-
-            if not is_owner_or_admin(project, current_user_id, current_user_roles):
-                if not is_authorised_project_user(project, current_user_id, 'admin'):
-                    return dict(status='fail', message='Unauthorised'), 403
-
-            cluster = project.cluster
-            namespace = project.alias
-
-            if not cluster or not namespace:
-                log_activity('App', status='Failed',
-                             operation='Delete',
-                             description='Internal server error',
-                             a_project=project,
-                             a_cluster_id=project.cluster_id,
-                             a_app=app)
-                return dict(status='fail', message='Internal server error'), 500
-
-            kube_host = cluster.host
-            kube_token = cluster.token
-            kube_client = create_kube_clients(kube_host, kube_token)
-
-            # delete deployment and service for the app
-            delete_cluster_app(kube_client, namespace, app)
-
-            # delete the app from the database
-            deleted = app.soft_delete()
-
-            if not deleted:
-                log_activity('App', status='Failed',
-                             operation='Delete',
-                             description='Internal server error',
-                             a_project=project,
-                             a_cluster_id=project.cluster_id,
-                             a_app=app)
-                return dict(status='fail', message='Internal server error'), 500
-
-            log_activity('App', status='Success',
-                         operation='Delete',
-                         description=f'App {app_id} deleted successfully',
-                         a_project=project,
-                         a_cluster_id=project.cluster_id,
-                         a_app=app)
-            return dict(status='success', message=f'App {app_id} deleted successfully'), 200
-
-        except client.rest.ApiException as e:
-            return dict(status='fail', message=json.loads(e.body)), 500
-
-        except Exception as e:
-            return dict(status='fail', message=str(e)), 500
+    @staticmethod
+    def update_app_state(app_list):
+        messages = [message.get("message") for message in app_list.get("pod_statuses", [])]
+        reasons = [reason.get("failureReason") for reason in app_list.get("pod_statuses", [])]        
+        
+        update_or_create_app_state({
+            "status": app_list['app_running_status'],
+            "app": app_list['id'],
+            "failure_reason": ", ".join(filter(None, reasons)),
+            "message": ", ".join(filter(None, messages)),
+            "last_check": datetime.datetime.now()
+        })
 
     @jwt_required
     def patch(self, app_id):
@@ -1656,3 +1633,63 @@ class AppLogsView(Resource):
             return dict(status='fail', data=dict(message='No logs found')), 404
 
         return dict(status='success', data=dict(pods_logs=pods_logs)), 200
+
+
+class AppStorageUsageView(Resource):
+    @jwt_required
+    def post(self, project_id, app_id):
+
+        current_user_id = get_jwt_identity()
+        current_user_roles = get_jwt_claims()['roles']
+
+        project = Project.get_by_id(project_id)
+
+        if not project:
+            return dict(
+                status='fail',
+                message=f'project {project_id} not found'
+            ), 404
+
+        if not is_owner_or_admin(project, current_user_id, current_user_roles):
+            if not is_authorised_project_user(project, current_user_id, 'member'):
+                return dict(status='fail', message='unauthorised'), 403
+
+        # Check app from db
+        app = App.get_by_id(app_id)
+
+        if not app:
+            return dict(
+                status='fail',
+                message=f'app {app_id} not found'
+            ), 404
+
+        namespace = project.alias
+        app_alias = app.alias
+
+        if not project.cluster.prometheus_url:
+            return dict(status='fail', message='No prometheus url provided'), 404
+
+        os.environ["PROMETHEUS_URL"] = project.cluster.prometheus_url
+        prometheus = Prometheus()
+
+        try:
+            prom_data = prometheus.query(
+                metric='sum(kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace="' +
+                       namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
+            )
+            #  change array values to json
+            new_data = json.loads(prom_data)
+            values = new_data["data"]
+
+            percentage_data = prometheus.query(metric='100*(kubelet_volume_stats_used_bytes{namespace="' +
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"}/kubelet_volume_stats_capacity_bytes{namespace="' +
+                                                      namespace + '", persistentvolumeclaim=~"' + app_alias + '.*"})'
+                                               )
+
+            data = json.loads(percentage_data)
+            volume_perc_value = data["data"]
+        except:
+            return dict(status='fail', message='No values found'), 404
+
+        return dict(status='success',
+                    data=dict(storage_capacity=values, storage_percentage_usage=volume_perc_value)), 200

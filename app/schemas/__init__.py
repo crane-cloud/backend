@@ -13,4 +13,5 @@ from .project_users import ProjectUserSchema, ProjectFollowerSchema, UserIndexSc
 from .credits import CreditSchema
 from .credit_assignments import CreditAssignmentSchema
 from .anonymous_users import AnonymousUsersSchema
+from .app_state import AppStateSchema
 from .tags import TagSchema, TagsProjectsSchema, TagsDetailSchema, TagFollowerSchema

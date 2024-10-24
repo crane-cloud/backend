@@ -18,6 +18,7 @@ from app.models.user import User
 
 from ..helpers.invoice_notification import send_invoice
 from ..helpers.credit_expiration_notification import send_credit_expiration_notification
+from ..helpers.app_status_updater import check_app_statuses
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 celery_app = Celery(__name__, broker=redis_url,
@@ -180,6 +181,11 @@ def sendExpirationNotification():
     except SQLAlchemyError as e:
         return dict(status='Fail',
                     message='Internal server error'), 500
+
+
+# @celery_app.task()
+# def check_app_states():
+#     check_app_statuses()
 
 
 @celery_app.task
