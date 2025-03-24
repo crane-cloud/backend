@@ -484,7 +484,7 @@ class MLProjectAppsView(Resource):
         
 
         if cluster_json['supports_ml'] != True: 
-            return dict(status='fail', message="Cluster does not support ML flow"), 500
+            return dict(status='fail', message="Cluster does not support MLOPs"), 500
 
         data = dict(
             **validated_app_data,
