@@ -839,6 +839,8 @@ paths:
                 type: string
               prometheus_url:
                 type: string
+              supports_ml:
+                type: boolean
               cost_modal_url:
                 type: string
       produces:
@@ -934,6 +936,8 @@ paths:
                 type: string
               prometheus_url:
                 type: string
+              supports_ml:
+                type: boolean
               cost_modal_url:
                 type: string
       responses:

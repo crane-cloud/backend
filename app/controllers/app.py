@@ -479,11 +479,18 @@ class MLProjectAppsView(Resource):
         validated_app_data['project_id'] = project_id
         project_data, errors = project_schema.dumps(project)
         cluster_data, errors = cluster_schema.dumps(cluster)
+        
+        cluster_json = json.loads(cluster_data)
+        
+
+        if cluster_json['supports_ml'] != True: 
+            return dict(status='fail', message="Cluster does not support MLOPs"), 500
+
         data = dict(
             **validated_app_data,
             project=json.loads(project_data),
             # user=user
-            cluster=json.loads(cluster_data)
+            cluster=cluster_json
         )
 
         mlops_deploy_url = f"{current_app.config['MLOPS_API_URL']}/apps"
