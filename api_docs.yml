@@ -776,9 +776,14 @@ paths:
         500:
           description: "Internal Server Error"
   "/users/inactive_user_reminder":
-    post:
+    get:
       tags:
         - inactive_user_reminder
+      summary: "Get inactive users with pagination and optional time filtering"
+      consumes:
+        - application/json
+      produces:
+        - application/json
       parameters:
         - in: header
           name: Authorization
@@ -786,25 +791,69 @@ paths:
           type: string
           description: "Bearer [token]"
         - in: query
+          name: page
+          required: false
+          type: integer
+          description: "Page number (default: 1)"
+        - in: query
+          name: per_page
+          required: false
+          type: integer
+          description: "Results per page (default: 10)"
+        - in: query
           name: value
-          required: true
+          required: false
           type: integer
           description: "Numeric value for the time period"
         - in: query
           name: unit
-          required: true
+          required: false
           type: string
           enum: [hours, days, months]
           description: "Unit of time (hours/days/months)"
-      produces:
-        - application/json
       responses:
         200:
-          description: "Success"
+          description: "Success - Returns paginated list of inactive users"
+        400:
+          description: "Bad request - Invalid parameters"
+        401:
+          description: "Unauthorized - Admin access required"
+        500:
+          description: "Internal Server Error"
+    post:
+      tags:
+        - inactive_user_reminder
+      summary: "Send reminder emails to inactive users"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: body
+          name: inactive_user_reminder
+          schema:
+            type: object
+            required:
+              - inactive_users
+            properties:
+              inactive_users:
+                type: array
+                items:
+                  type: string
+                  description: "User UUID"
+      responses:
+        201:
+          description: "Success - Emails sent"
         400:
           description: "Bad request - Invalid parameters"
         500:
           description: "Internal Server Error"
+              
   "/clusters":
     post:
       tags:

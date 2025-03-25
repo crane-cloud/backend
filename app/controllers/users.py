@@ -1340,69 +1340,117 @@ class UserFollowersView(Resource):
 
 class SendInactiveUserMailReminder(Resource):
     @admin_required
+    def get(self):
+        user_schema = UserSchema(many=True)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        value = request.args.get('value', type=int)
+        unit = request.args.get('unit')
+
+        query = User.query.filter(
+            User.verified == True,
+            User.disabled == False,
+            User.admin_disabled == False
+        )
+ 
+        if value is not None and unit is not None:
+            unit = unit.lower()
+            if unit not in ('hours', 'days', 'months'):
+                return dict(status='fail', message="Unit must be hours, days, or months"), 400
+
+            now = datetime.now()
+            if unit == 'hours':
+                lower_threshold = now - timedelta(hours=value)
+                upper_threshold = now - timedelta(hours=value-1)
+            elif unit == 'days':
+                lower_threshold = now - timedelta(days=value)
+                upper_threshold = now - timedelta(days=value-1)
+            else: 
+                lower_threshold = now - timedelta(days=value * 30)
+                upper_threshold = now - timedelta(days=(value-1) * 30)
+
+            query = query.filter(
+                User.last_seen <= upper_threshold,
+                User.last_seen > lower_threshold
+            )
+
+        query = query.order_by(User.last_seen.desc())
+
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        users = paginated.items
+
+        pagination = {
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'page': paginated.page,
+            'per_page': paginated.per_page,
+            'next': paginated.next_num,
+            'prev': paginated.prev_num
+        }
+        users_data = user_schema.dump(users)
+        
+        return dict(
+            status='success',
+            message=f'Found {paginated.total} inactive users',
+            data=dict(pagination=pagination, users=users_data)
+        ), 200
+    
+    @admin_required
     def post(self):
-
-        parser = reqparse.RequestParser()
-        parser.add_argument('value', type=int, required=True, 
-                          help='Time period value is required')
-        parser.add_argument('unit', type=str, required=True, 
-                          choices=('hours', 'days', 'months'),
-                          help='Time unit must be hours, days, or months')
-
-        args = parser.parse_args()
-        value = args['value']
-        unit = args['unit'].lower()
-
-        now = datetime.now()
-        if unit == 'hours':
-            lower_threshold = now - timedelta(hours=value)
-            upper_threshold = now - timedelta(hours=value-1)
-        elif unit == 'days':
-            lower_threshold = now - timedelta(days=value)
-            upper_threshold = now - timedelta(days=value-1)
-        else:  
-            lower_threshold = now - timedelta(days=value * 30)
-            upper_threshold = now - timedelta(days=(value-1) * 30) 
+        user_data = request.get_json()
+    
+        if not user_data or 'inactive_users' not in user_data:
+            return dict(status='fail', message='List of user UUIDs not provided'), 400
         
-       
-        inactive_users = User.query.filter(
-            User.last_seen <= upper_threshold,
-            User.last_seen > lower_threshold,
+        inactive_users = user_data['inactive_users']
         
-            User.verified == True,  
-            User.disabled == False, 
-            User.admin_disabled == False  
-        ).all()
+        if not isinstance(inactive_users, list):
+            return dict(status='fail', message='Invalid format for inactive users'), 400
         
-        already_notified = set()  
-
         emails_sent = 0
         errors = []
+        now = datetime.now()
         
-        for user in inactive_users:
+        for user_uuid in inactive_users:
             try:
-                success = send_inactive_notification_to_user(
-                    email=user.email,
-                    name=user.name,
-                    app=current_app._get_current_object(),
-                    template="user/inactive_user_reminder.html",
-                    subject="Checking In: Your Crane Cloud Account",
-                    date=now.strftime("%m/%d/%Y"),
-                    is_success_template=True
-                )
-                
-                if success:
-                    emails_sent += 1
-                    already_notified.add(user.email)
+                user = User.query.get(user_uuid)
+                if not user:
+                    errors.append(f"User with UUID {user_uuid} not found")
+                    continue
+
+                if user.last_reminder_sent is None or user.last_reminder_sent < (now - timedelta(days=30)):
+                    success = send_inactive_notification_to_user(
+                        email=user.email,
+                        name=user.name,
+                        app=current_app._get_current_object(),
+                        template="user/inactive_user_reminder.html",
+                        subject="We miss you at Crane Cloud",
+                        date=now.strftime("%m/%d/%Y"),
+                        is_success_template=True
+                    )
+                    
+                    if success:
+                        emails_sent += 1
+                        user.last_reminder_sent = now
+                        db.session.add(user)
+                    else:
+                        errors.append(f"Failed to send email to {user.email}")
                 else:
-                    errors.append(f"Failed to send email to {user.email}")
+                    errors.append(f"Email reminder already sent to {user.email} within the last 30 days")
                     
             except Exception as e:
-                errors.append(f"Error sending email to {user.email}: {str(e)}")
-        
+                errors.append(f"Error processing user {user_uuid}: {str(e)}")
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return dict(status='fail', message=f'Database error: {str(e)}'), 500
+            
         return dict(
             status='success',
             message=f'Successfully sent {emails_sent} reminder emails',
             total_users_processed=len(inactive_users),
             errors=errors if errors else None
-        ), 200
+        ), 201 
