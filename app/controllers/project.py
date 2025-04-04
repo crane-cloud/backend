@@ -180,7 +180,6 @@ class ProjectsView(Resource):
                          description='Created project Successfully',
                          a_project=project.id,
                          a_cluster_id=cluster_id,
-
                          )
 
             return dict(status='success', data=dict(project=new_project_data)), 201
@@ -637,20 +636,20 @@ class UserProjectsView(Resource):
             }
 
         user_projects, errors = project_schema.dumps(projects)
- 
+
         pinned_projects, errs = project_schema.dumps(pinned_projects)
 
         parsed_pinned_projects = json.loads(pinned_projects)
 
         if errors or errs:
             return dict(status='fail', message='Internal server error'), 500
-
         return dict(
             status='success',
             data=dict(
                 pagination={**pagination_data,
                             'pinned_count': len(parsed_pinned_projects)},
                 pinned=parsed_pinned_projects,
+
                 projects=json.loads(user_projects),
             )
         ), 200
