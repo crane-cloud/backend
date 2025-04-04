@@ -21,5 +21,6 @@ class Cluster(ModelMixin):
     sub_domain = db.Column(db.String, default="cranecloud.io")
     prometheus_url = db.Column(db.String, default="")
     cost_modal_url = db.Column(db.String, default="")
+    supports_ml = db.Column(db.Boolean, default=False)
     projects = db.relationship('Project', backref='cluster', lazy=True)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

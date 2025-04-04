@@ -1454,3 +1454,4 @@ class SendInactiveUserMailReminder(Resource):
             total_users_processed=len(inactive_users),
             errors=errors if errors else None
         ), 201 
+

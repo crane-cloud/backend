@@ -178,8 +178,9 @@ class ProjectsView(Resource):
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
-                         a_project_id=project.id,
-                         a_cluster_id=cluster_id)
+                         a_project=project.id,
+                         a_cluster_id=cluster_id,
+                         )
 
             return dict(status='success', data=dict(project=new_project_data)), 201
 
@@ -363,6 +364,8 @@ class ProjectDetailView(Resource):
         current_user_id = get_jwt_identity()
         current_user_roles = get_jwt_claims()['roles']
 
+        public_view = request.args.get('public_view', False)
+
         project_schema = ProjectSchema()
 
         project = Project.get_by_id(project_id)
@@ -373,9 +376,16 @@ class ProjectDetailView(Resource):
                 message=f'project {project_id} not found'
             ), 404
 
+        if public_view:
+            project_data, errors = project_schema.dumps(project)
+            if errors:
+                return dict(status='fail', message=errors), 500
+            return dict(status='success', data=dict(project=json.loads(project_data))), 200
+
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
+                
 
         project_data, errors = project_schema.dumps(project)
         if errors:
@@ -458,14 +468,14 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Failed',
                              operation='Delete',
                              description='Internal server error',
-                             a_project_id=project_id,
+                             a_project=project_id,
                              a_cluster_id=project.cluster_id)
                 return dict(status='fail', message='deletion failed'), 500
 
             log_activity('Project', status='Success',
                          operation='Delete',
                          description='Deleted project Successfully',
-                         a_project_id=project.id,
+                         a_project=project.id,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -490,7 +500,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Success',
                              operation='Delete',
                              description='Deleted project Successfully',
-                             a_project_id=project.id,
+                             a_project=project.id,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
@@ -499,7 +509,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Failed',
                          operation='Delete',
                          description=e.reason,
-                         a_project_id=project_id,
+                         a_project=project_id,
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
@@ -507,7 +517,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Failed',
                          operation='Delete',
                          description=str(e),
-                         a_project_id=project_id,
+                         a_project=project_id,
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=str(e)), 500
 
@@ -559,7 +569,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Failed',
                              operation='Update',
                              description='Internal Server Error',
-                             a_project_id=project.id,
+                             a_project=project.id,
                              a_cluster_id=project.cluster_id
                              )
                 return dict(status='fail', message='internal server error'), 500
@@ -567,7 +577,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Update',
                          description='Updated project Successfully',
-                         a_project_id=project.id,
+                         a_project=project.id,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -605,24 +615,41 @@ class UserProjectsView(Resource):
             ProjectUser.pinned == True,
             Project.deleted == False
         ).all()
+        
+        # returns deleted projects
+        # pagination_meta_data, projects = paginate(
+        #     user.projects, per_page, page)
 
-        pagination_meta_data, projects = paginate(
-            user.projects, per_page, page)
+        pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
+                            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
+                            page=page, per_page=per_page, error_out=False)
+        
+        projects = pagination.items
+        if pagination:
+            pagination_data = {
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'page': pagination.page,
+                'per_page': pagination.per_page,
+                'next': pagination.next_num,
+                'prev': pagination.prev_num
+            }
 
-        user_projects, errors = project_schema.dumps(
-            projects)
+        user_projects, errors = project_schema.dumps(projects)
 
         pinned_projects, errs = project_schema.dumps(pinned_projects)
 
-        if errors and errs:
-            return dict(status='fail', message='Internal server error'), 500
+        parsed_pinned_projects = json.loads(pinned_projects)
 
+        if errors or errs:
+            return dict(status='fail', message='Internal server error'), 500
         return dict(
             status='success',
             data=dict(
-                pagination={**pagination_meta_data,
-                            'pinned_count': len(pinned_projects)},
-                pinned=json.loads(pinned_projects),
+                pagination={**pagination_data,
+                            'pinned_count': len(parsed_pinned_projects)},
+                pinned=parsed_pinned_projects,
+
                 projects=json.loads(user_projects),
             )
         ), 200
