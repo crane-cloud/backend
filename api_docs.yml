@@ -2869,7 +2869,7 @@ paths:
                 example: false
               model_image_uri:
                 type: string
-                example: "run:/658456547698779878/model"
+                example: "runs:/658456547698779878/model"
               api_type:
                 type: string
                 example: "REST"
