@@ -2869,13 +2869,7 @@ paths:
                 example: false
               model_image_uri:
                 type: string
-                example: ""
-              mlflow_artifact_uri:
-                type: string
                 example: "run:/658456547698779878/model"
-              is_mlflow:
-                type: boolean
-                example: false
               api_type:
                 type: string
                 example: "REST"

@@ -85,8 +85,6 @@ class MLAppDeploySchema(Schema):
     is_notebook = fields.Boolean(required=True)
     is_modal = fields.Bool(required=False)
     model_image_uri = fields.Str(required=False)
-    mlflow_artifact_uri = fields.Str(required=False)
-    is_mlflow = fields.Boolean(required=False)
     api_type = fields.Str(required=False, default="REST", validate=validate.OneOf(
         ["REST", "GRPC"]
     ))
