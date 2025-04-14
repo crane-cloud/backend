@@ -6,6 +6,9 @@ on:
     types:
       - released
       - prereleased
+  push:
+    branches:
+      - staging
 
 jobs:
   build:
