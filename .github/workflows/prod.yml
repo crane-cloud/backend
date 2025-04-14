@@ -86,6 +86,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      namespace: cranecloud-prod
+      image: cranecloud/cranecloud-backend
+
     steps:
       - name: Clone
         uses: actions/checkout@v2
