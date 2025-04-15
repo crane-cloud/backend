@@ -14,6 +14,8 @@ from app.models import db, mongo
 from app.helpers.email import mail
 from app.tasks import update_celery
 from app.helpers.crane_app_logger import logger
+from datetime import datetime
+
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -55,12 +57,16 @@ def create_app(config_name):
     # initialise migrate
     Migrate(app, db)
 
+    @app.context_processor
+    def inject_current_year():
+        """Inject current year into all templates"""
+        return {'current_year': datetime.now().year}
+
     # swagger
     app.config['SWAGGER'] = {
         'title': 'Crane Cloud API',
         'uiversion': 3
     }
-
 
     Swagger(app, template_file='api_docs.yml')
 
@@ -95,7 +101,7 @@ def create_app(config_name):
     def add_claims_to_access_token(user):
         return {
             'roles': user.get('roles', None),
-            'email' : user.get('email', None),
+            'email': user.get('email', None),
         }
 
     @jwt.user_identity_loader
