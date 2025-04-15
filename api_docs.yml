@@ -3347,6 +3347,22 @@ paths:
           type: boolean
           description: Returns active applications
         - in: query
+          name: app_name
+          type: string
+          description: Returns applications with name matching the query
+        - in: query
+          name: app_alias
+          type: string
+          description: Returns applications with alias matching the query
+        - in: query
+          name: app_id
+          type: string
+          description: Returns applications with id matching the query
+        - in: query
+          name: app_url
+          type: string
+          description: Returns applications with url matching the query
+        - in: query
           name: series
           type: boolean
           description: Returns graph data when set to true

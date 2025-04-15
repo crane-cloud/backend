@@ -130,6 +130,10 @@ class AppsView(Resource):
         series = request.args.get('series', False)
         disabled = request.args.get('disabled', None)
         is_notebook = request.args.get('is_notebook', None)
+        app_name = request.args.get('app_name', None)
+        app_alias = request.args.get('app_alias', None)
+        app_id = request.args.get('app_id', None)
+        app_url = request.args.get('app_url', None)
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -153,6 +157,18 @@ class AppsView(Resource):
 
             if is_notebook is not None:
                 query = query.filter_by(is_notebook=is_notebook)
+
+            if app_name:
+                query = query.filter_by(name=app_name)
+
+            if app_alias:
+                query = query.filter_by(alias=app_alias)
+
+            if app_id:
+                query = query.filter_by(id=app_id)
+
+            if app_url:
+                query = query.filter_by(url=app_url)
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
@@ -479,11 +495,10 @@ class MLProjectAppsView(Resource):
         validated_app_data['project_id'] = project_id
         project_data, errors = project_schema.dumps(project)
         cluster_data, errors = cluster_schema.dumps(cluster)
-        
-        cluster_json = json.loads(cluster_data)
-        
 
-        if cluster_json['supports_ml'] != True: 
+        cluster_json = json.loads(cluster_data)
+
+        if cluster_json['supports_ml'] != True:
             return dict(status='fail', message="Cluster does not support MLOPs"), 500
 
         data = dict(
