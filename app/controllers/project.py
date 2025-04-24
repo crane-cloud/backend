@@ -70,6 +70,12 @@ class ProjectsView(Resource):
                     message=f'cluster {cluster_id} not found'
                 ), 404
 
+            if cluster.disabled:
+                return dict(
+                    status='fail',
+                    message=f'cluster {cluster_id} is disabled'
+                ), 409
+
             kube_host = cluster.host
             kube_token = cluster.token
 
@@ -324,7 +330,7 @@ class ProjectsView(Resource):
         user.save()
         # ADD a logger for when user.save does not work
 
-         # If series is requested, include graph data based on filtered dates
+        # If series is requested, include graph data based on filtered dates
         if series:
             validated_query_data, errors = ProjectGraphSchema().load(graph_filter_data)
             if errors:
@@ -335,7 +341,8 @@ class ProjectsView(Resource):
             set_by = validated_query_data['set_by']
 
             # Get graph data from Project model
-            graph_data = Project.graph_data(start=start, end=end, set_by=set_by)
+            graph_data = Project.graph_data(
+                start=start, end=end, set_by=set_by)
 
             return dict(
                 status='success',
@@ -354,6 +361,7 @@ class ProjectsView(Resource):
                 projects=json.loads(project_data)
             )
         ), 200
+
 
 class ProjectDetailView(Resource):
 
@@ -385,7 +393,6 @@ class ProjectDetailView(Resource):
         if not is_owner_or_admin(project, current_user_id, current_user_roles):
             if not is_authorised_project_user(project, current_user_id, 'member'):
                 return dict(status='fail', message='unauthorised'), 403
-                
 
         project_data, errors = project_schema.dumps(project)
         if errors:
@@ -615,15 +622,15 @@ class UserProjectsView(Resource):
             ProjectUser.pinned == True,
             Project.deleted == False
         ).all()
-        
+
         # returns deleted projects
         # pagination_meta_data, projects = paginate(
         #     user.projects, per_page, page)
 
         pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
-                            page=page, per_page=per_page, error_out=False)
-        
+            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
+            page=page, per_page=per_page, error_out=False)
+
         projects = pagination.items
         if pagination:
             pagination_data = {
