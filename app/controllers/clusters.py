@@ -52,9 +52,13 @@ class ClustersView(Resource):
     def get(self):
         """
         """
+        disabled = request.args.get('disabled')
         cluster_schema = ClusterSchema(many=True)
 
-        clusters = Cluster.find_all()
+        if disabled:
+            clusters = Cluster.find_all(disabled=disabled)
+        else:
+            clusters = Cluster.find_all()
 
         validated_cluster_data, errors = cluster_schema.dumps(clusters)
 

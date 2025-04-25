@@ -914,7 +914,11 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
-
+        - in: query
+          name: disabled
+          required: false
+          type: boolean
+          description: "Search for disabled"
       responses:
         200:
           description: "A list of clusters"
@@ -986,6 +990,8 @@ paths:
               prometheus_url:
                 type: string
               supports_ml:
+                type: boolean
+              disabled:
                 type: boolean
               cost_modal_url:
                 type: string

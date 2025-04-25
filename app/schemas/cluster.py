@@ -48,6 +48,7 @@ class ClusterSchema(Schema):
     )
     sub_domain = fields.String(required=True)
     supports_ml = fields.Boolean(required=False, default=False)
+    disabled = fields.Boolean(default=False)
     date_created = fields.Date(dump_only=True)
 
 

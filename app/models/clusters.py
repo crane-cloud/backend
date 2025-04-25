@@ -23,4 +23,5 @@ class Cluster(ModelMixin):
     cost_modal_url = db.Column(db.String, default="")
     supports_ml = db.Column(db.Boolean, default=False)
     projects = db.relationship('Project', backref='cluster', lazy=True)
+    disabled = db.Column(db.Boolean, default=False, nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
