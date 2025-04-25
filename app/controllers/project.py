@@ -899,3 +899,73 @@ class ProjectPinView(Resource):
             status='Success',
             message=f'Project {project_id} unpinned successfully'
         ), 200
+
+
+class ProjectMigrationView(Resource):
+    @admin_required
+    def post(self, project_id):
+        """
+        Migrate project to a new cluster
+        """
+        migration_schema = ProjectMigrationSchema()
+        migration_data = request.get_json()
+        current_user_id = get_jwt_identity()
+
+        # Validate request
+        validated_data, errors = migration_schema.load(migration_data)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        # Get project and clusters
+        project = Project.get_by_id(project_id)
+        source_cluster = project.cluster
+        target_cluster = Cluster.get_by_id(validated_data['new_cluster_id'])
+
+        if not all([project, source_cluster, target_cluster]):
+            return dict(status='fail', message='Invalid project or cluster'), 404
+
+        if source_cluster == target_cluster:
+            return dict(status='fail', message=f'Project is already on the cluster with id {target_cluster.id}'), 409
+
+        if target_cluster.disabled:
+            return dict(status='fail', message='Cluster is disabled'), 400
+
+        project_apps = App.find_all(project_id=project_id)
+        user = User.get_by_id(current_user_id)
+
+        try:
+            # Create namespace in new cluster
+            kube_client_new = create_kube_clients(
+                target_cluster.host, target_cluster.token)
+            try:
+                kube_client_new.kube.create_namespace(
+                    client.V1Namespace(
+                        metadata=client.V1ObjectMeta(name=project.alias))
+                )
+            except:
+                pass
+            # Redeploy all applications
+            if project_apps:
+                for app in project_apps:
+                    deploy_user_app(
+                        kube_client=kube_client_new,
+                        project=project,
+                        user=user,
+                        app=app
+                    )
+
+            # Update project info
+            project.cluster_id = target_cluster.id
+            project.save()
+
+            # Cleanup old resources
+            kube_client_old = create_kube_clients(
+                source_cluster.host, source_cluster.token)
+            kube_client_old.kube.delete_namespace(project.alias)
+
+            return dict(status='success', message='Project migrated successfully'), 200
+
+        except Exception as e:
+            # TODO: Implement rollback logic
+            print(e)
+            return dict(status='fail', message=str(e)), 500

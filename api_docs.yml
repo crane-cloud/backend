@@ -3267,6 +3267,44 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
+  
+  "/projects/{project_id}/migrate":
+    post:
+      tags:
+        - projects
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      description: "Migrate project to another cluster"
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: project_id
+          required: true
+          type: string
+        - in: body
+          name: Project
+          schema:
+            type: object
+            required:
+              - new_cluster_id
+            properties:
+              new_cluster_id:
+                type: string
+      responses:
+        200:
+          description: "Migrated project successfully"
+        404:
+          description: "Project not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
 
   "/apps":
     post:

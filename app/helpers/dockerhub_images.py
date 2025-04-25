@@ -41,6 +41,8 @@ def login_and_get_token(username, password):
 
 
 def check_image_existence(image_url, password=None):
+    print("...........")
+    print(image_url)
     match = re.match(r"^(([^/:]+)\/)?([^:]+)(:([^:]+))?$", image_url)
 
     if not match:
