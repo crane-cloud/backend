@@ -902,7 +902,7 @@ class ProjectPinView(Resource):
 
 
 class ProjectMigrationView(Resource):
-    @admin_required
+    @jwt_required
     def post(self, project_id):
         """
         Migrate project to a new cluster
