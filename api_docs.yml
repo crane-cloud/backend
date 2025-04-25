@@ -2564,12 +2564,16 @@ paths:
           description: Number of items per page
         - in: query
           name: disabled
-          type: string
+          type: boolean
           description: Shows whether or not the project is disabled. Takes either True or False value.
         - in: query
           name: project_type
           type: string
           description: Shows the type of project. Corresponds to the predifined types like Research, Student, Personal, Commercial or Other.
+        - in: query
+          name: cluster_id
+          type: string
+          description: Get projects in a cluster
         - in: query
           name: series
           type: boolean

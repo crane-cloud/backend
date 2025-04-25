@@ -85,3 +85,7 @@ class ProjectSchema(Schema):
 
     def get_followers_count(self, obj):
         return ProjectFollowers.count(project_id=obj.id)
+
+
+class ProjectMigrationSchema(Schema):
+    new_cluster_id = fields.String(required=True)

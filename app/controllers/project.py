@@ -6,13 +6,16 @@ from app.helpers.alias import create_alias
 from app.helpers.admin import is_authorised_project_user, is_owner_or_admin, is_current_or_admin, is_admin
 from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
-from app.helpers.kube import create_kube_clients, delete_cluster_app, disable_project, enable_project, check_kube_error_code
+from app.helpers.kube import (create_kube_clients, delete_cluster_app,
+                              disable_project, enable_project, check_kube_error_code, deploy_user_app)
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
 from app.models.clusters import Cluster
 from app.models.project import Project
-from app.schemas import ProjectSchema, AppSchema, ProjectUserSchema, ClusterSchema
+from app.models.app import App
+from app.schemas import (ProjectSchema, AppSchema,
+                         ProjectUserSchema, ClusterSchema, ProjectMigrationSchema)
 from app.helpers.decorators import admin_required
 import datetime
 from flask_restful import Resource, request
@@ -170,16 +173,6 @@ class ProjectsView(Resource):
                     status='fail',
                     message='An error occured during creation of a new invoice record'), 400
 
-            # create a billing invoice on project creation
-            new_invoice = BillingInvoice(project_id=project.id)
-
-            saved_new_invoice = new_invoice.save()
-
-            if not saved_new_invoice:
-                return dict(
-                    status='fail',
-                    message='An error occured during creation of a new invoice record'), 400
-
             new_project_data, errors = project_schema.dump(project)
             log_activity('Project', status='Success',
                          operation='Create',
@@ -215,6 +208,7 @@ class ProjectsView(Resource):
         keywords = request.args.get('keywords', '')
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
+        cluster_id = request.args.get('cluster_id')
 
         graph_filter_data = {
             'start': request.args.get('start', '2018-01-01'),
@@ -228,8 +222,9 @@ class ProjectsView(Resource):
         pagination_data = {}
 
         filter_mapping = {
+            'project_type': project_type,
+            'cluster_id': cluster_id,
             'disabled': disabled,
-            'project_type': project_type
         }
 
         # count items per project category
@@ -239,38 +234,34 @@ class ProjectsView(Resource):
                 getattr(Project, category))).group_by(getattr(Project, category)).all()
             if category == 'disabled':
                 project_metadata[category] = distinct_counts[0][1] if distinct_counts else 0
+            elif category == 'cluster_id':
+                project_metadata[category] = {
+                    str(key): value for key, value in distinct_counts}
             else:
                 project_metadata[category] = dict(distinct_counts)
 
-        # Identify which attribute to filter on
-        attribute, attribute_value = next(
-            ((k, v) for k, v in filter_mapping.items() if v), (None, None))
+        # Build base query
+        base_query = Project.query
 
-        if has_role(current_user_roles, 'administrator'):
+        # Apply filters for all attributes
+        for key, value in filter_mapping.items():
+            if value:
+                if key == 'disabled':
+                    value = value.lower() == 'true'
+                base_query = base_query.filter(getattr(Project, key) == value)
 
+        if not has_role(current_user_roles, 'administrator'):
+            base_query = base_query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
+                ProjectUser.user_id == current_user_id)))
+
+        try:
             if (keywords == ''):
-                if attribute:
-                    paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(
-                        Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
-                    projects = paginated.items
-                    pagination_data = {
-                        'total': paginated.total,
-                        'pages': paginated.pages,
-                        'page': paginated.page,
-                        'per_page': paginated.per_page,
-                        'next': paginated.next_num,
-                        'prev': paginated.prev_num
-                    }
+                paginated = base_query.order_by(Project.date_created.desc()).paginate(
+                    page=page,
+                    per_page=per_page,
+                    error_out=False
+                )
 
-                else:
-                    paginated = Project.find_all(
-                        paginate=True, page=page, per_page=per_page)
-                    projects = paginated.items
-                    pagination_data = paginated.pagination
-            else:
-                paginated = Project.query.filter(Project.name.ilike('%'+keywords+'%')).order_by(Project.date_created.desc()).paginate(
-                    page=page, per_page=per_page, error_out=False)
-                projects = paginated.items
                 pagination_data = {
                     'total': paginated.total,
                     'pages': paginated.pages,
@@ -279,45 +270,24 @@ class ProjectsView(Resource):
                     'next': paginated.next_num,
                     'prev': paginated.prev_num
                 }
-        else:
-            try:
+            else:
+                paginated = base_query.filter(Project.name.ilike(f'%{keywords}%')) \
+                    .order_by(Project.date_created.desc()) \
+                    .paginate(page=page, per_page=per_page, error_out=False)
 
-                if (keywords == ''):
-                    if attribute:
-                        paginated = (Project.query.filter(getattr(Project, attribute) == attribute_value).order_by(
-                            Project.date_created.desc()).paginate(page=page, per_page=per_page, error_out=False))
-                        projects = paginated.items
-                        pagination = {
-                            'total': paginated.total,
-                            'pages': paginated.pages,
-                            'page': paginated.page,
-                            'per_page': paginated.per_page,
-                            'next': paginated.next_num,
-                            'prev': paginated.prev_num
-                        }
-                    else:
-                        pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
-                            page=page, per_page=per_page, error_out=False)
-                else:
+                pagination_data = {
+                    'total': paginated.total,
+                    'pages': paginated.pages,
+                    'page': paginated.page,
+                    'per_page': paginated.per_page,
+                    'next': paginated.next_num,
+                    'prev': paginated.prev_num
+                }
 
-                    pagination = Project.query.filter(Project.owner_id == current_user_id, Project.name.ilike('%'+keywords+'%'), Project.users.any(
-                        ProjectUser.user_id == current_user_id)).order_by(Project.date_created.desc()).paginate(
-                        page=page, per_page=per_page, error_out=False)
+            projects = paginated.items
 
-                projects = pagination.items
-                if pagination:
-                    pagination_data = {
-                        'total': pagination.total,
-                        'pages': pagination.pages,
-                        'page': pagination.page,
-                        'per_page': pagination.per_page,
-                        'next': pagination.next_num,
-                        'prev': pagination.prev_num
-                    }
-            except SQLAlchemyError:
-                pagination = None
-                return dict(status='fail', message='Internal Server Error'), 500
+        except SQLAlchemyError:
+            return dict(status='fail', message='Internal Server Error'), 500
 
         project_data, errors = project_schema.dumps(projects)
 
