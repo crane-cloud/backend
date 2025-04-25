@@ -65,7 +65,6 @@ def check_image_existence(image_url, password=None):
         raise e
 
     url = f"https://hub.docker.com/v2/namespaces/{username}/repositories/{repository}/tags/{tag}"
-    print(url)
     headers = {}
 
     if token:

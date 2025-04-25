@@ -79,18 +79,21 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
     # check images existence
     app_image = app_data.get('image', None)
-    docker_server = app_data.get(
-        'docker_server', 'docker.io')
-    docker_password = app_data.get('docker_password', None)
-    # should be a docker hub image
-    if 'gcr' not in docker_server:
-        validate_docker_image = docker_image_checker(
-            app_image, docker_password, project)
-        if validate_docker_image != True:
-            return SimpleNamespace(
-                message=validate_docker_image,
-                status_code=404
-            )
+    if not app_image and app:
+        app_image = app.image
+    if app_image:
+        docker_server = app_data.get(
+            'docker_server', 'docker.io')
+        docker_password = app_data.get('docker_password', None)
+        # should be a docker hub image
+        if 'gcr' not in docker_server:
+            validate_docker_image = docker_image_checker(
+                app_image, docker_password, project)
+            if validate_docker_image != True:
+                return SimpleNamespace(
+                    message=validate_docker_image,
+                    status_code=404
+                )
 
     app_alias = create_alias(app_name)
     command_string = app_data.get('command', None)

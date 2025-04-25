@@ -14,8 +14,8 @@ from app.controllers import (
     UserAdminUpdateView, AppRevertView, ProjectGetCostsView, TransactionRecordView, CreditTransactionRecordView, CreditPurchaseTransactionRecordView,
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
-    TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView,
-    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView,SendInactiveUserMailReminder,)
+    TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView, ProjectMigrationView,
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -139,7 +139,7 @@ api.add_resource(BillingReceiptsView,
 api.add_resource(BillingReceiptsDetailView,
                  '/projects/<string:project_id>/receipts/<string:receipt_id>')
 
-# Project route
+# Project routes
 api.add_resource(ProjectsView, '/projects', endpoint='projects')
 api.add_resource(ProjectDetailView, '/projects/<string:project_id>')
 api.add_resource(
@@ -151,8 +151,12 @@ api.add_resource(ProjectDisableView,
 api.add_resource(ProjectEnableView,
                  '/projects/<string:project_id>/enable')
 api.add_resource(ProjectPinView, '/projects/<string:project_id>/pin')
-# User Project routes
+api.add_resource(ProjectMigrationView, '/projects/<string:project_id>/migrate')
+
+
 api.add_resource(UserProjectsView, '/users/<string:user_id>/projects')
+
+
 # Tags Routes
 api.add_resource(TagsView, '/tags')
 api.add_resource(TagsDetailView, '/tags/<string:tag_id>')
