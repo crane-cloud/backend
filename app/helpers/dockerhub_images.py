@@ -41,8 +41,6 @@ def login_and_get_token(username, password):
 
 
 def check_image_existence(image_url, password=None):
-    print("...........")
-    print(image_url)
     match = re.match(r"^(([^/:]+)\/)?([^:]+)(:([^:]+))?$", image_url)
 
     if not match:
@@ -67,7 +65,6 @@ def check_image_existence(image_url, password=None):
         raise e
 
     url = f"https://hub.docker.com/v2/namespaces/{username}/repositories/{repository}/tags/{tag}"
-    print(url)
     headers = {}
 
     if token:
