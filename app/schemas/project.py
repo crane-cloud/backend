@@ -34,6 +34,10 @@ class ProjectListSchema(Schema):
     name = fields.String()
     description = fields.String()
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
+    supports_ml = fields.Method("get_supports_ml", dump_only=True)
+
+    def get_supports_ml(self, obj):
+        return obj.cluster.supports_ml
 
 
 class ProjectSchema(Schema):
@@ -68,6 +72,7 @@ class ProjectSchema(Schema):
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
     tags_add = fields.List(fields.String, load_only=True)
     tags_remove = fields.List(fields.String, load_only=True)
+    supports_ml = fields.Method("get_supports_ml", dump_only=True)
 
     def get_is_following(self, obj):
         current_user_id = get_jwt_identity()
@@ -85,6 +90,9 @@ class ProjectSchema(Schema):
 
     def get_followers_count(self, obj):
         return ProjectFollowers.count(project_id=obj.id)
+
+    def get_supports_ml(self, obj):
+        return obj.cluster.supports_ml
 
 
 class ProjectMigrationSchema(Schema):
