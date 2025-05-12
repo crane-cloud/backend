@@ -83,7 +83,8 @@ class GenericSearchView(Resource):
         # Projects
         if not search_type or search_type == 'projects':
             project_query = Project.query.filter(
-            Project.name.ilike('%'+keywords+'%')
+                Project.name.ilike('%'+keywords+'%')
+                # Project.is_public == True
             )
             if not is_admin:
                 project_query = project_query.filter(
@@ -114,6 +115,7 @@ class GenericSearchView(Resource):
                 project_subquery = Project.query.with_entities(Project.id).filter(
                     or_(
                         Project.owner_id == current_user_id,
+                        # Project.is_public == True
                         Project.users.any(ProjectUser.user_id == current_user_id)
                     )
                 ).subquery()
