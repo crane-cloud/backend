@@ -1803,9 +1803,11 @@ class AppLogsView(Resource):
         for pod in podsList:
             try:
                 # First, get pod details to check container count / catering for multi-container pods eg pods from seldon core
-                pod_details = kube_client.kube.read_namespaced_pod(pod, namespace)
-                containers = [container.name for container in pod_details.spec.containers]
-                
+                pod_details = kube_client.kube.read_namespaced_pod(
+                    pod, namespace)
+                containers = [
+                    container.name for container in pod_details.spec.containers]
+
                 if len(containers) == 1:
                     # Single container (use original method)
                     podLogs = kube_client.kube.read_namespaced_pod_log(
@@ -1820,7 +1822,7 @@ class AppLogsView(Resource):
                             timestamps=timestamps or False
                         )
                     pods_logs.append(podLogs)
-                    
+
                 else:
                     # Multi-container (get logs from each container)
                     combined_logs = []
@@ -1832,9 +1834,10 @@ class AppLogsView(Resource):
                                 timestamps=timestamps or False,
                                 since_seconds=since_seconds or 86400
                             )
-                            
+
                             if container_logs:
-                                combined_logs.append(f"=== Container: {container_name} ===")
+                                combined_logs.append(
+                                    f"=== Container: {container_name} ===")
                                 combined_logs.append(container_logs)
                                 combined_logs.append("=" * 50)
                         except:
@@ -1846,19 +1849,23 @@ class AppLogsView(Resource):
                                     timestamps=timestamps or False
                                 )
                                 if container_logs:
-                                    combined_logs.append(f"=== Container: {container_name} ===")
+                                    combined_logs.append(
+                                        f"=== Container: {container_name} ===")
                                     combined_logs.append(container_logs)
                                     combined_logs.append("=" * 50)
                             except:
-                                combined_logs.append(f"=== Container: {container_name} ===")
-                                combined_logs.append("No logs available for this container")
+                                combined_logs.append(
+                                    f"=== Container: {container_name} ===")
+                                combined_logs.append(
+                                    "No logs available for this container")
                                 combined_logs.append("=" * 50)
-                    
+
                     pods_logs.append("\n".join(combined_logs))
-                    
+
             except Exception as e:
                 # Fallback for any other errors
-                pods_logs.append(f"Error retrieving logs for pod {pod}: {str(e)}")
+                pods_logs.append(
+                    f"Error retrieving logs for pod {pod}: {str(e)}")
 
         # Get failed pods infor
         for state in failed_pods:

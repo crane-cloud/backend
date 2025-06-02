@@ -88,6 +88,7 @@ class MLAppDeploySchema(Schema):
     api_type = fields.Str(required=False, default="REST", validate=validate.OneOf(
         ["REST", "GRPC"]
     ))
+    task = fields.Str(required=False)
     model_server = fields.Str(required=False, default="MLFLOW_SERVER", validate=validate.OneOf(
         [
             "SKLEARN_SERVER",
