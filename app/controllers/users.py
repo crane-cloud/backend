@@ -5,8 +5,9 @@ from types import SimpleNamespace
 from app.helpers.activity_logger import log_activity
 from app.helpers.inactiveUser_notification import send_inactive_notification_to_user
 from app.helpers.kube import disable_project, enable_project
+from app.helpers.role_search import has_admin_role
 from flask import current_app, render_template
-from flask_restful import Resource, request,reqparse
+from flask_restful import Resource, request, reqparse
 from flask_bcrypt import Bcrypt
 from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
 from app.models.user import User
@@ -146,10 +147,10 @@ class UsersView(Resource):
 
     # Graph filter data
         graph_filter_data = {
-        'start': request.args.get('start', '2018-01-01'),
-        'end': request.args.get('end', datetime.now().strftime('%Y-%m-%d')), 
-        'set_by': request.args.get('set_by', 'month')
-    }
+            'start': request.args.get('start', '2018-01-01'),
+            'end': request.args.get('end', datetime.now().strftime('%Y-%m-%d')),
+            'set_by': request.args.get('set_by', 'month')
+        }
         total_users = len(User.find_all())
 
         users = []
@@ -253,8 +254,6 @@ class UsersView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-        
-
 
         if series:
             validated_query_data, errors = UserGraphSchema().load(graph_filter_data)
@@ -276,7 +275,7 @@ class UsersView(Resource):
                     graph_data=graph_data
                 )
             ), 200
-    
+
         return dict(
             status='success',
             data=dict(meta_data=meta_data, pagination=pagination,
@@ -286,7 +285,7 @@ class UsersView(Resource):
 
 class UserAdminUpdateView(Resource):
 
-    @ admin_required
+    @admin_required
     def patch(self):
         try:
             user_schema = UserSchema(only=("is_beta_user",))
@@ -380,17 +379,22 @@ class UserLoginView(Resource):
                     message="Internal Server Error"
                 ), 500
 
+            response_data = dict(
+                access_token=access_token,
+                email=user.email,
+                username=user.username,
+                verified=user.verified,
+                id=str(user.id)
+            )
+
+            # Only add is_admin field if user is an administrator
+            if has_admin_role(user.roles):
+                response_data['is_admin'] = True
+
             return dict(
                 status='success',
-                data=dict(
-                    access_token=access_token,
-                    email=user.email,
-                    username=user.username,
-                    verified=user.verified,
-                    id=str(user.id),
-                    is_beta_user=user.is_beta_user,
-                    name=user.name,
-                )), 200
+                data=response_data
+            ), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -474,8 +478,9 @@ class UserDetailView(Resource):
         """
         """
         try:
-            
-            user_schema = UserSchema(only=("name","is_public", "organisation"),partial=True)
+
+            user_schema = UserSchema(
+                only=("name", "is_public", "organisation"), partial=True)
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()
@@ -554,16 +559,22 @@ class AdminLoginView(Resource):
             if not access_token:
                 return dict(
                     status="fail", message="Internal Server Error"), 500
+            response_data = dict(
+                access_token=access_token,
+                email=user.email,
+                username=user.username,
+                verified=user.verified,
+                id=str(user.id)
+            )
+
+            # Only add is_admin field if user is an administrator
+            if has_admin_role(user.roles):
+                response_data['is_admin'] = True
 
             return dict(
                 status='success',
-                data=dict(
-                    access_token=access_token,
-                    email=user.email,
-                    username=user.username,
-                    verified=user.verified,
-                    id=str(user.id),
-                )), 200
+                data=response_data
+            ), 200
 
         return dict(status='fail', message="login failed"), 401
 
@@ -910,7 +921,7 @@ class ResetPasswordView(Resource):
 
 class UserDataSummaryView(Resource):
 
-    @ admin_required
+    @admin_required
     def get(self):
         """
         Shows new users per month or year
@@ -1029,7 +1040,7 @@ class InActiveUsersView(Resource):
     computed_results = {}  # Dictionary to cache computed results
     current_date = None  # Variable to track the current date
 
-    @ admin_required
+    @admin_required
     def get(self):
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
@@ -1121,7 +1132,7 @@ class InActiveUsersView(Resource):
 
 
 class UserDisableView(Resource):
-    @ admin_required
+    @admin_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1178,7 +1189,7 @@ class UserDisableView(Resource):
 
 
 class UserEnableView(Resource):
-    @ jwt_required
+    @jwt_required
     def post(self, user_id):
 
         user = User.get_by_id(user_id)
@@ -1233,7 +1244,7 @@ class UserEnableView(Resource):
 
 
 class UserFollowView(Resource):
-    @ jwt_required
+    @jwt_required
     def post(self, user_id):
         current_user_id = get_jwt_identity()
         current_user = User.get_by_id(current_user_id)
@@ -1269,7 +1280,7 @@ class UserFollowView(Resource):
             message=f'You are now following user with id {user_id}'
         ), 201
 
-    @ jwt_required
+    @jwt_required
     def get(self, user_id):
         user = User.get_by_id(user_id)
         user_schema = UserSchema(many=True)
@@ -1285,7 +1296,7 @@ class UserFollowView(Resource):
             data=dict(following=json.loads(users_data))
         ), 200
 
-    @ jwt_required
+    @jwt_required
     def delete(self, user_id):
         current_user_id = get_jwt_identity()
         current_user = User.get_by_id(current_user_id)
@@ -1320,7 +1331,7 @@ class UserFollowView(Resource):
 
 
 class UserFollowersView(Resource):
-    @ jwt_required
+    @jwt_required
     def get(self, user_id):
         user = User.get_by_id(user_id)
         user_schema = UserSchema(many=True)
@@ -1335,7 +1346,6 @@ class UserFollowersView(Resource):
             status='success',
             data=dict(followers=json.loads(users_data))
         ), 200
-
 
 
 class SendInactiveUserMailReminder(Resource):
@@ -1353,7 +1363,7 @@ class SendInactiveUserMailReminder(Resource):
             User.disabled == False,
             User.admin_disabled == False
         )
- 
+
         if value is not None and unit is not None:
             unit = unit.lower()
             if unit not in ('hours', 'days', 'months'):
@@ -1366,7 +1376,7 @@ class SendInactiveUserMailReminder(Resource):
             elif unit == 'days':
                 lower_threshold = now - timedelta(days=value)
                 upper_threshold = now - timedelta(days=value-1)
-            else: 
+            else:
                 lower_threshold = now - timedelta(days=value * 30)
                 upper_threshold = now - timedelta(days=(value-1) * 30)
 
@@ -1377,7 +1387,8 @@ class SendInactiveUserMailReminder(Resource):
 
         query = query.order_by(User.last_seen.desc())
 
-        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        paginated = query.paginate(
+            page=page, per_page=per_page, error_out=False)
         users = paginated.items
 
         pagination = {
@@ -1389,29 +1400,29 @@ class SendInactiveUserMailReminder(Resource):
             'prev': paginated.prev_num
         }
         users_data = user_schema.dump(users)
-        
+
         return dict(
             status='success',
             message=f'Found {paginated.total} inactive users',
             data=dict(pagination=pagination, users=users_data)
         ), 200
-    
+
     @admin_required
     def post(self):
         user_data = request.get_json()
-    
+
         if not user_data or 'inactive_users' not in user_data:
             return dict(status='fail', message='List of user UUIDs not provided'), 400
-        
+
         inactive_users = user_data['inactive_users']
-        
+
         if not isinstance(inactive_users, list):
             return dict(status='fail', message='Invalid format for inactive users'), 400
-        
+
         emails_sent = 0
         errors = []
         now = datetime.now()
-        
+
         for user_uuid in inactive_users:
             try:
                 user = User.query.get(user_uuid)
@@ -1429,7 +1440,7 @@ class SendInactiveUserMailReminder(Resource):
                         date=now.strftime("%m/%d/%Y"),
                         is_success_template=True
                     )
-                    
+
                     if success:
                         emails_sent += 1
                         user.last_reminder_sent = now
@@ -1437,8 +1448,9 @@ class SendInactiveUserMailReminder(Resource):
                     else:
                         errors.append(f"Failed to send email to {user.email}")
                 else:
-                    errors.append(f"Email reminder already sent to {user.email} within the last 30 days")
-                    
+                    errors.append(
+                        f"Email reminder already sent to {user.email} within the last 30 days")
+
             except Exception as e:
                 errors.append(f"Error processing user {user_uuid}: {str(e)}")
 
@@ -1447,11 +1459,10 @@ class SendInactiveUserMailReminder(Resource):
         except Exception as e:
             db.session.rollback()
             return dict(status='fail', message=f'Database error: {str(e)}'), 500
-            
+
         return dict(
             status='success',
             message=f'Successfully sent {emails_sent} reminder emails',
             total_users_processed=len(inactive_users),
             errors=errors if errors else None
-        ), 201 
-
+        ), 201
