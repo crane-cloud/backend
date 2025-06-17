@@ -2,6 +2,9 @@
 name: Prod
 
 on:
+  push:
+    branches:
+      - fix-prod-workflows
   release:
     types:
       - released
@@ -36,7 +39,8 @@ jobs:
           install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (GCR)
-        run: gcloud auth configure-docker
+        run: |
+          gcloud auth configure-docker gcr.io --quiet
 
       - id: meta
         name: Tag
