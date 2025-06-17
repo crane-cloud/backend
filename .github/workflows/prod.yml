@@ -22,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: staging
+          ref: fix-prod-workflows
 
       - name: Install (Buildx)
         uses: docker/setup-buildx-action@v3
@@ -30,7 +30,7 @@ jobs:
       - name: Login (GCP)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+          credentials_json: ${{ secrets.CREDENTIALS2_JSON }}
 
       - name: Install (Gcloud)
         uses: google-github-actions/setup-gcloud@v1
@@ -101,7 +101,7 @@ jobs:
       - name: Login (GCP)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+          credentials_json: ${{ secrets.CREDENTIALS2_JSON }}
 
       - name: Install (Gcloud)
         uses: google-github-actions/setup-gcloud@v1
