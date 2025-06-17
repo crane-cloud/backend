@@ -144,15 +144,16 @@ class ClusterDetailView(Resource):
             ), 200
         
         except client.rest.ApiException as e:
-            if e.status == 401 or "Unauthorized" in str(e):
-                return dict(
-                    status='fail',
-                    data=dict(
-                        cluster=json.loads(validated_cluster_data),
-                        resource_count=[]
-                    ),
-                    cluster_error="Could not access cluster or invalid token, please reset your cluster token."
-                ), 200
+            error_message = "Could not access cluster or invalid token, please reset your cluster token." \
+            if e.status == 401 or "Unauthorized" in str(e) else str(e)
+            return dict(
+            status='fail',
+            data=dict(
+                cluster=json.loads(validated_cluster_data),
+                resource_count=[]
+            ),
+            cluster_error=error_message
+            ), 200
 
         except Exception as e:
             return dict(status='fail', message=str(e)), 500
