@@ -2,13 +2,6 @@
 name: Prod-Docker
 
 on:
-<<<<<<< HEAD
-=======
-  push:
-    branches:
-      - fix-prod-workflows
-
->>>>>>> 90760fb0680ed23dfb38bf307c106b45aa516e8e
   workflow_dispatch:
 
 jobs:
@@ -24,11 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-<<<<<<< HEAD
           ref: staging
-=======
-          ref: fix-prod-workflows
->>>>>>> 90760fb0680ed23dfb38bf307c106b45aa516e8e
 
       - name: Install (Buildx)
         uses: docker/setup-buildx-action@v3
