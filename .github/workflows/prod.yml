@@ -38,17 +38,16 @@ jobs:
           project_id: crane-cloud-274413
           install_components: "gke-gcloud-auth-plugin"
 
-      - name: Login (GCR)
+      - name: Login (Artifact Registry)
         run: |
-          gcloud auth configure-docker gcr.io --quiet
-
+          gcloud auth configure-docker
       - id: meta
         name: Tag
         uses: docker/metadata-action@v3
         with:
           flavor: |
             latest=true
-          images: gcr.io/crane-cloud-274413/cranecloud-backend
+          images: us-central1-docker.pkg.dev/crane-cloud-274413/cranecloud-backend/backend
           tags: |
             type=ref,event=branch
             type=ref,event=pr
