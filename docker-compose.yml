@@ -44,7 +44,9 @@ services:
       - cranecloud
       - default
     environment:
-      KUBE_HOST:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
       KUBE_TOKEN:
       KUBE_CERT:
       FLASK_APP_SECRET:
