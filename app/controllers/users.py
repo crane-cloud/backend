@@ -1461,12 +1461,12 @@ class SendInactiveUserMailReminder(Resource):
 
 class GoogleOAuthView(Resource):
     def get(self):
-        return self._handle_oauth_request()
+        return self.handle_oauth_request()
     
     def post(self):
-        return self._handle_oauth_request()
+        return self.handle_oauth_request()
     
-    def _handle_oauth_request(self):
+    def handle_oauth_request(self):
         token_schema = UserSchema(partial=("password"),)
 
         if request.method == 'GET':
