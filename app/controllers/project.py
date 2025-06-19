@@ -296,8 +296,9 @@ class ProjectsView(Resource):
 
         # Updating user's last login
         user = User.get_by_id(current_user_id)
-        user.last_seen = datetime.datetime.now()
-        user.save()
+        if user:
+            user.last_seen = datetime.datetime.now()
+            user.save()
         # ADD a logger for when user.save does not work
 
         # If series is requested, include graph data based on filtered dates
