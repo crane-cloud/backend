@@ -38,7 +38,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ckwagaba/osprey-backend:latest
+    image: cranecloud/cranecloud-backend:latest
     container_name: flask-api
     networks:
       - cranecloud
@@ -84,7 +84,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ckwagaba/osprey-backend:latest
+    image: cranecloud/cranecloud-backend:latest
     container_name: celery-worker
     command: celery -A server.celery worker --loglevel=info
     environment:
