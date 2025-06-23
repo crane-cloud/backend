@@ -298,8 +298,9 @@ class ClusterNodesView(Resource):
 
             # get all nodes in the cluster
             node_resp = kube_client.kube.list_node()
+            print(node_resp)
 
-            pagination, paginated_items = paginate(node_resp, per_page, page)
+            pagination, paginated_items = paginate(node_resp.items, per_page, page)
 
             nodes = []
 
