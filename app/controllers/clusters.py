@@ -221,7 +221,7 @@ class ClusterNamespacesView(Resource):
             namespace_resp = kube_client.kube.list_namespace()
 
             pagination, paginated_items = paginate(
-                namespace_resp, per_page, page)
+                namespace_resp.items, per_page, page)
 
             namespaces = []
 
