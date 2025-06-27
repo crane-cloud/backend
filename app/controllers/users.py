@@ -1469,43 +1469,22 @@ class SendInactiveUserMailReminder(Resource):
 
 class GoogleOAuthView(Resource):
     def get(self):
-        return self.handle_oauth_request()
-    
-    def post(self):
-        return self.handle_oauth_request()
-    
-    def handle_oauth_request(self):
         token_schema = UserSchema(partial=("password"),)
 
-        if request.method == 'GET':
-            code = request.args.get('code')
-            if not code:
-                return dict(
+        code = request.args.get('code')
+        if not code:
+            return dict(
                     status='fail',
                     message='No code received in query parameters'
                 ), 400
-        else:  
-            request_data = request.get_json()
-            if not request_data:
-                return dict(
-                    status='fail',
-                    message='No data received'
-                ), 400
-            
-            code = request_data.get('code')
-            if not code:
-                return dict(
-                    status='fail',
-                    message='No code received in request body'
-                ), 400
-        
+
 
         token_data = {
-            'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
-            'client_secret': os.environ.get('GOOGLE_CLIENT_SECRET'),
+            'client_id': current_app.config.get('GOOGLE_CLIENT_ID'),
+            'client_secret': current_app.config.get('GOOGLE_CLIENT_SECRET'),
             'code': code,
             'grant_type': 'authorization_code',
-            'redirect_uri': os.environ.get('GOOGLE_REDIRECT_URI') ,
+            'redirect_uri': current_app.config.get('GOOGLE_REDIRECT_URI') ,
         }
           
         try:

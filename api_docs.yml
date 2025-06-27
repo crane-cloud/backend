@@ -498,7 +498,7 @@ paths:
           description: "failed to authenticate user"
 
   "/users/oauth/google":
-      post:
+      get:
         tags:
           - auth
         consumes:
