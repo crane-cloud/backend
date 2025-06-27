@@ -1464,7 +1464,7 @@ class SendInactiveUserMailReminder(Resource):
             status='success',
             message=f'Successfully sent {emails_sent} reminder emails',
             total_users_processed=len(inactive_users),
-            errors=errors if errors else None)
+            errors=errors if errors else None),201
 
 
 class GoogleOAuthView(Resource):
