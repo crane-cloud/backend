@@ -8,6 +8,7 @@ from app.helpers.role_search import has_role
 from app.helpers.activity_logger import log_activity
 from app.helpers.kube import (create_kube_clients, delete_cluster_app,
                               disable_project, enable_project, check_kube_error_code, deploy_user_app)
+from app.helpers.tags import add_tags_to_project, remove_tags_from_project
 from app.models.billing_invoice import BillingInvoice
 from app.models.project_users import ProjectUser
 from app.models.user import User
@@ -66,6 +67,8 @@ class ProjectsView(Resource):
             namespace_name = validated_project_data['alias']
             cluster_id = validated_project_data['cluster_id']
             cluster = Cluster.get_by_id(cluster_id)
+
+            tags = validated_project_data.pop('tags_add', None)
 
             if not cluster:
                 return dict(
@@ -153,6 +156,9 @@ class ProjectsView(Resource):
 
                 return dict(status="fail", message="Internal Server Error"), 500
 
+            if tags:
+                add_tags_to_project(tags, project)
+
             # create a billing invoice on project creation
             new_invoice = BillingInvoice(project_id=project.id)
 
@@ -177,7 +183,7 @@ class ProjectsView(Resource):
             log_activity('Project', status='Success',
                          operation='Create',
                          description='Created project Successfully',
-                         a_project=project.id,
+                         a_project=project,
                          a_cluster_id=cluster_id,
                          )
 
@@ -186,14 +192,19 @@ class ProjectsView(Resource):
         except client.rest.ApiException as e:
             log_activity('Project', status='Failed',
                          operation='Create',
+                         a_project=project,
                          description=e.body,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(e.body)), check_kube_error_code(e.status)
 
         except Exception as err:
+            try:
+                err = err.body
+            except:
+                err = str(err)
             log_activity('Project', status='Failed',
                          operation='Create',
-                         description=err.body,
+                         description=err,
                          a_cluster_id=cluster_id)
             return dict(status='fail', message=str(err)), 500
 
@@ -446,14 +457,14 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Failed',
                              operation='Delete',
                              description='Internal server error',
-                             a_project=project_id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(status='fail', message='deletion failed'), 500
 
             log_activity('Project', status='Success',
                          operation='Delete',
                          description='Deleted project Successfully',
-                         a_project=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -478,7 +489,7 @@ class ProjectDetailView(Resource):
                 log_activity('Project', status='Success',
                              operation='Delete',
                              description='Deleted project Successfully',
-                             a_project=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id)
                 return dict(
                     status='success',
@@ -487,7 +498,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Failed',
                          operation='Delete',
                          description=e.reason,
-                         a_project=project_id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=e.reason), check_kube_error_code(e.status)
 
@@ -495,7 +506,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Failed',
                          operation='Delete',
                          description=str(e),
-                         a_project=project_id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(status='fail', message=str(e)), 500
 
@@ -509,7 +520,7 @@ class ProjectDetailView(Resource):
             current_user_roles = get_jwt_claims()['roles']
 
             project_schema = ProjectSchema(
-                only=("name", "description", "organisation", "project_type"), partial=True)
+                only=("name", "description", "organisation", "project_type", "is_public", "tags_add", "tags_remove"), partial=True)
 
             project_data = request.get_json()
 
@@ -541,13 +552,21 @@ class ProjectDetailView(Resource):
                 if not is_authorised_project_user(project, current_user_id, 'admin'):
                     return dict(status='fail', message='unauthorised'), 403
 
+            if validate_project_data.get('tags_add'):
+                add_tags_to_project(validate_project_data['tags_add'], project)
+                validate_project_data.pop('tags_add', None)
+            if validate_project_data.get('tags_remove'):
+                remove_tags_from_project(
+                    validate_project_data['tags_remove'], project)
+                validate_project_data.pop('tags_remove', None)
+
             updated = Project.update(project, **validate_project_data)
 
             if not updated:
                 log_activity('Project', status='Failed',
                              operation='Update',
                              description='Internal Server Error',
-                             a_project=project.id,
+                             a_project=project,
                              a_cluster_id=project.cluster_id
                              )
                 return dict(status='fail', message='internal server error'), 500
@@ -555,7 +574,7 @@ class ProjectDetailView(Resource):
             log_activity('Project', status='Success',
                          operation='Update',
                          description='Updated project Successfully',
-                         a_project=project.id,
+                         a_project=project,
                          a_cluster_id=project.cluster_id)
             return dict(
                 status='success',
@@ -596,7 +615,7 @@ class UserProjectsView(Resource):
 
         # returns deleted projects
         # pagination_meta_data, projects = paginate(
-        #     user.projects, per_page, page)
+        #     user.projects[::-1], per_page, page)
 
         pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
             ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
@@ -627,7 +646,6 @@ class UserProjectsView(Resource):
                 pagination={**pagination_data,
                             'pinned_count': len(parsed_pinned_projects)},
                 pinned=parsed_pinned_projects,
-
                 projects=json.loads(user_projects),
             )
         ), 200
