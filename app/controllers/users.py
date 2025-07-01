@@ -1464,5 +1464,137 @@ class SendInactiveUserMailReminder(Resource):
             status='success',
             message=f'Successfully sent {emails_sent} reminder emails',
             total_users_processed=len(inactive_users),
-            errors=errors if errors else None
-        ), 201
+            errors=errors if errors else None),201
+
+
+class GoogleOAuthView(Resource):
+    def get(self):
+        token_schema = UserSchema(partial=("password"),)
+
+        code = request.args.get('code')
+        if not code:
+            return dict(
+                    status='fail',
+                    message='No code received in query parameters'
+                ), 400
+
+
+        token_data = {
+            'client_id': current_app.config.get('GOOGLE_CLIENT_ID'),
+            'client_secret': current_app.config.get('GOOGLE_CLIENT_SECRET'),
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': current_app.config.get('GOOGLE_REDIRECT_URI') ,
+        }
+          
+        try:
+            token_response = requests.post(
+                url='https://oauth2.googleapis.com/token',
+                data=token_data,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                timeout=10  
+            )
+            
+        except requests.RequestException as e:
+            return dict(status='fail', message="Failed to connect to Google OAuth"), 500
+      
+        if token_response.status_code != 200:
+            try:
+                error_data = token_response.json()
+                error_msg = error_data.get('error_description', error_data.get('error', 'Unknown error'))
+            except:
+                error_msg = f"HTTP {token_response.status_code}: {token_response.text}"
+            
+            return dict(
+                status='fail', 
+                message=f"Token exchange failed: {error_msg}"
+            ), 401
+        
+        try:
+            token_json = token_response.json()
+        except ValueError:
+            return dict(status='fail', message="Invalid JSON response from Google"), 500
+        
+        if token_json.get('error'):
+            return dict(
+                status='fail',
+                message=f"Token error: {token_json.get('error_description', token_json['error'])}"
+            ), 401
+        
+        access_token = token_json.get('access_token')
+        if not access_token:
+            return dict(status='fail', message="No access token received"), 401
+  
+        try:
+            user_response = requests.get(
+                url='https://www.googleapis.com/oauth2/v2/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10
+            )
+            
+        except requests.RequestException as e:
+            return dict(status='fail', message="Failed to fetch user info"), 500
+        
+        if user_response.status_code != 200:
+            return dict(status='fail', message="Failed to fetch user info"), 401
+        
+        try:
+            user_data = user_response.json()
+        except ValueError:
+            return dict(status='fail', message="Invalid user data from Google"), 500
+ 
+        email = user_data.get('email')
+        name = user_data.get('name')
+        verified_email = user_data.get('verified_email', False)
+        
+        if not email:
+            return dict(status='fail', message="Email not provided by Google"), 400
+
+        try:
+            user = User.find_first(email=email)
+            
+            if not user:
+                user = User(
+                    email=email,
+                    name=name,
+                    password=''.join((secrets.choice(string.ascii_letters) 
+                                     for i in range(24))),
+                )
+                user.verified = verified_email
+                
+                saved_user = user.save()
+                
+                if not saved_user:
+                    return dict(status='fail', message='Failed to create user'), 500
+       
+            user.name = name
+            user.verified = verified_email
+            updated_user = user.save()
+            
+            if not updated_user:
+                return dict(status='fail', message='Failed to update user'), 500
+         
+            user_dict, errors = token_schema.dump(user)
+            
+            if errors:
+                return dict(status='fail', message='User serialization error'), 500
+            
+            access_token = user.generate_token(user_dict)
+            
+            if not access_token:
+                return dict(status='fail', message="Failed to generate access token"), 500
+            
+            return dict(
+                status='success',
+                data=dict(
+                    access_token=access_token,
+                    email=user.email,
+                    name=user.name,
+                    verified=user.verified,
+                    id=str(user.id),
+                )
+            ), 200
+            
+        except Exception as e:
+            return dict(status='fail', message='Database error'), 500
+

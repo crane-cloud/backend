@@ -497,6 +497,34 @@ paths:
         401:
           description: "failed to authenticate user"
 
+  "/users/oauth/google":
+      get:
+        tags:
+          - auth
+        consumes:
+          - application/json
+        description: "Login with google oauth"
+        parameters:
+          - in: body
+            name: google code
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+        produces:
+          - application/json
+        responses:
+          200:
+            description: "success"
+          400:
+            description: "bad request"
+          401:
+            description: "failed to authenticate user"
+
+
   "/users/inactive_users":
     get:
       tags:

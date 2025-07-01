@@ -28,6 +28,10 @@ class Base:
     # Github auth
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+    # Google auth
+    GOOGLE_CLIENT_ID= os.environ.get('GOOGLE_CLIENT_ID'),
+    GOOGLE_CLIENT_SECRET= os.environ.get('GOOGLE_CLIENT_SECRET'),
+    GOOGLE_REDIRECT_URI =os.environ.get('GOOGLE_REDIRECT_URI') ,
 
     # celery
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
