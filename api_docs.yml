@@ -505,15 +505,10 @@ paths:
           - application/json
         description: "Login with google oauth"
         parameters:
-          - in: body
-            name: google code
-            schema:
-              type: object
-              required:
-                - code
-              properties:
-                code:
-                  type: string
+          - in: query
+            name: code
+            required: true
+            type: string
         produces:
           - application/json
         responses:
