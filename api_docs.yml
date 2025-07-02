@@ -4176,6 +4176,102 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/admin_report":
+    get:
+      tags:
+        - admin
+      summary: "Get admin report with filters"
+      description: "Returns filtered report data for apps or projects"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: start
+          type: string
+          required: false
+          description: "Start date in YYYY-MM-DD format (default: 30 days ago)"
+        - in: query
+          name: end
+          type: string
+          required: false
+          description: "End date in YYYY-MM-DD format (default: today)"
+        - in: query
+          name: page
+          type: integer
+          description: Enter page number default is 1
+        - in: query
+          name: per_page
+          type: integer
+          description: Enter Items per page default is 10
+        - in: query
+          name: disabled
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by disabled status"
+        - in: query
+          name: search
+          type: string
+          required: false
+          description: "Search term"
+        - in: query
+          name: deleted
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by deleted status"
+        - in: query
+          name: cluster_id
+          type: string
+          required: false
+          description: "Filter by cluster ID"
+        - in: query
+          name: status
+          type: string
+          required: false
+          description: "Filter by status"
+        - in: query
+          name: is_modal
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by modal status"
+        - in: query
+          name: is_ai
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by AI status"
+        - in: query
+          name: is_notebook
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by notebook status"
+        - in: query
+          name: type
+          type: string
+          required: false
+          enum: [apps, projects]
+          description: "Filter by type (apps or projects)"
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+      responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        401:
+          description: "Unauthorized"
+        500:
+          description: "Internal Server Error"
+
+
 components:
   securitySchemes:
     bearerAuth:

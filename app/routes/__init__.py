@@ -15,11 +15,12 @@ from app.controllers import (
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
     TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView, ProjectMigrationView,
-    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,GoogleOAuthView)
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,GoogleOAuthView, AdminReportingView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
+
 
 api = Api()
 
@@ -202,3 +203,7 @@ api.add_resource(SystemSummaryView, '/system_summary')
 # Send inactive user mail reminder
 api.add_resource(SendInactiveUserMailReminder, '/users/inactive_user_reminder',
                  endpoint='inactive_user_reminder')
+
+# get admin report
+api.add_resource(AdminReportingView, '/admin_report',
+                 endpoint='admin_report')
