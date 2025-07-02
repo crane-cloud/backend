@@ -1,3 +1,4 @@
+from app.helpers.role_search import has_admin_role
 from marshmallow import Schema, fields, validate, pre_load
 
 from .role import RoleSchema
@@ -38,10 +39,24 @@ class UserSchema(Schema):
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
     is_public = fields.Boolean()
-   
+    profile_picture = fields.String()
+
     def get_age(self, obj):
         return get_item_age(obj.date_created)
 
+class SimpleUserSchema(Schema):
+    id = fields.String(dump_only=True)
+    email = fields.Email(dump_only=True)
+    username = fields.String(dump_only=True)
+    name = fields.String(dump_only=True)
+    verified = fields.Boolean(dump_only=True)
+    profile_picture = fields.String(dump_only=True)
+    is_admin = fields.Method("get_is_admin", dump_only=True)
+
+    def get_is_admin(self, obj):
+        if has_admin_role(obj.roles):
+            return True
+        return False
 
 class UserListSchema(Schema):
     id = fields.String(dump_only=True)
@@ -49,6 +64,7 @@ class UserListSchema(Schema):
     name = fields.String(required=True)
     organisation = fields.String(required=True)
     last_seen = fields.Date(dump_only=True)
+    profile_picture = fields.String()
 
 
 class ActivityLogSchema(Schema):
