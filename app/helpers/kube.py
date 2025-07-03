@@ -623,7 +623,7 @@ def disable_user_app(app: App, is_admin=False):
         log_activity('App', status='Success',
                      operation='Disable',
                      description='Disabled app Successfully',
-                     a_project=app.project.id,
+                     a_project=app.project,
                      a_cluster_id=app.project.cluster_id)
         return True
 
@@ -632,7 +632,7 @@ def disable_user_app(app: App, is_admin=False):
         log_activity('App', status='Failed',
                      operation='Disable',
                      description='Error disabling application',
-                     a_project=app.project.id,
+                     a_project=app.project,
                      a_cluster_id=app.project.cluster_id)
         return SimpleNamespace(
             message=json.loads(e.body),
@@ -678,7 +678,7 @@ def enable_user_app(app: App):
         log_activity('App', status='Success',
                      operation='Enable',
                      description='Enabled app Successfully',
-                     a_project=app.project.id,
+                     a_project=app.project,
                      a_cluster_id=app.project.cluster_id)
         return True
 
@@ -687,7 +687,7 @@ def enable_user_app(app: App):
         log_activity('App', status='Failed',
                      operation='Enable',
                      description='Error enabling application',
-                     a_project=app.project.id,
+                     a_project=app.project,
                      a_cluster_id=app.project.cluster_id)
         return SimpleNamespace(
             message=json.loads(e.body),

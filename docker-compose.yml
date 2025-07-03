@@ -38,12 +38,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ckwagaba/osprey-backend:latest
+    image: cranecloud/cranecloud-backend:latest
     container_name: flask-api
     networks:
       - cranecloud
       - default
     environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
       KUBE_HOST:
       KUBE_TOKEN:
       KUBE_CERT:
@@ -84,7 +87,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ckwagaba/osprey-backend:latest
+    image: cranecloud/cranecloud-backend:latest
     container_name: celery-worker
     command: celery -A server.celery worker --loglevel=info
     environment:

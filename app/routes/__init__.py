@@ -15,11 +15,12 @@ from app.controllers import (
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
     TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView, ProjectMigrationView,
-    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,)
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,GoogleOAuthView)
 from app.controllers.app import AppRevisionsView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
+
 
 api = Api()
 
@@ -36,6 +37,7 @@ api.add_resource(ForgotPasswordView, '/users/forgot_password')
 api.add_resource(ResetPasswordView, '/users/reset_password/<string:token>')
 api.add_resource(UserDetailView, '/users/<string:user_id>')
 api.add_resource(OAuthView, '/users/oauth')
+api.add_resource(GoogleOAuthView, '/users/oauth/google')
 api.add_resource(UserDataSummaryView, '/users/graph')
 api.add_resource(UserAdminUpdateView, '/users/admin_update')
 api.add_resource(InActiveUsersView, '/users/inactive_users',

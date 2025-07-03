@@ -497,6 +497,29 @@ paths:
         401:
           description: "failed to authenticate user"
 
+  "/users/oauth/google":
+      get:
+        tags:
+          - auth
+        consumes:
+          - application/json
+        description: "Login with google oauth"
+        parameters:
+          - in: query
+            name: code
+            required: true
+            type: string
+        produces:
+          - application/json
+        responses:
+          200:
+            description: "success"
+          400:
+            description: "bad request"
+          401:
+            description: "failed to authenticate user"
+
+
   "/users/inactive_users":
     get:
       tags:
@@ -2555,6 +2578,10 @@ paths:
           type: string
           description: Enter keywords if searching
         - in: query
+          name: deleted
+          type: boolean
+          description: Show deleted projects
+        - in: query
           name: page
           type: integer
           description: Page number
@@ -2572,6 +2599,10 @@ paths:
           description: Shows the type of project. Corresponds to the predifined types like Research, Student, Personal, Commercial or Other.
         - in: query
           name: cluster_id
+          type: string
+          description: Get projects in a cluster
+        - in: query
+          name: user_id
           type: string
           description: Get projects in a cluster
         - in: query
@@ -3387,6 +3418,39 @@ paths:
           type: boolean
           description: Returns disabled applications
         - in: query
+          name: keyword
+          type: string
+          required: false
+          description: "keyword as search term"
+        - in: query
+          name: is_deleted
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by deleted status"
+        - in: query
+          name: cluster_id
+          type: string
+          required: false
+          description: "Filter by cluster ID"
+        - in: query
+          name: status
+          type: string
+          required: false
+          description: "Filter by status"
+        - in: query
+          name: is_modal
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by modal status"
+        - in: query
+          name: is_ai
+          type: string
+          required: false
+          enum: [true, false]
+          description: "Filter by AI status"
+        - in: query
           name: is_notebook
           type: boolean
           description: Returns applications with is_notebook set to true
@@ -4147,6 +4211,7 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
+
 
 components:
   securitySchemes:

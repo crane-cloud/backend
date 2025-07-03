@@ -128,6 +128,12 @@ class AppsView(Resource):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
+        keyword = request.args.get('keyword', None)
+        is_deleted = request.args.get('is_deleted', None)  # 'true' or 'false'
+        cluster_id = request.args.get('cluster_id', None)
+        status = request.args.get('status', None)  # 'running', 'down' or None
+        is_modal = request.args.get('is_modal', None)  # 'true' or 'false'
+        is_ai = request.args.get('is_ai', None)  # 'true' or 'false'
         disabled = request.args.get('disabled', None)
         is_notebook = request.args.get('is_notebook', None)
         app_name = request.args.get('app_name', None)
@@ -145,6 +151,8 @@ class AppsView(Resource):
         metadata = {
             'disabled': App.query.filter_by(disabled=True).count(),
             'is_notebook': App.query.filter_by(is_notebook=True).count(),
+            'is_modal': App.query.filter_by(is_modal=True).count(),
+            'is_ai': App.query.filter_by(is_ai=True).count(),
             'total_apps': App.query.count(),
             'failing_apps': AppState.query.filter_by(status="failed").count(),
             'running_apps': AppState.query.filter_by(status="running").count(),
@@ -169,6 +177,41 @@ class AppsView(Resource):
 
             if app_url:
                 query = query.filter_by(url=app_url)
+            
+            if is_modal:
+                is_modal_value = True if is_modal.lower() == 'true' else False
+                query = query.filter_by(is_modal=is_modal_value)
+            
+            if is_ai:
+                is_ai_value = True if is_ai.lower() == 'true' else False
+                query = query.filter_by(is_ai=is_ai_value)
+            
+            if is_deleted:
+                query = query.filter_by(deleted=True)
+
+            if graph_filter_data['start']:
+                start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
+                query = query.filter(Project.date_created >= start_date)
+
+            if graph_filter_data['end']:
+                end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
+                query = query.filter(Project.date_created <= end_date)
+            
+
+            
+            if keyword:
+                query = query.filter(App.name.ilike(f"%{keyword}%"))
+
+            if status == 'running':
+                query = query.join(AppState).filter(AppState.status == 'running')
+
+            if status == 'down':
+                # Show apps with any status except 'running'
+                query = query.join(AppState).filter(AppState.status != 'running')
+
+            if cluster_id:
+                # Filter apps by cluster_id via the related project
+                query = query.join(Project, App.project_id == Project.id).filter(Project.cluster_id == cluster_id)
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
