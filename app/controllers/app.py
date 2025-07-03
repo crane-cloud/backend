@@ -129,7 +129,7 @@ class AppsView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
         keyword = request.args.get('keyword', None)
-        is_deleted = request.args.get('is_deleted', 'false')  # 'true' or 'false'
+        is_deleted = request.args.get('is_deleted', None)  # 'true' or 'false'
         cluster_id = request.args.get('cluster_id', None)
         status = request.args.get('status', None)  # 'running', 'down' or None
         is_modal = request.args.get('is_modal', None)  # 'true' or 'false'
