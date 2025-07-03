@@ -138,6 +138,9 @@ jobs:
           --set environment.MLOPS_API_URL="${{ secrets.PRODUCTION_MLOPS_API_URL }}" \
           --set environment.SYSTEM_DOCKER_PASSWORD="${{ secrets.PRODUCTION_SYSTEM_DOCKER_PASSWORD }}" \
           --set environment.LOGGER_APP_URL="${{ secrets.PRODUCTION_LOGGER_APP_URL }}" \
+          --set environment.GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+          --set environment.GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+          --set environment.GOOGLE_REDIRECT_URI="${{ secrets.PRODUCTION_GOOGLE_REDIRECT_URI }}" \
           --timeout=300s
 
       - name: Monitor Rollout
