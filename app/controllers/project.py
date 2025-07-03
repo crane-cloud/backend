@@ -217,7 +217,7 @@ class ProjectsView(Resource):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords', '')
-        deleted = request.args.get('is_deleted', None)
+        user_id = request.args.get('user_id', None)
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
         cluster_id = request.args.get('cluster_id')
@@ -262,15 +262,14 @@ class ProjectsView(Resource):
                     value = value.lower() == 'true'
                 base_query = base_query.filter(getattr(Project, key) == value)
 
-        
 
         if not has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
                 ProjectUser.user_id == current_user_id)))
             
-        if deleted == True:
-            print('------')
-            base_query = base_query.filter(Project.deleted == True)
+        if user_id and has_role(current_user_roles, 'administrator'):
+            base_query = base_query.filter(or_(Project.owner_id == user_id, Project.users.any(
+                ProjectUser.user_id == user_id)))
         
         if graph_filter_data['start']:
             start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
