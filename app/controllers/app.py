@@ -188,6 +188,16 @@ class AppsView(Resource):
             
             if is_deleted:
                 query = query.filter_by(deleted=True)
+
+            if graph_filter_data['start']:
+                start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
+                query = query.filter(Project.date_created >= start_date)
+
+            if graph_filter_data['end']:
+                end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
+                query = query.filter(Project.date_created <= end_date)
+            
+
             
             if keyword:
                 query = query.filter(App.name.ilike(f"%{keyword}%"))
