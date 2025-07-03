@@ -217,6 +217,7 @@ class ProjectsView(Resource):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         keywords = request.args.get('keywords', '')
+        deleted = request.args.get('is_deleted', None)
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
         cluster_id = request.args.get('cluster_id')
@@ -235,7 +236,7 @@ class ProjectsView(Resource):
         filter_mapping = {
             'project_type': project_type,
             'cluster_id': cluster_id,
-            'disabled': disabled,
+            'disabled': disabled
         }
 
         # count items per project category
@@ -261,9 +262,23 @@ class ProjectsView(Resource):
                     value = value.lower() == 'true'
                 base_query = base_query.filter(getattr(Project, key) == value)
 
+        
+
         if not has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
                 ProjectUser.user_id == current_user_id)))
+            
+        if deleted == True:
+            print('------')
+            base_query = base_query.filter(Project.deleted == True)
+        
+        if graph_filter_data['start']:
+            start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
+            base_query = base_query.filter(Project.date_created >= start_date)
+
+        if graph_filter_data['end']:
+            end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
+            base_query = base_query.filter(Project.date_created <= end_date)
 
         try:
             if (keywords == ''):
