@@ -125,6 +125,7 @@ class AppsView(Resource):
             'set_by': request.args.get('set_by', 'month'),
             'disabled': request.args.get('disabled'),
         }
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
@@ -140,6 +141,8 @@ class AppsView(Resource):
         app_alias = request.args.get('app_alias', None)
         app_id = request.args.get('app_id', None)
         app_url = request.args.get('app_url', None)
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -186,18 +189,19 @@ class AppsView(Resource):
                 is_ai_value = True if is_ai.lower() == 'true' else False
                 query = query.filter_by(is_ai=is_ai_value)
             
-            if is_deleted:
+            if is_deleted == 'true':
                 query = query.filter_by(deleted=True)
 
-            if graph_filter_data['start']:
+            if start:
+                print(graph_filter_data.get('start'))
                 start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
                 query = query.filter(Project.date_created >= start_date)
 
-            if graph_filter_data['end']:
+            if end:
+                print(graph_filter_data.get('end'))
                 end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
                 query = query.filter(Project.date_created <= end_date)
             
-
             
             if keyword:
                 query = query.filter(App.name.ilike(f"%{keyword}%"))
@@ -212,6 +216,8 @@ class AppsView(Resource):
             if cluster_id:
                 # Filter apps by cluster_id via the related project
                 query = query.join(Project, App.project_id == Project.id).filter(Project.cluster_id == cluster_id)
+            
+            print(query)
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
