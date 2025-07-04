@@ -2,10 +2,12 @@ import json
 from math import ceil
 import os
 from types import SimpleNamespace
+from app.controllers import app
 from app.helpers.activity_logger import log_activity
 from app.helpers.inactiveUser_notification import send_inactive_notification_to_user
 from app.helpers.kube import disable_project, enable_project
 from app.helpers.role_search import has_admin_role
+from app.schemas.user import SimpleUserSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request, reqparse
 from flask_bcrypt import Bcrypt
@@ -379,21 +381,19 @@ class UserLoginView(Resource):
                     message="Internal Server Error"
                 ), 500
 
-            response_data = dict(
-                access_token=access_token,
-                email=user.email,
-                username=user.username,
-                verified=user.verified,
-                id=str(user.id)
-            )
+            login_schema = SimpleUserSchema()
 
-            # Only add is_admin field if user is an administrator
-            if has_admin_role(user.roles):
-                response_data['is_admin'] = True
+            user_data, errors = login_schema.dump(user)
 
+            if errors:
+                return dict(status='fail', message=errors), 400
+            
             return dict(
                 status='success',
-                data=response_data
+                data=dict(
+                    **user_data,
+                    access_token=access_token,    
+                )
             ), 200
 
         return dict(status='fail', message="login failed"), 401
@@ -559,21 +559,20 @@ class AdminLoginView(Resource):
             if not access_token:
                 return dict(
                     status="fail", message="Internal Server Error"), 500
-            response_data = dict(
-                access_token=access_token,
-                email=user.email,
-                username=user.username,
-                verified=user.verified,
-                id=str(user.id)
-            )
+            
+            login_schema = SimpleUserSchema()
 
-            # Only add is_admin field if user is an administrator
-            if has_admin_role(user.roles):
-                response_data['is_admin'] = True
+            user_data, errors = login_schema.dump(user)
 
+            if errors:
+                return dict(status='fail', message=errors), 400
+            
             return dict(
                 status='success',
-                data=response_data
+                data=dict(
+                    **user_data,
+                    access_token=access_token,    
+                )
             ), 200
 
         return dict(status='fail', message="login failed"), 401
@@ -860,16 +859,21 @@ class OAuthView(Resource):
                 message="Internal Server Error"
             ), 500
 
+        login_schema = SimpleUserSchema()
+
+        user_data, errors = login_schema.dump(user)
+
+        if errors:
+            return dict(status='fail', message=errors), 400
+            
         return dict(
             status='success',
             data=dict(
-                access_token=access_token,
-                email=user.email,
-                name=user.name,
-                username=user.username,
-                verified=user.verified,
-                id=str(user.id),
-            )), 200
+                **user_data,
+                access_token=access_token,    
+            )
+        ), 200
+            
 
 
 class ResetPasswordView(Resource):
@@ -1477,8 +1481,7 @@ class GoogleOAuthView(Resource):
                     status='fail',
                     message='No code received in query parameters'
                 ), 400
-
-
+        
         token_data = {
             'client_id': current_app.config.get('GOOGLE_CLIENT_ID'),
             'client_secret': current_app.config.get('GOOGLE_CLIENT_SECRET'),
@@ -1486,7 +1489,7 @@ class GoogleOAuthView(Resource):
             'grant_type': 'authorization_code',
             'redirect_uri': current_app.config.get('GOOGLE_REDIRECT_URI') ,
         }
-          
+
         try:
             token_response = requests.post(
                 url='https://oauth2.googleapis.com/token',
@@ -1560,7 +1563,6 @@ class GoogleOAuthView(Resource):
                     password=''.join((secrets.choice(string.ascii_letters) 
                                      for i in range(24))),
                 )
-                user.verified = verified_email
                 
                 saved_user = user.save()
                 
@@ -1569,6 +1571,19 @@ class GoogleOAuthView(Resource):
        
             user.name = name
             user.verified = verified_email
+
+            # Modify profile picture quality
+            picture_url = user_data.get('picture', '')
+            if picture_url:
+                # Size the picture to 400x400 if it has a size parameter
+                if '=s' in picture_url:
+                    # Replace existing low quality default size
+                    picture_url = picture_url.split('=s')[0] + '=s400'
+                elif picture_url.endswith('photo.jpg'):
+                    # Add size parameter if not present
+                    picture_url = picture_url + '?sz=400'
+
+            user.profile_picture = picture_url
             updated_user = user.save()
             
             if not updated_user:
@@ -1584,14 +1599,19 @@ class GoogleOAuthView(Resource):
             if not access_token:
                 return dict(status='fail', message="Failed to generate access token"), 500
             
+            
+            login_schema = SimpleUserSchema()
+
+            user_data, errors = login_schema.dump(user)
+
+            if errors:
+                return dict(status='fail', message=errors), 400
+            
             return dict(
                 status='success',
                 data=dict(
-                    access_token=access_token,
-                    email=user.email,
-                    name=user.name,
-                    verified=user.verified,
-                    id=str(user.id),
+                    **user_data,
+                    access_token=access_token,    
                 )
             ), 200
             

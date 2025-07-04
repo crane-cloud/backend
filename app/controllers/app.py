@@ -216,8 +216,6 @@ class AppsView(Resource):
             if cluster_id:
                 # Filter apps by cluster_id via the related project
                 query = query.join(Project, App.project_id == Project.id).filter(Project.cluster_id == cluster_id)
-            
-            print(query)
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)

@@ -55,6 +55,7 @@ class User(ModelMixin):
     is_public = db.Column(db.Boolean, default=True)
     followed_tags = db.relationship(
         'TagFollowers', back_populates='user')
+    profile_picture = db.Column(db.String(500), nullable=True, default='')
 
     def __init__(self, email, name, password, organisation=None):
         """ initialize with email, username and password """

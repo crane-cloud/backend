@@ -124,8 +124,8 @@ jobs:
           --set environment.KUBE_SERVICE_PORT="${{ secrets.STAGING_KUBE_SERVICE_PORT }}" \
           --set environment.LOGGER_APP_URL="${{ secrets.MICROSERVICE_LOGGER_APP_URL }}" \
           --set environment.MLOPS_API_URL="${{ secrets.MICROSERVICE_MLOPS_API_URL }}" \
-          --set environment.GOOGLE_CLIENT_ID="${{ secrets.STAGING_GOOGLE_CLIENT_ID }}" \
-          --set environment.GOOGLE_CLIENT_SECRET="${{ secrets.STAGING_GOOGLE_CLIENT_SECRET }}" \
+          --set environment.GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+          --set environment.GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
           --set environment.GOOGLE_REDIRECT_URI="${{ secrets.STAGING_GOOGLE_REDIRECT_URI }}" \
           --timeout=300s
 
