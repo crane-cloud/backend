@@ -193,12 +193,10 @@ class AppsView(Resource):
                 query = query.filter_by(deleted=True)
 
             if start:
-                print(graph_filter_data.get('start'))
                 start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
                 query = query.filter(Project.date_created >= start_date)
 
             if end:
-                print(graph_filter_data.get('end'))
                 end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
                 query = query.filter(Project.date_created <= end_date)
             
