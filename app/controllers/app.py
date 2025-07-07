@@ -130,7 +130,6 @@ class AppsView(Resource):
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
         keyword = request.args.get('keyword', None)
-        is_deleted = request.args.get('is_deleted', None)  # 'true' or 'false'
         cluster_id = request.args.get('cluster_id', None)
         status = request.args.get('status', None)  # 'running', 'down' or None
         is_modal = request.args.get('is_modal', None)  # 'true' or 'false'
@@ -187,19 +186,15 @@ class AppsView(Resource):
             
             if is_ai:
                 is_ai_value = True if is_ai.lower() == 'true' else False
-                query = query.filter_by(is_ai=is_ai_value)
-            
-            if is_deleted == 'true':
-                query = query.filter_by(deleted=True)
+                query = query.filter_by(is_ai=is_ai_value) 
 
             if start:
                 start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
-                query = query.filter(Project.date_created >= start_date)
+                query = query.filter(App.date_created >= start_date)
 
             if end:
                 end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
-                query = query.filter(Project.date_created <= end_date)
-            
+                query = query.filter(App.date_created <= end_date)
             
             if keyword:
                 query = query.filter(App.name.ilike(f"%{keyword}%"))
@@ -217,6 +212,8 @@ class AppsView(Resource):
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
+            
+            print(query)
 
             pagination = {
                 'total': paginated_apps.total,
@@ -226,9 +223,10 @@ class AppsView(Resource):
                 'next': paginated_apps.next_num,
                 'prev': paginated_apps.prev_num
             }
+
             apps = paginated_apps.items
             apps_data, errors = apps_schema.dumps(apps)
-
+            
             if errors:
                 return dict(status='fail', message=errors), 400
 
