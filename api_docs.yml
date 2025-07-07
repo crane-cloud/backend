@@ -3423,12 +3423,6 @@ paths:
           required: false
           description: "keyword as search term"
         - in: query
-          name: is_deleted
-          type: string
-          required: false
-          enum: [true, false]
-          description: "Filter by deleted status"
-        - in: query
           name: cluster_id
           type: string
           required: false

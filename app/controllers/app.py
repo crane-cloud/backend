@@ -33,6 +33,7 @@ from app.models import db
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 from app.helpers.dockerhub_images import docker_image_checker
+from app.helpers.date_parser import parse_date
 
 
 class AppsView(Resource):
@@ -125,11 +126,11 @@ class AppsView(Resource):
             'set_by': request.args.get('set_by', 'month'),
             'disabled': request.args.get('disabled'),
         }
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         series = request.args.get('series', False)
         keyword = request.args.get('keyword', None)
-        is_deleted = request.args.get('is_deleted', None)  # 'true' or 'false'
         cluster_id = request.args.get('cluster_id', None)
         status = request.args.get('status', None)  # 'running', 'down' or None
         is_modal = request.args.get('is_modal', None)  # 'true' or 'false'
@@ -140,6 +141,8 @@ class AppsView(Resource):
         app_alias = request.args.get('app_alias', None)
         app_id = request.args.get('app_id', None)
         app_url = request.args.get('app_url', None)
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
 
         if isinstance(series, str):
             series = series.lower() == 'true'
@@ -184,20 +187,15 @@ class AppsView(Resource):
             
             if is_ai:
                 is_ai_value = True if is_ai.lower() == 'true' else False
-                query = query.filter_by(is_ai=is_ai_value)
-            
-            if is_deleted:
-                query = query.filter_by(deleted=True)
+                query = query.filter_by(is_ai=is_ai_value) 
 
-            if graph_filter_data['start']:
-                start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
-                query = query.filter(Project.date_created >= start_date)
+            if start:
+                start_date = parse_date(start)
+                query = query.filter(App.date_created >= start_date)
 
-            if graph_filter_data['end']:
-                end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
-                query = query.filter(Project.date_created <= end_date)
-            
-
+            if end:
+                end_date = parse_date(end)
+                query = query.filter(App.date_created <= end_date)
             
             if keyword:
                 query = query.filter(App.name.ilike(f"%{keyword}%"))
@@ -215,6 +213,7 @@ class AppsView(Resource):
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
+            
 
             pagination = {
                 'total': paginated_apps.total,
@@ -224,9 +223,10 @@ class AppsView(Resource):
                 'next': paginated_apps.next_num,
                 'prev': paginated_apps.prev_num
             }
+
             apps = paginated_apps.items
             apps_data, errors = apps_schema.dumps(apps)
-
+            
             if errors:
                 return dict(status='fail', message=errors), 400
 
