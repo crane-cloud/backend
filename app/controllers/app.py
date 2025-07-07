@@ -191,12 +191,10 @@ class AppsView(Resource):
 
             if start:
                 start_date = parse_date(start)
-                print(start)
                 query = query.filter(App.date_created >= start_date)
 
             if end:
                 end_date = parse_date(end)
-                print(end_date)
                 query = query.filter(App.date_created <= end_date)
             
             if keyword:
