@@ -33,6 +33,7 @@ from app.models import db
 from app.helpers.crane_app_logger import logger
 from app.helpers.pagination import paginate
 from app.helpers.dockerhub_images import docker_image_checker
+from app.helpers.date_parser import parse_date
 
 
 class AppsView(Resource):
@@ -189,11 +190,13 @@ class AppsView(Resource):
                 query = query.filter_by(is_ai=is_ai_value) 
 
             if start:
-                start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
+                start_date = parse_date(start)
+                print(start)
                 query = query.filter(App.date_created >= start_date)
 
             if end:
-                end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
+                end_date = parse_date(end)
+                print(end_date)
                 query = query.filter(App.date_created <= end_date)
             
             if keyword:
@@ -213,7 +216,6 @@ class AppsView(Resource):
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
             
-            print(query)
 
             pagination = {
                 'total': paginated_apps.total,
