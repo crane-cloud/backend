@@ -24,7 +24,7 @@ from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
 from app.schemas.monitoring_metrics import BillingMetricsSchema, ProjectGraphSchema
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, and_
 from app.helpers.crane_app_logger import logger
 from flask import current_app, render_template
 from app.helpers.email import send_email
@@ -222,6 +222,9 @@ class ProjectsView(Resource):
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
         cluster_id = request.args.get('cluster_id')
+        start =  request.args.get('start', None)
+        end =  request.args.get('end', None)
+
 
         graph_filter_data = {
             'start': request.args.get('start', '2018-01-01'),
@@ -264,9 +267,30 @@ class ProjectsView(Resource):
                 base_query = base_query.filter(getattr(Project, key) == value)
 
 
+        pending_invitations =  []
+
         if not has_role(current_user_roles, 'administrator'):
-            base_query = base_query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-                ProjectUser.user_id == current_user_id)))
+            base_query = base_query.filter(or_(Project.owner_id == current_user_id,
+                Project.users.any(
+                    and_(
+                        ProjectUser.user_id == current_user_id,
+                        ProjectUser.accepted_collaboration_invite == True
+                    )
+                )
+            ))
+            pending_invitations_query = Project.query.filter(
+                Project.owner_id != current_user_id, 
+                Project.users.any(
+                    and_(
+                        ProjectUser.user_id == current_user_id,
+                        ProjectUser.accepted_collaboration_invite == False
+                    )
+                )
+            ).all()
+
+            pending_projects_data, pending_projects_errors = project_schema.dumps(pending_invitations_query)
+            print(pending_projects_errors)
+            pending_invitations = json.loads(pending_projects_data)
             
         if user_id and has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == user_id, Project.users.any(
@@ -275,12 +299,12 @@ class ProjectsView(Resource):
             if deleted:
                 base_query = base_query.filter_by(deleted=True)
         
-        if graph_filter_data['start']:
-            start_date = datetime.datetime.strptime(graph_filter_data['start'], '%Y-%m-%d')
+        if start:
+            start_date = datetime.datetime.strptime(start, '%Y-%m-%d')
             base_query = base_query.filter(Project.date_created >= start_date)
 
-        if graph_filter_data['end']:
-            end_date = datetime.datetime.strptime(graph_filter_data['end'], '%Y-%m-%d')
+        if end:
+            end_date = datetime.datetime.strptime(end, '%Y-%m-%d')
             base_query = base_query.filter(Project.date_created <= end_date)
 
         try:
@@ -353,13 +377,17 @@ class ProjectsView(Resource):
                 )
             ), 200
 
+        response_data = dict(
+            metadata=project_metadata,
+            pagination=pagination_data,
+            projects=json.loads(project_data)
+        )
+        if pending_invitations:
+            response_data['pending_invitations'] = pending_invitations
+
         return dict(
             status='success',
-            data=dict(
-                metadata=project_metadata,
-                pagination=pagination_data,
-                projects=json.loads(project_data)
-            )
+            data=response_data
         ), 200
 
 

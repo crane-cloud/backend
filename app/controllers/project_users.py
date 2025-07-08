@@ -60,7 +60,7 @@ class ProjectUsersView(Resource):
                 email=anonymous_user_email, project_id=project.id)
 
             if anonymous_user_exists:
-                return dict(status='fail', message='Annoymous user already exists'), 500
+                return dict(status='fail', message='Anonymous user already exists'), 500
 
             role = validated_project_user_data.get('role', None)
             if role == 'owner':
@@ -97,7 +97,7 @@ class ProjectUsersView(Resource):
                 email_role,
                 success)
 
-            return dict(status='success', message='Anymous user successfully added to project'), 201
+            return dict(status='success', message='Anonymous user successfully added to project'), 201
 
         existing_user = ProjectUser.find_first(
             user_id=user.id, project_id=project.id)
@@ -116,7 +116,7 @@ class ProjectUsersView(Resource):
 
         if not resend_invite:
             new_role = ProjectUser(
-                role=role, user_id=user.id, accepted_collaboration_invite=False)
+                role=role, user_id=user.id, project_id=project.id, accepted_collaboration_invite=False)
             project.users.append(new_role)
 
             saved_project_user = project.save()
