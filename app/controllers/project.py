@@ -290,7 +290,7 @@ class ProjectsView(Resource):
 
             pending_projects_data, pending_projects_errors = project_schema.dumps(pending_invitations_query)
             
-            if pending_projects_errors:
+            if not pending_projects_errors:
                 pending_invitations = json.loads(pending_projects_data)
             
         if user_id and has_role(current_user_roles, 'administrator'):
