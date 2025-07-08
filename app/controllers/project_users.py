@@ -116,7 +116,7 @@ class ProjectUsersView(Resource):
 
         if not resend_invite:
             new_role = ProjectUser(
-                role=role, user_id=user.id, project_id=project.id, accepted_collaboration_invite=False)
+                role=role, user_id=user.id, accepted_collaboration_invite=False)
             project.users.append(new_role)
 
             saved_project_user = project.save()
