@@ -289,8 +289,9 @@ class ProjectsView(Resource):
             ).all()
 
             pending_projects_data, pending_projects_errors = project_schema.dumps(pending_invitations_query)
-            print(pending_projects_errors)
-            pending_invitations = json.loads(pending_projects_data)
+            
+            if pending_projects_errors:
+                pending_invitations = json.loads(pending_projects_data)
             
         if user_id and has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == user_id, Project.users.any(
