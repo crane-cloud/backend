@@ -551,7 +551,7 @@ class MLProjectAppsView(Resource):
             cluster=cluster_json
         )
 
-        mlops_deploy_url = "http://192.168.130.221:4400/apps"
+        mlops_deploy_url = f"{current_app.config['MLOPS_API_URL']}/apps"
 
         headers = {'Content-Type': 'application/json',
                    'Authorization': request.headers.get('Authorization')}
