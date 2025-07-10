@@ -1,4 +1,3 @@
-from urllib.parse import urlsplit
 from app.helpers.alias import create_alias
 import os
 from app.helpers.dockerhub_images import docker_image_checker
@@ -253,14 +252,15 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
         service_meta = client.V1ObjectMeta(
             name=service_name,
-            labels={'app': app_alias}
+            labels={'app': app_alias, 'app.kubernetes.io/instance': app_alias}
         )
 
         service_spec = client.V1ServiceSpec(
             type='ClusterIP',
             ports=[client.V1ServicePort(
                 port=int(current_app.config['KUBE_SERVICE_PORT']), target_port=app_port)],
-            selector={'app': app_alias}
+            selector={'app': app_alias,
+                      'app.kubernetes.io/instance': app_alias}
         )
 
         service = client.V1Service(

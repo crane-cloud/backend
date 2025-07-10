@@ -51,6 +51,7 @@ class AppSchema(Schema):
     model_image_uri = fields.Str(required=False)
     api_type = fields.Str(required=False)
     model_server = fields.Str(required=False)
+    task = fields.Str(required=False)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
