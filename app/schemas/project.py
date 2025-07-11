@@ -3,7 +3,7 @@ from app.helpers.age_utility import get_item_age
 from app.models.app import App
 from flask_jwt_extended import get_jwt_identity
 from app.models.user import User
-from app.models.project_users import ProjectFollowers
+from app.models.project_users import ProjectFollowers, ProjectUser
 
 
 class ProjectMiniListSchema(Schema):
@@ -67,6 +67,7 @@ class ProjectSchema(Schema):
     admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
     followers_count = fields.Method("get_followers_count", dump_only=True)
+    members_count = fields.Method("get_members_count", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
     is_public = fields.Boolean()
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
@@ -90,6 +91,9 @@ class ProjectSchema(Schema):
 
     def get_followers_count(self, obj):
         return ProjectFollowers.count(project_id=obj.id)
+    
+    def get_members_count(self, obj):
+        return ProjectUser.count(project_id=obj.id)
 
     def get_supports_ml(self, obj):
         return obj.cluster.supports_ml
