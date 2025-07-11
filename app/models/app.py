@@ -35,3 +35,4 @@ class App(ModelMixin):
     model_image_uri = db.Column(db.String(256), nullable=True)
     api_type = db.Column(db.String(256), nullable=True)
     model_server = db.Column(db.String(256), nullable=True)
+    task = db.Column(db.String(256), nullable=True)

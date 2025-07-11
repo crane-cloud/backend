@@ -1,4 +1,6 @@
 
-def get_app_subdomain(alias, domain):
+from app.helpers.alias import shorten_alias
 
-    return f'{alias}.{domain}'
+
+def get_app_subdomain(alias, domain):
+    return f'{shorten_alias(alias)}.{domain}'
