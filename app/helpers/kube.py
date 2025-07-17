@@ -573,21 +573,22 @@ def delete_cluster_app(kube_client, namespace, app):
         if e.status != 404:
             return dict(status='fail', message=str(e)), 500
 
-    # delete pvc
-    pvc_name = f'{app.alias}-pvc'
-    try:
-        pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
-            name=pvc_name,
-            namespace=namespace
-        )
-
-        if pvc:
-            kube_client.kube.delete_namespaced_persistent_volume_claim(
+    # delete pvc (this makes sure that notebooks that where created by this typo  "-pvc-pvc" get deleted)
+    for pvc_suffix in ['-pvc', '-pvc-pvc']:
+        pvc_name = f'{app.alias}{pvc_suffix}'
+        try:
+            pvc = kube_client.kube.read_namespaced_persistent_volume_claim(
                 name=pvc_name,
                 namespace=namespace
             )
-    except:
-        pass
+
+            if pvc:
+                kube_client.kube.delete_namespaced_persistent_volume_claim(
+                    name=pvc_name,
+                    namespace=namespace
+                )
+        except:
+            pass
 
 
 def disable_user_app(app: App, is_admin=False):
