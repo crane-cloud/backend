@@ -32,6 +32,7 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
     batchv1_api = client.BatchV1Api(client.ApiClient(config))
     storageV1Api = client.StorageV1Api(client.ApiClient(config))
     networking_api = client.NetworkingV1Api(client.ApiClient(config))
+    custom_objects_api = client.CustomObjectsApi(client.ApiClient(config))
 
     # return kube, extension_api, appsv1_api, api_client, batchv1_api, storageV1Api
     return SimpleNamespace(
@@ -41,7 +42,8 @@ def create_kube_clients(kube_host=os.getenv('KUBE_HOST'), kube_token=os.getenv('
         appsv1_api=appsv1_api,
         api_client=api_client,
         batchv1_api=batchv1_api,
-        storageV1Api=storageV1Api
+        storageV1Api=storageV1Api,
+        custom_objects_api=custom_objects_api
     )
 
 
@@ -537,17 +539,39 @@ def delete_cluster_app(kube_client, namespace, app):
     deployment_name = f'{app.alias}-deployment'
     service_name = f'{app.alias}-service'
     try:
+        #  since modal deployments are custom resources, this will cause a 404 if it doesn't work
+        if getattr(app, "is_modal", False):
+            # as regards seldon core modals, this should delete it all, services, deployments and pods
+            seldon_name = app.alias
 
-        deployment = kube_client.appsv1_api.read_namespaced_deployment(
-            name=deployment_name,
-            namespace=namespace
-        )
+            seldon_dep = kube_client.custom_objects_api.get_namespaced_custom_object(
+                group="machinelearning.seldon.io",
+                version="v1",
+                namespace=namespace,
+                plural="seldondeployments",
+                name=seldon_name
+            )
+            if seldon_dep:
+                kube_client.custom_objects_api.delete_namespaced_custom_object(
+                    group="machinelearning.seldon.io",
+                    version="v1",
+                    namespace=namespace,
+                    plural="seldondeployments",
+                    name=seldon_name
+                )
+                logger.info(f"SeldonDeployment {app.alias} deleted successfully.")
 
-        if deployment:
-            kube_client.appsv1_api.delete_namespaced_deployment(
+        else:
+            deployment = kube_client.appsv1_api.read_namespaced_deployment(
                 name=deployment_name,
                 namespace=namespace
             )
+
+            if deployment:
+                kube_client.appsv1_api.delete_namespaced_deployment(
+                    name=deployment_name,
+                    namespace=namespace
+                )  
 
         service = kube_client.kube.read_namespaced_service(
             name=service_name,
@@ -564,6 +588,7 @@ def delete_cluster_app(kube_client, namespace, app):
             name=app.alias,
             namespace=namespace
         )
+        
         kube_client.kube.delete_namespaced_secret(
             name=app.alias,
             namespace=namespace
