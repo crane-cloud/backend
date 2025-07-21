@@ -245,6 +245,7 @@ class ProjectsView(Resource):
 
         # count items per project category
         project_metadata = {}
+        project_metadata['total_projects'] = Project.query.count()
         for category in filter_mapping.keys():
             distinct_counts = Project.query.with_entities(getattr(Project, category), func.count(
                 getattr(Project, category))).group_by(getattr(Project, category)).all()
