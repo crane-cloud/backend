@@ -1,4 +1,4 @@
-from .user import UserSchema, ActivityLogSchema
+from .user import UserSchema, ActivityLogSchema, LoginSchema
 from .deployment import DeploymentSchema
 from .cluster import ClusterSchema
 from .role import RoleSchema

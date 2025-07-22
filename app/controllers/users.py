@@ -11,7 +11,7 @@ from app.schemas.user import SimpleUserSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request, reqparse
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
+from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema, LoginSchema
 from app.models.user import User
 from app.models.project_users import ProjectFollowers
 from app.models.role import Role
@@ -37,6 +37,7 @@ from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
 from app.helpers.email_validator import validate_and_generate_username, check_username_availability
+from app.helpers.user_finder import find_user_by_email_or_username
 
 
 class UsersView(Resource):
@@ -342,10 +343,10 @@ class UserLoginView(Resource):
 
     def post(self):
         """
+        Login with email or username
         """
 
-        user_schema = UserSchema(only=("email", "password"))
-
+        login_schema = LoginSchema()
         token_schema = UserSchema()
 
         login_data = request.get_json()
@@ -353,18 +354,19 @@ class UserLoginView(Resource):
         if login_data is None:
             return {"message": "No input data provided"}, 400
 
-        validated_user_data, errors = user_schema.load(login_data)
+        validated_login_data, errors = login_schema.load(login_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
-        email = validated_user_data.get('email', None)
-        password = validated_user_data.get('password', None)
+        username = validated_login_data.get('username', None)
+        password = validated_login_data.get('password', None)
 
-        user = User.find_first(email=email)
+        # Find user by email or username
+        user = find_user_by_email_or_username(username)
 
         if not user:
-            return dict(status='fail', message="login failed"), 401
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         if user.disabled:
             return dict(
@@ -376,15 +378,19 @@ class UserLoginView(Resource):
         if not user.verified:
             return dict(
                 status='fail',
-                message='email not verified', data=dict(verified=user.verified)
+                message='Email not verified', data=dict(verified=user.verified)
             ), 401
+
+        # Check password
+        if not user.password_is_valid(password):
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         # Updating user's last login
         user.last_seen = datetime.now()
         user.save()
 
         user_dict, errors = token_schema.dump(user)
-        if user and user.password_is_valid(password):
+        if user:
 
             access_token = user.generate_token(user_dict)
 
@@ -410,7 +416,7 @@ class UserLoginView(Resource):
                 )
             ), 200
 
-        return dict(status='fail', message="login failed"), 401
+        return dict(status='fail', message="Login failed"), 401
 
 
 class UserDetailView(Resource):
@@ -535,27 +541,28 @@ class AdminLoginView(Resource):
 
     def post(self):
         """
+        Admin login with email or username
         """
 
-        user_schema = UserSchema(only=("email", "password"))
-
+        login_schema = LoginSchema()
         token_schema = UserSchema()
 
         login_data = request.get_json()
 
-        validated_user_data, errors = user_schema.load(login_data)
+        validated_login_data, errors = login_schema.load(login_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
-        email = validated_user_data.get('email', None)
-        password = validated_user_data.get('password', None)
+        username = validated_login_data.get('username', None)
+        password = validated_login_data.get('password', None)
 
-        user = User.find_first(email=email)
+        # Find user by email or username
+        user = find_user_by_email_or_username(username)
         admin_role = Role.find_first(name='administrator')
 
         if not user or not admin_role or (admin_role not in user.roles):
-            return dict(status='fail', message="login failed"), 401
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         if not user.verified:
             return dict(
@@ -564,9 +571,13 @@ class AdminLoginView(Resource):
                 data=dict(verified=user.verified)
             ), 401
 
+        # Check password
+        if not user.password_is_valid(password):
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
+
         user_dict, errors = token_schema.dump(user)
 
-        if user and user.password_is_valid(password):
+        if user:
 
             access_token = user.generate_token(user_dict)
 
@@ -589,7 +600,7 @@ class AdminLoginView(Resource):
                 )
             ), 200
 
-        return dict(status='fail', message="login failed"), 401
+        return dict(status='fail', message="Login failed"), 401
 
 
 class UserEmailVerificationView(Resource):

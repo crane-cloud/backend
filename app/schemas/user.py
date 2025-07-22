@@ -1,9 +1,25 @@
 from app.helpers.role_search import has_admin_role
-from marshmallow import Schema, fields, validate, pre_load
+from marshmallow import Schema, fields, validate, pre_load, ValidationError
+from app.helpers.user_finder import validate_login_identifier
 
 from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
 from .credits import CreditSchema
+
+
+class EmailOrUsernameField(fields.String):
+    """Custom field that accepts either email or username"""
+
+    def _validate(self, value):
+        """Validate the email or username"""
+        if not value:
+            raise ValidationError('Username or email is required')
+
+        validation_result = validate_login_identifier(value)
+        if not validation_result['valid']:
+            raise ValidationError(validation_result['message'])
+
+        return value
 
 
 class UserSchema(Schema):
@@ -55,6 +71,46 @@ class UserSchema(Schema):
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
+
+class LoginSchema(Schema):
+    """Schema for login with email or username - supports both 'email' and 'username' fields"""
+    username = EmailOrUsernameField(required=False, error_message={
+        "required": "Username or email is required"
+    })
+    email = fields.String(required=False)  # For backward compatibility
+    password = fields.String(required=True, error_message={
+        "required": "Password is required"
+    })
+
+    @pre_load
+    def process_email_to_username(self, data, **kwargs):
+        """If email is passed, use its value to fill username field"""
+        if isinstance(data, dict):
+            # If email is provided but username is not, use email value for username
+            if 'email' in data and 'username' not in data:
+                data['username'] = data['email']
+            # If both email and username are provided, username takes precedence
+            elif 'email' in data and 'username' in data:
+                # Username takes precedence, remove email from data
+                pass
+            # Remove email from final data as we only use username internally
+            if 'email' in data:
+                data.pop('email', None)
+        return data
+
+    def validate(self, data, **kwargs):
+        """Custom validation to ensure either username or email is provided"""
+        errors = {}
+        if not data.get('username'):
+            errors['username'] = ['Username or email is required']
+
+        # Call parent validation
+        parent_errors = super().validate(data, **kwargs)
+        if parent_errors:
+            errors.update(parent_errors)
+
+        return errors if errors else {}
 
 
 class SimpleUserSchema(Schema):
