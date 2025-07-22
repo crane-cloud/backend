@@ -4,6 +4,8 @@ from marshmallow import Schema, fields, validate, pre_load
 from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
 from .credits import CreditSchema
+
+
 class UserSchema(Schema):
     id = fields.String(dump_only=True)
 
@@ -15,6 +17,16 @@ class UserSchema(Schema):
                 regex=r'^(?!\s*$)', error='name should be a valid string'
             ),
     ])
+    username = fields.String(required=False, error_message={
+        "required": "username is required"},
+        validate=[
+            validate.Regexp(
+                regex=r'^[a-zA-Z0-9_-]+$', error='username should contain only letters, numbers, underscores, and hyphens'
+            ),
+            validate.Length(
+                min=3, max=30, error='username must be between 3 and 30 characters')
+    ]
+    )
     password = fields.String(load_only=True, required=True, error_message={
         "required": "password is required"},
         validate=[
@@ -31,10 +43,10 @@ class UserSchema(Schema):
     credits = fields.Nested(CreditSchema, many=True, dump_only=True)
     organisation = fields.String(required=True, error_message={
         "required": "Organisation name is required"},
-         validate=[
-            validate.Regexp(
-                regex=r'^(?!\s*$)', error='Organisations should be a valid string'
-            ),
+        validate=[
+        validate.Regexp(
+            regex=r'^(?!\s*$)', error='Organisations should be a valid string'
+        ),
     ])
     disabled = fields.Boolean(dump_only=True)
     admin_disabled = fields.Boolean(dump_only=True)
@@ -43,6 +55,7 @@ class UserSchema(Schema):
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+
 
 class SimpleUserSchema(Schema):
     id = fields.String(dump_only=True)
@@ -57,6 +70,7 @@ class SimpleUserSchema(Schema):
         if has_admin_role(obj.roles):
             return True
         return False
+
 
 class UserListSchema(Schema):
     id = fields.String(dump_only=True)

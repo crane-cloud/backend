@@ -17,12 +17,15 @@ paths:
             required:
               - email
               - name
+              - username
               - password
               - organisation
             properties:
               email:
                 type: string
               name:
+                type: string
+              username:
                 type: string
               password:
                 type: string

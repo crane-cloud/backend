@@ -8,6 +8,7 @@ from datetime import timedelta
 from ..models import db
 
 from app.models.model_mixin import ModelMixin
+from app.helpers.email_validator import validate_and_generate_username
 
 
 class Followers(ModelMixin):
@@ -35,12 +36,14 @@ class User(ModelMixin):
                    server_default=sa_text("uuid_generate_v4()"))
     email = db.Column(db.String(256), unique=True, nullable=False, default="")
     name = db.Column(db.String(256), nullable=False, default="")
-    username = db.Column(db.String(256), nullable=False, default="")
+    username = db.Column(db.String(256), unique=True,
+                         nullable=False, default="")
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
-    last_reminder_sent = db.Column(db.DateTime, default=db.func.current_timestamp())
+    last_reminder_sent = db.Column(
+        db.DateTime, default=db.func.current_timestamp())
     projects = db.relationship('Project', backref='owner', lazy=True)
     organisation = db.Column(db.String(256), nullable=True, default="")
     other_projects = db.relationship('ProjectUser', back_populates='user')
@@ -57,11 +60,20 @@ class User(ModelMixin):
         'TagFollowers', back_populates='user')
     profile_picture = db.Column(db.String(500), nullable=True, default='')
 
-    def __init__(self, email, name, password, organisation=None):
+    def __init__(self, email, name, password, organisation=None, username=None):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
-        self.username = name
+
+        # Use reusable username validation function
+        from app.models import db
+        username_result = validate_and_generate_username(
+            username=username,
+            name=name,
+            db_session=db.session
+        )
+        self.username = username_result.get('username', 'user')
+
         self.organisation = organisation
         self.password = Bcrypt().generate_password_hash(password).decode()
 
