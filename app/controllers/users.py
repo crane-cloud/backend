@@ -429,12 +429,15 @@ class UserDetailView(Resource):
         current_user_id = get_jwt_identity()
         current_user = User.get_by_id(current_user_id)
 
-        user = User.get_by_id(user_id)
+        user = User.find_first(username=(user_id))
+
+        if not user:
+            user = User.get_by_id(user_id)
 
         if not user:
             return dict(
                 status='fail',
-                message=f'user {user_id} not found'
+                message=f'user with id or username {user_id} not found'
             ), 404
 
         user_data, errors = user_schema.dumps(user)
@@ -443,7 +446,7 @@ class UserDetailView(Resource):
         count_of_projects_followers = (
             db.session.query(func.count(ProjectFollowers.user_id))
             .join(Project, ProjectFollowers.project_id == Project.id)
-            .filter(Project.owner_id == user_id)
+            .filter(Project.owner_id == user.id)
             .scalar()
         )
 

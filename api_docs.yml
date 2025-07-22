@@ -191,6 +191,7 @@ paths:
           description: "Bearer [token]"
         - in: path
           name: user_id
+          description: "User ID or username"
           required: true
           type: string
 
@@ -231,6 +232,14 @@ paths:
               is_public:
                 type: boolean
               organisation:
+                type: string
+              biography:
+                type: string
+              social_links:
+                type: object
+              profile_picture:
+                type: string
+              username:
                 type: string
       responses:
         200:
