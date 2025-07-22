@@ -500,7 +500,8 @@ class UserDetailView(Resource):
         try:
 
             user_schema = UserSchema(
-                only=("name", "is_public", "organisation"), partial=True)
+                only=("name", "is_public", "organisation", "biography", "social_links",
+                      "profile_picture", "username"), partial=True)
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()

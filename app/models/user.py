@@ -1,5 +1,5 @@
 from flask import current_app
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy import text as sa_text
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
@@ -59,6 +59,8 @@ class User(ModelMixin):
     followed_tags = db.relationship(
         'TagFollowers', back_populates='user')
     profile_picture = db.Column(db.String(500), nullable=True, default='')
+    biography = db.Column(db.String(500), nullable=True, default="")
+    social_links = db.Column(JSONB, nullable=True, default={})
 
     def __init__(self, email, name, password, organisation=None, username=None):
         """ initialize with email, username and password """

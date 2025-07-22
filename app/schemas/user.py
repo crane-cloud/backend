@@ -1,6 +1,7 @@
 from app.helpers.role_search import has_admin_role
 from marshmallow import Schema, fields, validate, pre_load, ValidationError
 from app.helpers.user_finder import validate_login_identifier
+import re
 
 from .role import RoleSchema
 from app.helpers.age_utility import get_item_age
@@ -18,6 +19,43 @@ class EmailOrUsernameField(fields.String):
         validation_result = validate_login_identifier(value)
         if not validation_result['valid']:
             raise ValidationError(validation_result['message'])
+
+        return value
+
+
+class SocialLinksField(fields.Dict):
+    """Custom field for social links with predefined acceptable keys"""
+
+    ALLOWED_PLATFORMS = {
+        'twitter', 'facebook', 'instagram', 'linkedin', 'github',
+        'gitlab', 'bitbucket', 'stackoverflow', 'youtube', 'tiktok',
+        'discord', 'telegram', 'whatsapp', 'website', 'blog', 'portfolio'
+    }
+
+    def _validate(self, value):
+        """Validate that only allowed keys are used"""
+        if not isinstance(value, dict):
+            raise ValidationError('Social links must be a dictionary')
+
+        # Check for invalid keys
+        invalid_keys = set(value.keys()) - self.ALLOWED_PLATFORMS
+        if invalid_keys:
+            raise ValidationError(
+                f"Invalid social platform(s): {', '.join(invalid_keys)}. "
+                f"Allowed platforms: {', '.join(sorted(self.ALLOWED_PLATFORMS))}"
+            )
+
+        # Validate URLs
+        url_pattern = r'^https?://[^\s/$.?#].[^\s]*$|^@[a-zA-Z0-9_]+$'
+        for platform, url in value.items():
+            if not isinstance(url, str) or not url.strip():
+                raise ValidationError(
+                    f"URL for {platform} must be a non-empty string")
+
+            # Basic URL validation (you can make this more sophisticated)
+            if not re.match(url_pattern, url.strip()):
+                raise ValidationError(
+                    f"Invalid URL format for {platform}: {url}")
 
         return value
 
@@ -68,6 +106,12 @@ class UserSchema(Schema):
     admin_disabled = fields.Boolean(dump_only=True)
     is_public = fields.Boolean()
     profile_picture = fields.String()
+    biography = fields.String()
+    social_links = SocialLinksField(
+        missing={},
+        allow_none=True,
+        error_message="Invalid social links format"
+    )
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
