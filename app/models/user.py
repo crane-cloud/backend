@@ -62,7 +62,7 @@ class User(ModelMixin):
     biography = db.Column(db.String(500), nullable=True, default="")
     social_links = db.Column(JSONB, nullable=True, default={})
 
-    def __init__(self, email, name, password, organisation=None, username=None):
+    def __init__(self, email, name, password, organisation=None, username=None, **kwargs):
         """ initialize with email, username and password """
         self.email = email
         self.name = name
@@ -78,6 +78,11 @@ class User(ModelMixin):
 
         self.organisation = organisation
         self.password = Bcrypt().generate_password_hash(password).decode()
+
+        # Handle additional fields like social_links
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
     def password_is_valid(self, password):
         """ checks the password against it's hash to validate the user's password """

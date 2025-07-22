@@ -1,5 +1,5 @@
 from app.helpers.role_search import has_admin_role
-from marshmallow import Schema, fields, validate, pre_load, ValidationError
+from marshmallow import Schema, fields, validate, pre_load, ValidationError, validates_schema
 from app.helpers.user_finder import validate_login_identifier
 import re
 
@@ -143,18 +143,15 @@ class LoginSchema(Schema):
                 data.pop('email', None)
         return data
 
-    def validate(self, data, **kwargs):
+    @validates_schema
+    def validate_username_or_email(self, data, **kwargs):
         """Custom validation to ensure either username or email is provided"""
         errors = {}
         if not data.get('username'):
             errors['username'] = ['Username or email is required']
 
-        # Call parent validation
-        parent_errors = super().validate(data, **kwargs)
-        if parent_errors:
-            errors.update(parent_errors)
-
-        return errors if errors else {}
+        if errors:
+            raise ValidationError(errors)
 
 
 class SimpleUserSchema(Schema):

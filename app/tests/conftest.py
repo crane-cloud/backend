@@ -13,8 +13,8 @@ from server import create_app, db
 @pytest.fixture(scope='function')
 def new_user(test_client):
     user = User(
-        email='rhodin@cranecloud.io', password='test_password', name='test_name' , organisation='Makerere')
-    user.verified=True
+        email='rhodin@cranecloud.io', password='test_password', name='test_name', organisation='Makerere', username='rhodin')
+    user.verified = True
     user.save()
     return user
 
@@ -29,10 +29,34 @@ def test_client():
     with flask_app.test_client() as testing_client:
         # Establish an application context
         with flask_app.app_context():
-            # create the database and database tables
-            db.engine.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
-            db.create_all()
-            create_default_roles()
+            try:
+                # Try to create the test database if it doesn't exist
+                # First connect to postgres database to create test database
+                from sqlalchemy import create_engine
+                from sqlalchemy_utils import database_exists, create_database
+
+                # Get the database URI and extract components
+                db_uri = flask_app.config['SQLALCHEMY_DATABASE_URI']
+
+                # Create test database if it doesn't exist
+                if not database_exists(db_uri):
+                    create_database(db_uri)
+
+                # create the database and database tables
+                db.engine.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+                db.create_all()
+                create_default_roles()
+
+            except Exception as e:
+                print(f"Database setup error: {e}")
+                # Fallback: try to create tables anyway
+                try:
+                    db.create_all()
+                    create_default_roles()
+                except Exception as e2:
+                    print(f"Fallback database setup also failed: {e2}")
+                    raise
+
             yield testing_client  # this is where the testing happens
             db.session.remove()
             db.drop_all()
@@ -46,7 +70,8 @@ def login_user(test_client):
     user_dict, errors = token_schema.dump(user)
     access_token = user.generate_token(user_dict)
     return SimpleNamespace(headers={'Authorization': 'Bearer {}'.format(access_token)},
-                             user=user)
+                           user=user)
+
 
 @pytest.fixture(scope='function')
 def admin_login_user(test_client):
@@ -56,4 +81,4 @@ def admin_login_user(test_client):
     user_dict, errors = token_schema.dump(admin)
     access_token = admin.generate_token(user_dict)
     return SimpleNamespace(headers={'Authorization': 'Bearer {}'.format(access_token)},
-                             admin=admin)
+                           admin=admin)
