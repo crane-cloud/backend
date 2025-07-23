@@ -10,9 +10,9 @@ def test_get_user_info(test_client, login_user):
     THEN check that the response is valid
     """
     response = test_client.get(
-        f'/users/{login_user.user.id}', 
+        f'/users/{login_user.user.username}',
         headers=login_user.headers
-        )
+    )
     assert response.status_code == 200
 
 
@@ -24,8 +24,8 @@ def test_get_all_users_admin(test_client, admin_login_user):
     """
 
     response = test_client.get(
-        f'/users', 
+        f'/users',
         headers=admin_login_user.headers
-        )
-        
+    )
+
     assert response.status_code == 200

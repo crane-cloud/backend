@@ -11,7 +11,7 @@ from app.schemas.user import SimpleUserSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request, reqparse
 from flask_bcrypt import Bcrypt
-from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema
+from app.schemas import UserSchema, UserGraphSchema, ActivityLogSchema, LoginSchema
 from app.models.user import User
 from app.models.project_users import ProjectFollowers
 from app.models.role import Role
@@ -36,8 +36,8 @@ from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
-
-from app.helpers.email_validator import is_valid_email
+from app.helpers.email_validator import validate_and_generate_username, check_username_availability
+from app.helpers.user_finder import find_user_by_email_or_username
 
 
 class UsersView(Resource):
@@ -84,6 +84,21 @@ class UsersView(Resource):
                 message=f"Email {validated_user_data['email']} already in use."
             ), 400
 
+        # Handle username validation and generation
+        from app.models import db
+        username_result = validate_and_generate_username(
+            username=validated_user_data.get('username'),
+            name=validated_user_data.get('name'),
+            db_session=db.session
+        )
+
+        if not username_result['success']:
+            return dict(
+                status="fail",
+                message=username_result['message']
+            ), 400
+
+        validated_user_data['username'] = username_result['username']
         user = User(**validated_user_data)
 
         if user_role:
@@ -328,10 +343,10 @@ class UserLoginView(Resource):
 
     def post(self):
         """
+        Login with email or username
         """
 
-        user_schema = UserSchema(only=("email", "password"))
-
+        login_schema = LoginSchema()
         token_schema = UserSchema()
 
         login_data = request.get_json()
@@ -339,18 +354,19 @@ class UserLoginView(Resource):
         if login_data is None:
             return {"message": "No input data provided"}, 400
 
-        validated_user_data, errors = user_schema.load(login_data)
+        validated_login_data, errors = login_schema.load(login_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
-        email = validated_user_data.get('email', None)
-        password = validated_user_data.get('password', None)
+        username = validated_login_data.get('username', None)
+        password = validated_login_data.get('password', None)
 
-        user = User.find_first(email=email)
+        # Find user by email or username
+        user = find_user_by_email_or_username(username)
 
         if not user:
-            return dict(status='fail', message="login failed"), 401
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         if user.disabled:
             return dict(
@@ -362,15 +378,19 @@ class UserLoginView(Resource):
         if not user.verified:
             return dict(
                 status='fail',
-                message='email not verified', data=dict(verified=user.verified)
+                message='Email not verified', data=dict(verified=user.verified)
             ), 401
+
+        # Check password
+        if not user.password_is_valid(password):
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         # Updating user's last login
         user.last_seen = datetime.now()
         user.save()
 
         user_dict, errors = token_schema.dump(user)
-        if user and user.password_is_valid(password):
+        if user:
 
             access_token = user.generate_token(user_dict)
 
@@ -387,16 +407,16 @@ class UserLoginView(Resource):
 
             if errors:
                 return dict(status='fail', message=errors), 400
-            
+
             return dict(
                 status='success',
                 data=dict(
                     **user_data,
-                    access_token=access_token,    
+                    access_token=access_token,
                 )
             ), 200
 
-        return dict(status='fail', message="login failed"), 401
+        return dict(status='fail', message="Login failed"), 401
 
 
 class UserDetailView(Resource):
@@ -409,12 +429,15 @@ class UserDetailView(Resource):
         current_user_id = get_jwt_identity()
         current_user = User.get_by_id(current_user_id)
 
-        user = User.get_by_id(user_id)
+        user = User.find_first(username=(user_id))
+
+        if not user:
+            user = User.get_by_id(user_id)
 
         if not user:
             return dict(
                 status='fail',
-                message=f'user {user_id} not found'
+                message=f'user with id or username {user_id} not found'
             ), 404
 
         user_data, errors = user_schema.dumps(user)
@@ -423,7 +446,7 @@ class UserDetailView(Resource):
         count_of_projects_followers = (
             db.session.query(func.count(ProjectFollowers.user_id))
             .join(Project, ProjectFollowers.project_id == Project.id)
-            .filter(Project.owner_id == user_id)
+            .filter(Project.owner_id == user.id)
             .scalar()
         )
 
@@ -480,7 +503,8 @@ class UserDetailView(Resource):
         try:
 
             user_schema = UserSchema(
-                only=("name", "is_public", "organisation"), partial=True)
+                only=("name", "is_public", "organisation", "biography", "social_links",
+                      "profile_picture", "username"), partial=True)
             user_data = request.get_json()
 
             current_user_id = get_jwt_identity()
@@ -521,27 +545,28 @@ class AdminLoginView(Resource):
 
     def post(self):
         """
+        Admin login with email or username
         """
 
-        user_schema = UserSchema(only=("email", "password"))
-
+        login_schema = LoginSchema()
         token_schema = UserSchema()
 
         login_data = request.get_json()
 
-        validated_user_data, errors = user_schema.load(login_data)
+        validated_login_data, errors = login_schema.load(login_data)
 
         if errors:
             return dict(status='fail', message=errors), 400
 
-        email = validated_user_data.get('email', None)
-        password = validated_user_data.get('password', None)
+        username = validated_login_data.get('username', None)
+        password = validated_login_data.get('password', None)
 
-        user = User.find_first(email=email)
+        # Find user by email or username
+        user = find_user_by_email_or_username(username)
         admin_role = Role.find_first(name='administrator')
 
         if not user or not admin_role or (admin_role not in user.roles):
-            return dict(status='fail', message="login failed"), 401
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
 
         if not user.verified:
             return dict(
@@ -550,32 +575,36 @@ class AdminLoginView(Resource):
                 data=dict(verified=user.verified)
             ), 401
 
+        # Check password
+        if not user.password_is_valid(password):
+            return dict(status='fail', message="Login failed - invalid username/email or password"), 401
+
         user_dict, errors = token_schema.dump(user)
 
-        if user and user.password_is_valid(password):
+        if user:
 
             access_token = user.generate_token(user_dict)
 
             if not access_token:
                 return dict(
                     status="fail", message="Internal Server Error"), 500
-            
+
             login_schema = SimpleUserSchema()
 
             user_data, errors = login_schema.dump(user)
 
             if errors:
                 return dict(status='fail', message=errors), 400
-            
+
             return dict(
                 status='success',
                 data=dict(
                     **user_data,
-                    access_token=access_token,    
+                    access_token=access_token,
                 )
             ), 200
 
-        return dict(status='fail', message="login failed"), 401
+        return dict(status='fail', message="Login failed"), 401
 
 
 class UserEmailVerificationView(Resource):
@@ -841,7 +870,18 @@ class OAuthView(Resource):
 
         # update user info
         user.name = name
-        user.username = username
+
+        # Validate and sanitize username from OAuth
+        if username:
+            from app.models import db
+            username_result = validate_and_generate_username(
+                username=username,
+                user_id=str(user.id),
+                db_session=db.session
+            )
+            if username_result['success']:
+                user.username = username_result['username']
+
         user.verified = True
         updated_user = user.save()
 
@@ -865,15 +905,46 @@ class OAuthView(Resource):
 
         if errors:
             return dict(status='fail', message=errors), 400
-            
+
         return dict(
             status='success',
             data=dict(
                 **user_data,
-                access_token=access_token,    
+                access_token=access_token,
             )
         ), 200
-            
+
+
+class UsernameAvailabilityView(Resource):
+    """Check username availability"""
+
+    def get(self):
+        """Check if a username is available"""
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', required=True,
+                            help='Username to check')
+        args = parser.parse_args()
+
+        username = args.get('username')
+        from app.models import db
+        result = check_username_availability(username, db_session=db.session)
+
+        if result['available']:
+            return dict(
+                status='success',
+                data=dict(
+                    available=True,
+                    message=result['message']
+                )
+            ), 200
+        else:
+            return dict(
+                status='fail',
+                data=dict(
+                    available=False,
+                    message=result['message']
+                )
+            ), 400
 
 
 class ResetPasswordView(Resource):
@@ -1468,7 +1539,7 @@ class SendInactiveUserMailReminder(Resource):
             status='success',
             message=f'Successfully sent {emails_sent} reminder emails',
             total_users_processed=len(inactive_users),
-            errors=errors if errors else None),201
+            errors=errors if errors else None), 201
 
 
 class GoogleOAuthView(Resource):
@@ -1478,16 +1549,16 @@ class GoogleOAuthView(Resource):
         code = request.args.get('code')
         if not code:
             return dict(
-                    status='fail',
-                    message='No code received in query parameters'
-                ), 400
-        
+                status='fail',
+                message='No code received in query parameters'
+            ), 400
+
         token_data = {
             'client_id': current_app.config.get('GOOGLE_CLIENT_ID'),
             'client_secret': current_app.config.get('GOOGLE_CLIENT_SECRET'),
             'code': code,
             'grant_type': 'authorization_code',
-            'redirect_uri': current_app.config.get('GOOGLE_REDIRECT_URI') ,
+            'redirect_uri': current_app.config.get('GOOGLE_REDIRECT_URI'),
         }
 
         try:
@@ -1495,80 +1566,81 @@ class GoogleOAuthView(Resource):
                 url='https://oauth2.googleapis.com/token',
                 data=token_data,
                 headers={'Content-Type': 'application/x-www-form-urlencoded'},
-                timeout=10  
+                timeout=10
             )
-            
+
         except requests.RequestException as e:
             return dict(status='fail', message="Failed to connect to Google OAuth"), 500
-      
+
         if token_response.status_code != 200:
             try:
                 error_data = token_response.json()
-                error_msg = error_data.get('error_description', error_data.get('error', 'Unknown error'))
+                error_msg = error_data.get(
+                    'error_description', error_data.get('error', 'Unknown error'))
             except:
                 error_msg = f"HTTP {token_response.status_code}: {token_response.text}"
-            
+
             return dict(
-                status='fail', 
+                status='fail',
                 message=f"Token exchange failed: {error_msg}"
             ), 401
-        
+
         try:
             token_json = token_response.json()
         except ValueError:
             return dict(status='fail', message="Invalid JSON response from Google"), 500
-        
+
         if token_json.get('error'):
             return dict(
                 status='fail',
                 message=f"Token error: {token_json.get('error_description', token_json['error'])}"
             ), 401
-        
+
         access_token = token_json.get('access_token')
         if not access_token:
             return dict(status='fail', message="No access token received"), 401
-  
+
         try:
             user_response = requests.get(
                 url='https://www.googleapis.com/oauth2/v2/userinfo',
                 headers={'Authorization': f'Bearer {access_token}'},
                 timeout=10
             )
-            
+
         except requests.RequestException as e:
             return dict(status='fail', message="Failed to fetch user info"), 500
-        
+
         if user_response.status_code != 200:
             return dict(status='fail', message="Failed to fetch user info"), 401
-        
+
         try:
             user_data = user_response.json()
         except ValueError:
             return dict(status='fail', message="Invalid user data from Google"), 500
- 
+
         email = user_data.get('email')
         name = user_data.get('name')
         verified_email = user_data.get('verified_email', False)
-        
+
         if not email:
             return dict(status='fail', message="Email not provided by Google"), 400
 
         try:
             user = User.find_first(email=email)
-            
+
             if not user:
                 user = User(
                     email=email,
                     name=name,
-                    password=''.join((secrets.choice(string.ascii_letters) 
+                    password=''.join((secrets.choice(string.ascii_letters)
                                      for i in range(24))),
                 )
-                
+
                 saved_user = user.save()
-                
+
                 if not saved_user:
                     return dict(status='fail', message='Failed to create user'), 500
-       
+
             user.name = name
             user.verified = verified_email
 
@@ -1585,36 +1657,34 @@ class GoogleOAuthView(Resource):
 
             user.profile_picture = picture_url
             updated_user = user.save()
-            
+
             if not updated_user:
                 return dict(status='fail', message='Failed to update user'), 500
-         
+
             user_dict, errors = token_schema.dump(user)
-            
+
             if errors:
                 return dict(status='fail', message='User serialization error'), 500
-            
+
             access_token = user.generate_token(user_dict)
-            
+
             if not access_token:
                 return dict(status='fail', message="Failed to generate access token"), 500
-            
-            
+
             login_schema = SimpleUserSchema()
 
             user_data, errors = login_schema.dump(user)
 
             if errors:
                 return dict(status='fail', message=errors), 400
-            
+
             return dict(
                 status='success',
                 data=dict(
                     **user_data,
-                    access_token=access_token,    
+                    access_token=access_token,
                 )
             ), 200
-            
+
         except Exception as e:
             return dict(status='fail', message='Database error'), 500
-

@@ -8,20 +8,22 @@ class UserBaseTestCase():
         'name': 'Test User',
         'password': 'Compl3xPassw0rd',
         'organisation': 'Makerere',
-        'phone_number': '+256777777777'
-        }
+        'phone_number': '+256777777777',
+        'username': 'rhodin'
+    }
     user_data_2 = {
         'email': 'henry@cranecloud.io',
         'name': 'Test User 2',
         'organisation': 'Makerere',
         'password': 'Compl3xPassw0rd',
+        'username': 'henry'
     }
     invalid_user_data = {
         'emails': 'test_email@testdomain',
         'name': 'Test User',
         'passwords': 'wrong_password',
     }
-    
+
     admin_data = {
         'email': 'admin@cranecloud.io',
         'name': 'Test Admin',
@@ -32,13 +34,13 @@ class UserBaseTestCase():
 
     def create_user(self, user_data):
         user = User(email=user_data['email'],
-                    organisation=user_data['organisation'], 
-                    password=user_data['password'], 
+                    organisation=user_data['organisation'],
+                    password=user_data['password'],
                     name=user_data['name'])
-        user.verified=True
+        user.verified = True
         user.save()
         return user
-    
+
     def create_admin(self, admin_data):
         admin_role = Role.find_first(**{'name': 'administrator'})
         if not admin_role:
