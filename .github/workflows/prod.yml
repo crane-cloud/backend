@@ -2,6 +2,9 @@
 name: Prod
 
 on:
+  push:
+    branches:
+      - chore-prod-deployment
   release:
     types:
       - released
@@ -18,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: staging
+          ref: chore-prod-deployment
 
       - name: Install (Buildx)
         uses: docker/setup-buildx-action@v3
@@ -35,7 +38,7 @@ jobs:
           install_components: "gke-gcloud-auth-plugin"
 
       - name: Login (Artifact Registry)
-        run: gcloud auth configure-docker
+        run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
       - id: meta
         name: Tag
