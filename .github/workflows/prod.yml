@@ -2,9 +2,6 @@
 name: Prod
 
 on:
-  push:
-    branches:
-      - chore-prod-deployment
   release:
     types:
       - released
@@ -17,7 +14,7 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      image: cranecloud/backend-prod
+      image: cranecloud/backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,26 +56,11 @@ jobs:
         with:
           script: |
             const metadata = JSON.parse(`${{ steps.meta.outputs.json }}`)
-            console.log('Available tags:', metadata.tags)
-
-            // Try multiple patterns to find the sha tag
-            let fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
-            if (!fullUrl) {
-              // Fallback: look for any tag with sha prefix
-              fullUrl = metadata.tags.find((t) => t.match(/:sha-[a-f0-9]+$/))
-            }
-            if (!fullUrl) {
-              // Fallback: use the first tag if available
-              fullUrl = metadata.tags[0]
-            }
-
+            const fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
             if (fullUrl == null) {
-              core.error('Unable to find any suitable image tag')
-              core.error('Available tags: ' + JSON.stringify(metadata.tags))
+              core.error('Unable to find sha tag of image')
             } else {
               const tag = fullUrl.split(':')[1]
-              console.log('Selected image:', fullUrl)
-              console.log('Extracted tag:', tag)
               core.setOutput('image', fullUrl)
               core.setOutput('tag', tag)
             }
@@ -93,7 +75,7 @@ jobs:
 
     env:
       namespace: cranecloud-prod
-      image: cranecloud/backend-prod
+      image: cranecloud/backend
 
     steps:
       - name: Clone
@@ -128,7 +110,7 @@ jobs:
           --version 0.1.7 \
           --values helm/values.prod.yaml \
           --namespace $namespace \
-          --set image.repository="${{ needs.build.outputs.image }}" \
+          --set image.repository="${{ env.image }}" \
           --set image.tag="${{ needs.build.outputs.tag }}" \
           --set environment.ADMIN_MYSQL_PASSWORD="${{ secrets.PRODUCTION_ADMIN_MYSQL_PASSWORD }}" \
           --set environment.ADMIN_PSQL_PASSWORD="${{ secrets.PRODUCTION_ADMIN_PSQL_PASSWORD }}" \
