@@ -59,11 +59,26 @@ jobs:
         with:
           script: |
             const metadata = JSON.parse(`${{ steps.meta.outputs.json }}`)
-            const fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
+            console.log('Available tags:', metadata.tags)
+
+            // Try multiple patterns to find the sha tag
+            let fullUrl = metadata.tags.find((t) => t.includes(':sha-'))
+            if (!fullUrl) {
+              // Fallback: look for any tag with sha prefix
+              fullUrl = metadata.tags.find((t) => t.match(/:sha-[a-f0-9]+$/))
+            }
+            if (!fullUrl) {
+              // Fallback: use the first tag if available
+              fullUrl = metadata.tags[0]
+            }
+
             if (fullUrl == null) {
-              core.error('Unable to find sha tag of image')
+              core.error('Unable to find any suitable image tag')
+              core.error('Available tags: ' + JSON.stringify(metadata.tags))
             } else {
               const tag = fullUrl.split(':')[1]
+              console.log('Selected image:', fullUrl)
+              console.log('Extracted tag:', tag)
               core.setOutput('image', fullUrl)
               core.setOutput('tag', tag)
             }
