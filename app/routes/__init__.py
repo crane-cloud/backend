@@ -17,6 +17,7 @@ from app.controllers import (
     TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView, ProjectMigrationView,
     UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,GoogleOAuthView)
 from app.controllers.app import AppRevisionsView
+from app.controllers.app_domain import AppDomainView, AppDomainDetailView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
@@ -183,6 +184,10 @@ api.add_resource(
     MLProjectAppsView, '/projects/<string:project_id>/apps/ml')
 api.add_resource(
     AppLogsView, '/projects/<string:project_id>/apps/<string:app_id>/logs')
+
+# App Domain routes
+api.add_resource(AppDomainView, '/apps/<string:app_id>/domains')
+api.add_resource(AppDomainDetailView, '/apps/<string:app_id>/domains/<string:domain_id>')
 
 
 # Registry routes
