@@ -24,6 +24,8 @@ class Project(ModelMixin):
     organisation = db.Column(db.String)
     project_type = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), 
+                          onupdate=db.func.current_timestamp())
     users = relationship('ProjectUser', back_populates='other_project')
     followers = relationship('ProjectFollowers', back_populates='project')
     is_public = db.Column(db.Boolean, default=True)

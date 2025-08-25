@@ -4218,6 +4218,57 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/social":
+    get:
+      tags:
+        - social
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: query
+          name: entity
+          required: false
+          type: string
+          enum: [projects, users, tags]
+        - in: query
+          name: search
+          required: false
+          type: string
+        - in: query
+          name: filter
+          required: false
+          type: string
+          enum: [trending, recently_updated, newly_added]
+        - in: query
+          name: page
+          required: false
+          type: integer
+          minimum: 1
+          default: 1
+        - in: query
+          name: per_page
+          required: false
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+      responses:
+        200:
+          description: "Successfully retrieved search results"
+        400:
+          description: "Bad request"
+        404:
+          description: "User not found"
+        500:
+          description: "Internal Server Error"
+
 
 components:
   securitySchemes:

@@ -15,6 +15,10 @@ class Tag(ModelMixin):
     is_super_tag = db.Column(db.Boolean, default=False)
     projects = db.relationship("ProjectTag", back_populates="tag")
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), 
+                          onupdate=db.func.current_timestamp())
+    
+
     followers = db.relationship('TagFollowers', back_populates='tag')
 
     def __repr__(self):
@@ -29,8 +33,11 @@ class ProjectTag(ModelMixin):
                    server_default=sa_text("uuid_generate_v4()"))
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey("project.id"))
     tag_id = db.Column(UUID(as_uuid=True), db.ForeignKey("tag.id"))
-
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), 
+                          onupdate=db.func.current_timestamp())
+    
+    
     project = db.relationship("Project", back_populates="tags")
     tag = db.relationship("Tag", back_populates="projects")
 
@@ -48,5 +55,7 @@ class TagFollowers(ModelMixin):
     tag_id = db.Column(UUID(as_uuid=True),
                        db.ForeignKey('tag.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), 
+                          onupdate=db.func.current_timestamp())
     user = db.relationship("User", back_populates="followed_tags")
     tag = db.relationship("Tag", back_populates="followers")

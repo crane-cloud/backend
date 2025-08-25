@@ -32,3 +32,4 @@ from .project_users import ProjectUsersView, ProjectUsersTransferView, ProjectUs
 from .activity_feed import ActivityFeedView
 from .tags import TagsView, TagsDetailView, TagFollowingView
 from .generic_search import GenericSearchView
+from .socials import SocialView
