@@ -16,10 +16,12 @@ class Tag(ModelMixin):
     projects = db.relationship("ProjectTag", back_populates="tag")
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     followers = db.relationship('TagFollowers', back_populates='tag')
+    documentation_url = db.Column(db.String, nullable=True)
+    official_url = db.Column(db.String, nullable=True)
+    github_link = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f"<Tag {self.name}>"
-
 
 
 class ProjectTag(ModelMixin):
