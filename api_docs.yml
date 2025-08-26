@@ -4218,10 +4218,10 @@ paths:
         500:
           description: "Internal Server Error"
 
-  "/social":
+  "/socials":
     get:
       tags:
-        - social
+        - socials
       consumes:
         - application/json
       produces:

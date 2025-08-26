@@ -1,3 +1,4 @@
+from app.models.tags import ProjectTag
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 from app.models.app import App
@@ -74,6 +75,7 @@ class ProjectSchema(Schema):
     tags_add = fields.List(fields.String, load_only=True)
     tags_remove = fields.List(fields.String, load_only=True)
     supports_ml = fields.Method("get_supports_ml", dump_only=True)
+    tags_count = fields.Method("get_tags_count", dump_only=True) 
 
     def get_is_following(self, obj):
         current_user_id = get_jwt_identity()
@@ -97,6 +99,9 @@ class ProjectSchema(Schema):
 
     def get_supports_ml(self, obj):
         return obj.cluster.supports_ml
+    
+    def get_tags_count(self, obj):
+        return ProjectTag.count(project_id=obj.id)
 
 
 class ProjectMigrationSchema(Schema):
