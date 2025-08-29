@@ -1,6 +1,8 @@
 from app.helpers.role_search import has_admin_role
+from app.models.project import Project
 from app.models.project_users import ProjectFollowers, ProjectUser
 from app.models.tags import TagFollowers
+from app.models.user import Followers
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, validates_schema
 from app.helpers.user_finder import validate_login_identifier
 import re
@@ -125,15 +127,12 @@ class UserSchema(Schema):
         return get_item_age(obj.date_created)
     
     def get_followers_count(self, obj):
-        from app.models.user import Followers
         return Followers.count(followed_id=obj.id)
     
     def get_following_count(self, obj):
-        from app.models.user import Followers
         return Followers.count(follower_id=obj.id)
     
     def get_owned_projects_count(self, obj):
-        from app.models.project import Project
         return Project.count(
             owner_id=obj.id,
             deleted=False,
