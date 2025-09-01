@@ -222,9 +222,9 @@ class ProjectsView(Resource):
         disabled = request.args.get('disabled')
         project_type = request.args.get('project_type')
         cluster_id = request.args.get('cluster_id')
-        start =  request.args.get('start', None)
-        end =  request.args.get('end', None)
-
+        supports_ml = request.args.get('supports_ml')
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
 
         graph_filter_data = {
             'start': request.args.get('start', '2018-01-01'),
@@ -240,7 +240,7 @@ class ProjectsView(Resource):
         filter_mapping = {
             'project_type': project_type,
             'cluster_id': cluster_id,
-            'disabled': disabled
+            'disabled': disabled,
         }
 
         # count items per project category
@@ -257,8 +257,27 @@ class ProjectsView(Resource):
             else:
                 project_metadata[category] = dict(distinct_counts)
 
+        # compute supports_ml metadata using Cluster join
+        supports_ml_counts = Project.query.join(Cluster, Project.cluster_id == Cluster.id) \
+            .with_entities(Cluster.supports_ml, func.count(Cluster.supports_ml)) \
+            .group_by(Cluster.supports_ml).all()
+        project_metadata['supports_ml'] = next(
+            (count for value, count in supports_ml_counts if value is True), 0)
+
         # Build base query
         base_query = Project.query
+
+        # Join Cluster when filtering by supports_ml
+        if supports_ml is not None and supports_ml != '':
+            # parse truthy string
+            supports_ml_bool = supports_ml.lower() == 'true'
+            base_query = base_query.join(
+                Cluster, Project.cluster_id == Cluster.id)
+            if supports_ml_bool:
+                base_query = base_query.filter(Cluster.supports_ml.is_(True))
+            else:
+                base_query = base_query.filter(
+                    or_(Cluster.supports_ml.is_(False), Cluster.supports_ml.is_(None)))
 
         # Apply filters for all attributes
         for key, value in filter_mapping.items():
@@ -267,20 +286,19 @@ class ProjectsView(Resource):
                     value = value.lower() == 'true'
                 base_query = base_query.filter(getattr(Project, key) == value)
 
-
-        pending_invitations =  []
+        pending_invitations = []
 
         if not has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == current_user_id,
-                Project.users.any(
-                    and_(
-                        ProjectUser.user_id == current_user_id,
-                        ProjectUser.accepted_collaboration_invite == True
-                    )
-                )
-            ))
+                                               Project.users.any(
+                                                   and_(
+                                                       ProjectUser.user_id == current_user_id,
+                                                       ProjectUser.accepted_collaboration_invite == True
+                                                   )
+                                               )
+                                               ))
             pending_invitations_query = Project.query.filter(
-                Project.owner_id != current_user_id, 
+                Project.owner_id != current_user_id,
                 Project.users.any(
                     and_(
                         ProjectUser.user_id == current_user_id,
@@ -289,18 +307,19 @@ class ProjectsView(Resource):
                 )
             ).all()
 
-            pending_projects_data, pending_projects_errors = project_schema.dumps(pending_invitations_query)
-            
+            pending_projects_data, pending_projects_errors = project_schema.dumps(
+                pending_invitations_query)
+
             if not pending_projects_errors:
                 pending_invitations = json.loads(pending_projects_data)
-            
+
         if user_id and has_role(current_user_roles, 'administrator'):
             base_query = base_query.filter(or_(Project.owner_id == user_id, Project.users.any(
                 ProjectUser.user_id == user_id)))
-            
+
             if deleted:
                 base_query = base_query.filter_by(deleted=True)
-        
+
         if start:
             start_date = datetime.datetime.strptime(start, '%Y-%m-%d')
             base_query = base_query.filter(Project.date_created >= start_date)
