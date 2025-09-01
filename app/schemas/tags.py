@@ -20,6 +20,9 @@ class TagSchema(Schema):
     date_created = fields.Date(dump_only=True)
     projects_count = fields.Method("get_projects_count", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
+    documentation_url = fields.String(allow_none=True)
+    official_url = fields.String(allow_none=True)
+    github_link = fields.String(allow_none=True)
 
     def get_projects_count(self, obj):
         return len(obj.projects)

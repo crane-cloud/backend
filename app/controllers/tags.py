@@ -95,14 +95,13 @@ class TagsDetailView(Resource):
 
 
 class TagFollowingView(Resource):
-    @ jwt_required
+    @jwt_required
     def post(self, tag_id):
         current_user_id = get_jwt_identity()
         tag = Tag.get_by_id(tag_id)
 
         if not tag:
             return dict(status='fail', message=f'Tag with id {tag_id} not found'), 404
-
 
         existing_tag_follow = TagFollowers.find_first(
             user_id=current_user_id, tag_id=tag_id)
@@ -122,7 +121,7 @@ class TagFollowingView(Resource):
             message=f'You are now following tag with id {tag_id}'
         ), 201
 
-    @ jwt_required
+    @jwt_required
     def get(self, tag_id):
         tag = Tag.get_by_id(tag_id)
         follower_schema = UserIndexSchema(many=True)
@@ -138,7 +137,7 @@ class TagFollowingView(Resource):
             data=dict(followers=json.loads(users_data))
         ), 200
 
-    @ jwt_required
+    @jwt_required
     def delete(self, tag_id):
         current_user_id = get_jwt_identity()
         tag = Tag.get_by_id(tag_id)
