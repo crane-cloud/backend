@@ -21,7 +21,7 @@ from app.controllers.app_domain import AppDomainView, AppDomainDetailView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
 from app.controllers.transactions import TransactionRecordDetailView, TransactionVerificationView
-
+from app.controllers.socials import SocialView
 
 api = Api()
 
@@ -208,3 +208,5 @@ api.add_resource(SystemSummaryView, '/system_summary')
 # Send inactive user mail reminder
 api.add_resource(SendInactiveUserMailReminder, '/users/inactive_user_reminder',
                  endpoint='inactive_user_reminder')
+
+api.add_resource(SocialView, '/socials', endpoint='socials')

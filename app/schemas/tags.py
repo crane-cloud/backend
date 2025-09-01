@@ -3,7 +3,7 @@ from app.schemas.project_users import UserRoleSchema
 from marshmallow import Schema, fields
 from flask_jwt_extended import get_jwt_identity
 from app.models.user import User
-from app.models.tags import TagFollowers
+from app.models.tags import ProjectTag, TagFollowers
 
 
 class TagListSchema(Schema):
@@ -20,6 +20,8 @@ class TagSchema(Schema):
     date_created = fields.Date(dump_only=True)
     projects_count = fields.Method("get_projects_count", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
+    followers_count = fields.Method("get_followers_count", dump_only=True)  
+    project_tags_count = fields.Method("get_project_tags_count", dump_only=True)  
 
     def get_projects_count(self, obj):
         return len(obj.projects)
@@ -29,6 +31,11 @@ class TagSchema(Schema):
         tag_id = obj.id
         return TagFollowers.check_exists(user_id=current_user_id, tag_id=tag_id)
 
+    def get_followers_count(self, obj):
+        return TagFollowers.count(tag_id=obj.id)
+    
+    def get_project_tags_count(self, obj):
+        return ProjectTag.count(tag_id=obj.id)
 
 class TagsProjectsSchema(TagSchema):
     name = fields.Method("get_name", dump_only=True)

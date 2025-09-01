@@ -1,4 +1,8 @@
 from app.helpers.role_search import has_admin_role
+from app.models.project import Project
+from app.models.project_users import ProjectFollowers, ProjectUser
+from app.models.tags import TagFollowers
+from app.models.user import Followers
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, validates_schema
 from app.helpers.user_finder import validate_login_identifier
 import re
@@ -112,9 +116,39 @@ class UserSchema(Schema):
         allow_none=True,
         error_message="Invalid social links format"
     )
+    followers_count = fields.Method("get_followers_count", dump_only=True)  
+    following_count = fields.Method("get_following_count", dump_only=True)  
+    owned_projects_count = fields.Method("get_owned_projects_count", dump_only=True)  
+    followed_tags_count = fields.Method("get_followed_tags_count", dump_only=True)  
+    collaborative_projects_count = fields.Method("get_collaborative_projects_count", dump_only=True)  
+    followed_projects_count = fields.Method("get_followed_projects_count", dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
+    
+    def get_followers_count(self, obj):
+        return Followers.count(followed_id=obj.id)
+    
+    def get_following_count(self, obj):
+        return Followers.count(follower_id=obj.id)
+    
+    def get_owned_projects_count(self, obj):
+        return Project.count(
+            owner_id=obj.id,
+            deleted=False,
+            disabled=False,
+            admin_disabled=False,
+            is_public=True
+        )
+    
+    def get_followed_tags_count(self, obj):
+        return TagFollowers.count(user_id=obj.id)
+    
+    def get_collaborative_projects_count(self, obj):
+        return ProjectUser.count(user_id=obj.id)
+    
+    def get_followed_projects_count(self, obj):
+        return ProjectFollowers.count(user_id=obj.id)
 
 
 class LoginSchema(Schema):
