@@ -70,6 +70,7 @@ class ProjectSchema(Schema):
     followers_count = fields.Method("get_followers_count", dump_only=True)
     members_count = fields.Method("get_members_count", dump_only=True)
     is_following = fields.Method("get_is_following", dump_only=True)
+    is_pinned = fields.Method("get_pinned_status", dump_only=True)
     is_public = fields.Boolean()
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
     tags_add = fields.List(fields.String, load_only=True)
@@ -102,6 +103,12 @@ class ProjectSchema(Schema):
     
     def get_tags_count(self, obj):
         return ProjectTag.count(project_id=obj.id)
+    
+    def get_pinned_status(self, obj):
+        project_user = ProjectUser.query.filter_by(
+            project_id=obj.id,
+        ).first()
+        return project_user.pinned if project_user else False
 
 
 class ProjectMigrationSchema(Schema):

@@ -684,8 +684,8 @@ class UserProjectsView(Resource):
         # pagination_meta_data, projects = paginate(
         #     user.projects[::-1], per_page, page)
 
-        pagination = Project.query.filter(or_(Project.owner_id == current_user_id, Project.users.any(
-            ProjectUser.user_id == current_user_id))).order_by(Project.date_created.desc()).paginate(
+        pagination = Project.query.filter(or_(Project.owner_id == user_id, Project.users.any(
+            ProjectUser.user_id == user_id))).order_by(Project.date_created.desc()).paginate(
             page=page, per_page=per_page, error_out=False)
 
         projects = pagination.items
