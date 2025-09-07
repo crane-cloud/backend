@@ -4217,7 +4217,7 @@ paths:
           description: "Bad request"
         500:
           description: "Internal Server Error"
-
+          
   "/tags/{tag_id}/projects":
     get:
       tags:
@@ -4304,6 +4304,161 @@ paths:
         500:
           description: "Internal Server Error"
 
+
+  "/apps/{app_id}/domains":
+    post:
+      tags:
+        - domains
+      consumes:
+        - application/json
+      description: "Add a new domain to an app"
+      parameters:
+        - in: path
+          name: app_id
+          type: string
+          required: true
+          description: "App ID"
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "Bearer token for authentication"
+        - in: body
+          name: domain
+          schema:
+            type: object
+            required:
+              - domain
+            properties:
+              domain:
+                type: string
+                description: "Domain name without protocol"
+              is_active:
+                type: boolean
+                description: "Set as active domain"
+                default: false
+      produces:
+        - application/json
+      responses:
+        201:
+          description: "Domain added successfully"
+        400:
+          description: "Bad request"
+        403:
+          description: "Unauthorized access"
+        404:
+          description: "App not found"
+        409:
+          description: "Domain already exists"
+        500:
+          description: "Internal Server Error"
+
+    get:
+      tags:
+        - domains
+      description: "Get all domains for an app"
+      parameters:
+        - in: path
+          name: app_id
+          type: string
+          required: true
+          description: "App ID"
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "Bearer token for authentication"
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Success"
+        403:
+          description: "Unauthorized access"
+        404:
+          description: "App not found"
+
+  "/apps/{app_id}/domains/{domain_id}":
+    patch:
+      tags:
+        - domains
+      consumes:
+        - application/json
+      description: "Update a domain"
+      parameters:
+        - in: path
+          name: app_id
+          type: string
+          required: true
+          description: "App ID"
+        - in: path
+          name: domain_id
+          type: string
+          required: true
+          description: "Domain ID"
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "Bearer token for authentication"
+        - in: body
+          name: domain
+          schema:
+            type: object
+            properties:
+              domain:
+                type: string
+                description: "Domain name without protocol"
+              is_active:
+                type: boolean
+                description: "Set as active domain"
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Domain updated successfully"
+        400:
+          description: "Bad request"
+        403:
+          description: "Unauthorized access"
+        404:
+          description: "App or domain not found"
+        500:
+          description: "Internal Server Error"
+
+    delete:
+      tags:
+        - domains
+      description: "Delete a domain"
+      parameters:
+        - in: path
+          name: app_id
+          type: string
+          required: true
+          description: "App ID"
+        - in: path
+          name: domain_id
+          type: string
+          required: true
+          description: "Domain ID"
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "Bearer token for authentication"
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Domain deleted successfully"
+        400:
+          description: "Bad request"
+        403:
+          description: "Unauthorized access"
+        404:
+          description: "App or domain not found"
+        500:
+          description: "Internal Server Error"
 
 components:
   securitySchemes:

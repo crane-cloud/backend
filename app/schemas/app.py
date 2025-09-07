@@ -52,6 +52,8 @@ class AppSchema(Schema):
     api_type = fields.Str(required=False)
     model_server = fields.Str(required=False)
     task = fields.Str(required=False)
+    domains = fields.Method("get_domains", dump_only=True)
+    active_domain_url = fields.Method("get_active_domain_url", dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)
@@ -66,6 +68,26 @@ class AppSchema(Schema):
             service_url += f':{KUBE_SERVICE_PORT}'
 
         return service_url
+
+    def get_domains(self, obj):
+        """Get all domains for the app"""
+        return [
+            {
+                'id': str(domain.id),
+                'domain': domain.domain,
+                'is_active': domain.is_active,
+                'is_generated': domain.is_generated,
+                'date_created': domain.date_created.isoformat() if domain.date_created else None
+            }
+            for domain in obj.domains if not domain.deleted
+        ]
+
+    def get_active_domain_url(self, obj):
+        """Get the active domain URL"""
+        active_domain = next((d for d in obj.domains if d.is_active and not d.deleted), None)
+        if active_domain:
+            return f"https://{active_domain.domain}"
+        return obj.url
 
 
 class AppMultiDeploySchema(AppSchema):
