@@ -1,9 +1,11 @@
 
 import json
 from app.models.project import Project
+from app.models.user import User
 from app.schemas.project import ProjectSchema
 from app.schemas.project_users import UserIndexSchema
 from app.schemas.tags import TagSchema, TagsDetailSchema
+from app.schemas.user import UserSchema
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.tags import ProjectTag, Tag, TagFollowers
@@ -67,7 +69,7 @@ class TagsDetailView(Resource):
 
     @jwt_required
     def get(self, tag_id):
-        tag_schema = TagsDetailSchema()
+        tag_schema = TagSchema()
 
         tag = Tag.get_by_id(tag_id)
 
@@ -125,22 +127,82 @@ class TagFollowingView(Resource):
             message=f'You are now following tag with id {tag_id}'
         ), 201
 
-    @ jwt_required
+    @jwt_required
     def get(self, tag_id):
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        if per_page > 100:
+            per_page = 100
+        
+        if page < 1:
+            page = 1
+        
         tag = Tag.get_by_id(tag_id)
-        follower_schema = UserIndexSchema(many=True)
+        
+        if not tag:
+            return dict(status='fail', message=f'Tag with id {tag_id} not found'), 404
+        
+        try:
+            query = db.session.query(User).join(
+                    TagFollowers, User.id == TagFollowers.user_id
+                ).filter(
+                    TagFollowers.tag_id == tag_id
+                ).order_by(TagFollowers.date_created.desc())
+                            
+            total_followers_count = query.count()
+    
+            paginated_result = query.paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            
+            follower_schema = UserSchema(many=True)
+            schema_result = follower_schema.dump(paginated_result.items)
 
-        followers = tag.followers
-        users_data, errors = follower_schema.dumps(followers)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        return dict(
-            status='success',
-            data=dict(followers=json.loads(users_data))
-        ), 200
-
+            if hasattr(schema_result, 'data'):
+                followers_data = schema_result.data
+            else:
+                followers_data = schema_result
+          
+            if followers_data is None:
+                followers_data = []
+            elif not isinstance(followers_data, list):
+                try:
+                    followers_data = list(followers_data)
+                except:
+                    followers_data = []
+            
+            pagination = {
+                'total': paginated_result.total,
+                'pages': paginated_result.pages,
+                'page': paginated_result.page,
+                'per_page': paginated_result.per_page,
+                'next': paginated_result.next_num,
+                'prev': paginated_result.prev_num,
+                'has_next': paginated_result.has_next,
+                'has_prev': paginated_result.has_prev
+            }
+            
+            tag_info = dict(
+                id=str(tag.id),
+                name=tag.name,
+                followers_count=total_followers_count
+            )
+            
+            return dict(
+                status='success',
+                data=dict(
+                    tag=tag_info,
+                    followers=followers_data,
+                    pagination=pagination
+                )
+            ), 200
+            
+        except Exception as e:
+            return dict(status='fail', message='Internal Server Error'), 500
+        
     @ jwt_required
     def delete(self, tag_id):
         current_user_id = get_jwt_identity()
@@ -243,5 +305,5 @@ class TagProjectsView(Resource):
                     )
                 ), 200
                 
-        except Exception as e:
+        except Exception as e:      
             return dict(status='fail', message='Internal Server Error'), 500
