@@ -103,12 +103,13 @@ class ProjectSchema(Schema):
     
     def get_tags_count(self, obj):
         return ProjectTag.count(project_id=obj.id)
-    
+      
     def get_pinned_status(self, obj):
         project_user = ProjectUser.query.filter_by(
             project_id=obj.id,
         ).first()
         return project_user.pinned if project_user else False
+
 
 
 class ProjectMigrationSchema(Schema):
