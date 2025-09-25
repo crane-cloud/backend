@@ -1,7 +1,8 @@
 import json
 from app.models.project_users import ProjectUser
+from app.schemas.user import UserSchema
 from flask_restful import Resource, request
-from app.schemas import ProjectUserSchema, AnonymousUsersSchema, UserIndexSchema
+from app.schemas import ProjectUserSchema, AnonymousUsersSchema
 from app.models.user import User
 from app.models.role import User
 from app.models.project import Project
@@ -14,7 +15,7 @@ from app.helpers.user_role_update_notification import send_user_role_update_noti
 from app.helpers.activity_logger import log_activity
 from datetime import date
 from app.models.anonymous_users import AnonymousUser
-
+from app.models import db
 
 class ProjectUsersView(Resource):
 
@@ -547,20 +548,81 @@ class ProjectFollowingView(Resource):
 
     @ jwt_required
     def get(self, project_id):
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        if per_page > 100:
+            per_page = 100
+            
+        if page < 1:
+            page = 1
+            
         project = Project.get_by_id(project_id)
-        follower_schema = UserIndexSchema(many=True)
-
-        followers = project.followers
-        users_data, errors = follower_schema.dumps(followers)
-
-        if errors:
-            return dict(status='fail', message=errors), 400
-
-        return dict(
-            status='success',
-            data=dict(followers=json.loads(users_data))
-        ), 200
-
+        
+        if not project:
+            return dict(status='fail', message=f'Project with id {project_id} not found'), 404
+            
+        try:
+            query = db.session.query(User).join(
+                ProjectFollowers, User.id == ProjectFollowers.user_id
+            ).filter(
+                ProjectFollowers.project_id == project_id
+            ).order_by(ProjectFollowers.id.desc())
+            
+            total_followers_count = query.count()
+            
+            paginated_result = query.paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            
+            follower_schema = UserSchema(many=True)
+            schema_result = follower_schema.dump(paginated_result.items)
+            
+            if hasattr(schema_result, 'data'):
+                followers_data = schema_result.data
+            else:
+                followers_data = schema_result
+                
+            if followers_data is None:
+                followers_data = []
+            elif not isinstance(followers_data, list):
+                try:
+                    followers_data = list(followers_data)
+                except:
+                    followers_data = []
+                    
+            pagination = {
+                'total': paginated_result.total,
+                'pages': paginated_result.pages,
+                'page': paginated_result.page,
+                'per_page': paginated_result.per_page,
+                'next': paginated_result.next_num,
+                'prev': paginated_result.prev_num,
+                'has_next': paginated_result.has_next,
+                'has_prev': paginated_result.has_prev
+            }
+            
+            project_info = dict(
+                id=str(project.id),
+                name=project.name,
+                alias=project.alias,
+                followers_count=total_followers_count
+            )
+            
+            return dict(
+                status='success',
+                data=dict(
+                    project=project_info,
+                    followers=followers_data,
+                    pagination=pagination
+                )
+            ), 200
+            
+        except Exception as e:
+            return dict(status='fail', message='Internal Server Error'), 500
+    
     @ jwt_required
     def delete(self, project_id):
         current_user_id = get_jwt_identity()
