@@ -130,6 +130,12 @@ class SocialService:
             user_schema = UserSchema(many=True)
             schema_result = user_schema.dump(users)
             users_data = SocialService._handle_schema_result(schema_result)
+            if current_user:
+                for user_data, user_obj in zip(users_data, users):
+                    user_data['is_following'] = current_user.is_following(user_obj)
+            else:
+                for user_data in users_data:
+                    user_data['is_following'] = False
             
             return {
                 'users': users_data,
@@ -149,6 +155,13 @@ class SocialService:
             user_schema = UserSchema(many=True)
             schema_result = user_schema.dump(users)
             users_data = SocialService._handle_schema_result(schema_result)
+
+            if current_user:
+                for user_data, user_obj in zip(users_data, users):
+                    user_data['is_following'] = current_user.is_following(user_obj)
+            else:
+                for user_data in users_data:
+                    user_data['is_following'] = False
             
             return users_data
 
