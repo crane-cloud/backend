@@ -5,7 +5,7 @@ from sqlalchemy import or_, desc, func
 
 from app.models.user import User, Followers
 from app.models.project import Project
-from app.models.tags import Tag, TagFollowers
+from app.models.tags import ProjectTag, Tag, TagFollowers
 from app.models.project_users import ProjectFollowers
 from app.schemas.user import UserSchema
 from app.schemas.project import ProjectSchema
@@ -175,8 +175,8 @@ class SocialService:
             query = query.filter(Tag.name.ilike(f'%{search}%'))
 
         if filter_type == 'trending':
-            query = query.outerjoin(TagFollowers).group_by(Tag.id).order_by(
-                desc(func.count(TagFollowers.id))
+            query = query.outerjoin(ProjectTag).group_by(Tag.id).order_by(
+                desc(func.count(ProjectTag.tag_id))
             )
         elif filter_type == 'recently_updated':
             query = query.order_by(desc(Tag.updated_at))
