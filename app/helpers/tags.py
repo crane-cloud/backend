@@ -5,17 +5,24 @@ def create_tags(tag_names):
     """
     Create tags
     """
+    unique_tags = {
+        tag.strip().lstrip("#")
+        for tag in tag_names
+        if tag and tag.strip().lstrip("#")
+    }
+
     none_existing_tags = []
     existing_tags = []
-    for tag in tag_names:
-        tag = tag.strip()
+    for tag in unique_tags:
         tag_rec = Tag.find_first(name=tag)
         if not tag_rec:
             none_existing_tags.append(Tag(name=tag))
         else:
             existing_tags.append(tag_rec)
-        if none_existing_tags:
-            Tag.bulk_save(none_existing_tags)
+
+    if none_existing_tags:
+        Tag.bulk_save(none_existing_tags)
+
     new_tags = []
     for tag in none_existing_tags:
         new_tag = Tag.find_first(name=tag.name)
