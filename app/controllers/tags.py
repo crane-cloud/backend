@@ -254,7 +254,8 @@ class TagProjectsView(Resource):
             query = db.session.query(Project).join(
                 ProjectTag, Project.id == ProjectTag.project_id
             ).filter(
-                ProjectTag.tag_id == tag_id
+                ProjectTag.tag_id == tag_id,
+                Project.deleted.is_(False)
             ).order_by(Project.date_created.desc())
             total_projects_count = query.count()
             
