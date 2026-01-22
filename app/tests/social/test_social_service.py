@@ -160,7 +160,7 @@ class TestSocialServiceIntegration:
         mock_query.offset.return_value = mock_query
         mock_query.limit.return_value = mock_query
         mock_query.all.return_value = []
-        
+
         # Mock paginated result
         mock_paginated = Mock()
         mock_paginated.items = []
@@ -173,23 +173,24 @@ class TestSocialServiceIntegration:
         mock_paginated.has_next = False
         mock_paginated.has_prev = False
         mock_query.paginate.return_value = mock_paginated
-        
+
         return mock_query
 
     def test_get_projects_data_basic(self, mock_user):
         """Test basic project data retrieval"""
         mock_query = self._create_mock_query()
-        
+
         with patch('app.controllers.socials.Project') as mock_project_class, \
-             patch('app.controllers.socials.ProjectSchema') as mock_schema_class, \
-             patch.object(SocialService, '_get_user_interests', return_value={
-                 'followed_tags': [],
-                 'followed_users': [],
-                 'followed_projects': []
-             }):
+                patch('app.controllers.socials.ProjectListSchema') as mock_schema_class, \
+                patch.object(SocialService, '_get_user_interests', return_value={
+                    'followed_tags': [],
+                    'followed_users': [],
+                    'followed_projects': []
+                }):
             # Set up Project.query as a property that returns our mock
-            type(mock_project_class).query = PropertyMock(return_value=mock_query)
-            
+            type(mock_project_class).query = PropertyMock(
+                return_value=mock_query)
+
             # Mock project objects
             mock_project = Mock()
             mock_project.is_followed_by = Mock(return_value=False)
@@ -215,16 +216,17 @@ class TestSocialServiceIntegration:
     def test_get_projects_data_with_search(self, mock_user):
         """Test project data retrieval with search"""
         mock_query = self._create_mock_query()
-        
+
         with patch('app.controllers.socials.Project') as mock_project_class, \
-             patch('app.controllers.socials.ProjectSchema') as mock_schema_class, \
-             patch.object(SocialService, '_get_user_interests', return_value={
-                 'followed_tags': [],
-                 'followed_users': [],
-                 'followed_projects': []
-             }):
-            type(mock_project_class).query = PropertyMock(return_value=mock_query)
-            
+                patch('app.controllers.socials.ProjectListSchema') as mock_schema_class, \
+                patch.object(SocialService, '_get_user_interests', return_value={
+                    'followed_tags': [],
+                    'followed_users': [],
+                    'followed_projects': []
+                }):
+            type(mock_project_class).query = PropertyMock(
+                return_value=mock_query)
+
             mock_project = Mock()
             mock_project.is_followed_by = Mock(return_value=False)
             mock_query.paginate.return_value.items = [mock_project]
@@ -246,16 +248,17 @@ class TestSocialServiceIntegration:
     def test_get_projects_data_trending(self, mock_user):
         """Test trending projects filter"""
         mock_query = self._create_mock_query()
-        
+
         with patch('app.controllers.socials.Project') as mock_project_class, \
-             patch('app.controllers.socials.ProjectSchema') as mock_schema_class, \
-             patch.object(SocialService, '_get_user_interests', return_value={
-                 'followed_tags': [],
-                 'followed_users': [],
-                 'followed_projects': []
-             }):
-            type(mock_project_class).query = PropertyMock(return_value=mock_query)
-            
+                patch('app.controllers.socials.ProjectListSchema') as mock_schema_class, \
+                patch.object(SocialService, '_get_user_interests', return_value={
+                    'followed_tags': [],
+                    'followed_users': [],
+                    'followed_projects': []
+                }):
+            type(mock_project_class).query = PropertyMock(
+                return_value=mock_query)
+
             mock_project = Mock()
             mock_project.is_followed_by = Mock(return_value=False)
             mock_query.paginate.return_value.items = [mock_project]
@@ -322,14 +325,15 @@ class TestSocialServiceEdgeCases:
         mock_query.paginate.return_value = mock_paginated
 
         with patch('app.controllers.socials.Project') as mock_project_class, \
-             patch('app.controllers.socials.ProjectSchema') as mock_schema_class, \
-             patch.object(SocialService, '_get_user_interests', return_value={
-                 'followed_tags': [],
-                 'followed_users': [],
-                 'followed_projects': []
-             }):
-            type(mock_project_class).query = PropertyMock(return_value=mock_query)
-            
+                patch('app.controllers.socials.ProjectListSchema') as mock_schema_class, \
+                patch.object(SocialService, '_get_user_interests', return_value={
+                    'followed_tags': [],
+                    'followed_users': [],
+                    'followed_projects': []
+                }):
+            type(mock_project_class).query = PropertyMock(
+                return_value=mock_query)
+
             mock_schema_instance = Mock()
             mock_schema_instance.dump.return_value = [{'id': 'test'}]
             mock_schema_class.return_value = mock_schema_instance
