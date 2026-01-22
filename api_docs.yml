@@ -4257,6 +4257,8 @@ paths:
     get:
       tags:
         - socials
+      summary: "Browse and discover public projects, users, and tags"
+      description: "Enhanced social discovery endpoint with advanced ranking algorithms, personalized recommendations, and sophisticated search capabilities. Supports trending calculations with time-decay, multi-factor scoring, and context-aware filtering."
       consumes:
         - application/json
       produces:
@@ -4272,21 +4274,33 @@ paths:
           required: false
           type: string
           enum: [projects, users, tags]
+          description: "Type of content to fetch. Omit to get all entities combined."
         - in: query
           name: search
           required: false
           type: string
+          maxLength: 200
+          description: "Search term for filtering content (max 200 characters). Searches across name, description, biography, etc."
         - in: query
           name: filter
           required: false
           type: string
-          enum: [trending, recently_updated, newly_added]
+          enum: [trending, recommended, recently_updated, newly_added, most_active, most_used]
+          description: |
+            Sorting/filtering strategy:
+            - trending: Time-decayed engagement-based ranking
+            - recommended: Personalized suggestions based on user interests
+            - recently_updated: Most recently modified items
+            - newly_added: Newest items first
+            - most_active: Most active users (users only)
+            - most_used: Most used tags (tags only)
         - in: query
           name: page
           required: false
           type: integer
           minimum: 1
           default: 1
+          description: "Page number for pagination"
         - in: query
           name: per_page
           required: false
@@ -4294,11 +4308,57 @@ paths:
           minimum: 1
           maximum: 100
           default: 10
+          description: "Number of items per page (distributed across entities if no entity specified)"
       responses:
         200:
-          description: "Successfully retrieved search results"
+          description: "Successfully retrieved social data"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              data:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                  users:
+                    type: array
+                    items:
+                      type: object
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+                      page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      has_next:
+                        type: boolean
+                      has_prev:
+                        type: boolean
         400:
-          description: "Bad request"
+          description: "Bad request - invalid parameters"
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "fail"
+              message:
+                type: string
+                example: "Invalid filter for projects. Must be one of: trending, recommended, recently_updated, newly_added"
         404:
           description: "User not found"
         500:
