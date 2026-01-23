@@ -67,16 +67,16 @@ class SocialService:
         Calculate a time decay score for trending calculations.
         Returns a value between 0 and 1, where newer items score higher.
         """
-        now = datetime.utcnow()
-        decay_start = now - timedelta(days=decay_days)
+        now = func.now()
+        total_decay_seconds = decay_days * 86400.0
 
-        return case(
-            (date_field >= decay_start,
-             1.0 - (cast(func.extract('epoch', now - date_field), Float) /
-                    (decay_days * 86400.0))
-             ),
-            else_=0.1  # Minimum score for old items
-        )
+        # Calculate age in seconds and convert to decay score
+        age_seconds = func.extract('epoch', now) - \
+            func.extract('epoch', date_field)
+        decay_score = func.greatest(
+            0.1, 1.0 - (age_seconds / total_decay_seconds))
+
+        return decay_score
 
     @staticmethod
     def _get_user_interests(user):
@@ -174,14 +174,15 @@ class SocialService:
         # Apply ordering based on filter type
         if filter_type == 'trending':
             # Advanced trending: combines follower count with time decay
+            follower_count = func.count(func.distinct(ProjectFollowers.id))
             time_decay = SocialService._calculate_time_decay_score(
                 Project.updated_at)
-            follower_count = func.count(func.distinct(ProjectFollowers.id))
 
             trending_score = (
                 (follower_count * SocialService.POPULARITY_WEIGHT) +
                 (time_decay * SocialService.RECENCY_WEIGHT)
-            )
+            ).label('trending_score')
+
             query = query.order_by(desc(trending_score),
                                    desc(Project.date_created))
 
@@ -678,13 +679,11 @@ class SocialView(Resource):
                 return dict(status='success', data=result), 200
 
         except ValueError as e:
+            print(e)
             # Handle validation errors
             return dict(status="fail", message=str(e)), 400
         except Exception as e:
-            # Handle unexpected errors with logging
-            import traceback
-            error_trace = traceback.format_exc()
-            # In production, log error_trace to your logging system
+            print(e)
             return dict(
                 status="fail",
                 message="An error occurred while fetching social data. Please try again."
