@@ -10,7 +10,7 @@ from app.models.user import User, Followers
 from app.models.project import Project
 from app.models.tags import ProjectTag, Tag, TagFollowers
 from app.models.project_users import ProjectFollowers
-from app.schemas.user import UserSchema
+from app.schemas.user import SimpleUserSchema
 from app.schemas.project import ProjectListSchema
 from app.schemas.tags import TagSchema
 
@@ -389,7 +389,7 @@ class SocialService:
                 page=page, per_page=per_page, error_out=False)
             users = paginated.items
 
-            user_schema = UserSchema(many=True)
+            user_schema = SimpleUserSchema(many=True)
             schema_result = user_schema.dump(users)
             users_data = SocialService._handle_schema_result(schema_result)
 
@@ -419,7 +419,7 @@ class SocialService:
             offset = (page - 1) * per_page
             users = query.offset(offset).limit(per_page).all()
 
-            user_schema = UserSchema(many=True)
+            user_schema = SimpleUserSchema(many=True)
             schema_result = user_schema.dump(users)
             users_data = SocialService._handle_schema_result(schema_result)
 

@@ -36,9 +36,13 @@ class ProjectListSchema(Schema):
     description = fields.String()
     tags = fields.Nested("TagsProjectsSchema", many=True, dump_only=True)
     supports_ml = fields.Method("get_supports_ml", dump_only=True)
+    followers_count = fields.Method("get_followers_count", dump_only=True)
 
     def get_supports_ml(self, obj):
         return obj.cluster.supports_ml
+
+    def get_followers_count(self, obj):
+        return ProjectFollowers.count(project_id=obj.id)
 
 
 class ProjectSchema(Schema):
@@ -76,7 +80,7 @@ class ProjectSchema(Schema):
     tags_add = fields.List(fields.String, load_only=True)
     tags_remove = fields.List(fields.String, load_only=True)
     supports_ml = fields.Method("get_supports_ml", dump_only=True)
-    tags_count = fields.Method("get_tags_count", dump_only=True) 
+    tags_count = fields.Method("get_tags_count", dump_only=True)
 
     def get_is_following(self, obj):
         current_user_id = get_jwt_identity()
@@ -94,22 +98,21 @@ class ProjectSchema(Schema):
 
     def get_followers_count(self, obj):
         return ProjectFollowers.count(project_id=obj.id)
-    
+
     def get_members_count(self, obj):
         return ProjectUser.count(project_id=obj.id)
 
     def get_supports_ml(self, obj):
         return obj.cluster.supports_ml
-    
+
     def get_tags_count(self, obj):
         return ProjectTag.count(project_id=obj.id)
-      
+
     def get_pinned_status(self, obj):
         project_user = ProjectUser.query.filter_by(
             project_id=obj.id,
         ).first()
         return project_user.pinned if project_user else False
-
 
 
 class ProjectMigrationSchema(Schema):
