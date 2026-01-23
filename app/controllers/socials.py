@@ -679,11 +679,13 @@ class SocialView(Resource):
                 return dict(status='success', data=result), 200
 
         except ValueError as e:
-            print(e)
             # Handle validation errors
             return dict(status="fail", message=str(e)), 400
         except Exception as e:
-            print(e)
+            # Handle unexpected errors with logging
+            import traceback
+            error_trace = traceback.format_exc()
+            # In production, log error_trace to your logging system
             return dict(
                 status="fail",
                 message="An error occurred while fetching social data. Please try again."
