@@ -1,10 +1,11 @@
+from app.schemas.common import BaseSchema
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 from flask import current_app
 from app.schemas.app_state import AppStateSchema
 
 
-class AppSchema(Schema):
+class AppSchema(BaseSchema):
 
     id = fields.String(dump_only=True)
 
@@ -84,7 +85,8 @@ class AppSchema(Schema):
 
     def get_active_domain_url(self, obj):
         """Get the active domain URL"""
-        active_domain = next((d for d in obj.domains if d.is_active and not d.deleted), None)
+        active_domain = next(
+            (d for d in obj.domains if d.is_active and not d.deleted), None)
         if active_domain:
             return f"https://{active_domain.domain}"
         return obj.url

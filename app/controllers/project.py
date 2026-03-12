@@ -19,6 +19,7 @@ from app.schemas import (ProjectSchema, AppSchema,
                          ProjectUserSchema, ClusterSchema, ProjectMigrationSchema)
 from app.helpers.decorators import admin_required
 import datetime
+from app.schemas.common import DisableSchema
 from flask_restful import Resource, request
 from kubernetes import client
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -816,6 +817,16 @@ class ProjectGetCostsView(Resource):
 class ProjectDisableView(Resource):
     @jwt_required
     def post(self, project_id):
+        payload = request.get_json()
+        if not payload:
+            return dict(status='fail', message='No payload provided'), 400
+
+        disable_schema = DisableSchema()
+        validated_payload, errors = disable_schema.load(payload)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        disabled_reason = validated_payload.get('disabled_reason')
 
         # check credentials
         current_user_id = get_jwt_identity()
@@ -835,7 +846,7 @@ class ProjectDisableView(Resource):
             return dict(status='fail', message=f'Project with id {project_id} is already disabled'), 409
 
         disabled_project = disable_project(
-            project, is_admin(current_user_roles))
+            project, is_admin(current_user_roles), disabled_reason=disabled_reason)
 
         if type(disabled_project) == SimpleNamespace:
             status_code = disabled_project.status_code if disabled_project.status_code else 500

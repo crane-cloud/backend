@@ -7,6 +7,7 @@ from app.helpers.activity_logger import log_activity
 from app.helpers.inactiveUser_notification import send_inactive_notification_to_user
 from app.helpers.kube import disable_project, enable_project
 from app.helpers.role_search import has_admin_role
+from app.schemas.common import DisableSchema
 from app.schemas.user import SimpleUserSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request, reqparse
@@ -31,7 +32,6 @@ from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
@@ -1112,79 +1112,129 @@ class UserDataSummaryView(Resource):
 
 
 class InActiveUsersView(Resource):
-    computed_results = {}  # Dictionary to cache computed results
-    current_date = None  # Variable to track the current date
+    """
+    Retrieve inactive users based on their last_seen timestamp.
+    """
 
     @admin_required
     def get(self):
+        """
+        Returns users who have been INACTIVE (last_seen before a threshold).
+        """
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        start_date = request.args.get("start")
-        end_date = request.args.get("end")
-        created_date = request.args.get("created")
-        range = request.args.get("range", 0, type=int)
+        start_days_ago = request.args.get("start", type=int)
+        end_days_ago = request.args.get("end", type=int)
+        created_date_param = request.args.get("created")
+        days_range = request.args.get("range", 0, type=int)
         today = datetime.now().date()
         keywords = request.args.get('keywords', None)
+        disabled_param = request.args.get('disabled', None)
 
-        if (start_date is not None and end_date is not None):
-            if range:
-                return dict(status='fail', message="Either pass `range` or `start` and `end` but not all the three."), 400
-            try:
-                # Standardize the date format
-                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-                # Standardize the date format
-                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-            except ValueError:
-                return dict(status='fail', message="Invalid date format"), 400
+        # Determine the inactivity threshold
+        # inactive_since: users must have last_seen BEFORE this date
+        # inactive_until: users must have last_seen AFTER this date (for range queries)
 
-        elif range:
-            start_date = today
-            end_date = today - timedelta(days=range)
+        if start_days_ago is not None and end_days_ago is not None:
+            # Range query: users inactive between X and Y days ago
+            # Example: start=30, end=60 means "last seen between 30-60 days ago"
+            if days_range:
+                return dict(
+                    status='fail',
+                    message="Either pass `range` or both `start` and `end`, but not both."
+                ), 400
+
+            if start_days_ago < 0 or end_days_ago < 0:
+                return dict(
+                    status='fail',
+                    message="Start and end must be positive numbers (days ago)."
+                ), 400
+
+            if end_days_ago < start_days_ago:
+                return dict(
+                    status='fail',
+                    message="Invalid range: `end` must be greater than `start` (end is further back in time)."
+                ), 400
+
+            # Users last seen between start_days_ago and end_days_ago
+            # More recent boundary
+            inactive_since = today - timedelta(days=start_days_ago)
+            inactive_until = today - \
+                timedelta(days=end_days_ago)  # Older boundary
+
+        elif days_range:
+            # Simple threshold: users inactive for MORE than X days
+            # Example: range=30 means "last seen more than 30 days ago"
+            if days_range < 0:
+                return dict(
+                    status='fail',
+                    message="Range must be a positive number."
+                ), 400
+
+            inactive_since = today - timedelta(days=days_range)
+            inactive_until = None  # No lower bound, any date before threshold
 
         else:
-            return dict(status='fail', message="Missing required parameters"), 400
+            return dict(
+                status='fail',
+                message="Missing required parameters. Provide either `range` or both `start` and `end`."
+            ), 400
 
-        if start_date > today:
-            return dict(status='fail', message="Entered date cannot be in the future"), 400
+        # Build query for INACTIVE users
+        # Users whose last_seen is BEFORE the inactivity threshold (not recently active)
+        query = User.query.filter(
+            cast(User.last_seen, Date) < inactive_since,
+            User.verified == True
+        )
 
-        if end_date > start_date:
-            return dict(status='fail', message="Invalid date range: The start date must be earlier than the end date"), 400
+        # If we have a range (inactive_until), add upper bound
+        if inactive_until is not None:
+            query = query.filter(cast(User.last_seen, Date) >= inactive_until)
 
-        # Clear computed results for the each new day
-        if self.current_date != today:
-            self.current_date = today
-            self.computed_results = {}
-
-        date_range = (start_date, end_date, created_date)
-
-        if date_range in self.computed_results:
-            returned_users = self.computed_results[date_range]
-
-        else:
-
-            query = User.query.filter(
-                cast(User.last_seen, Date) <= start_date,
-                cast(User.last_seen, Date) >= end_date,
-                User.verified == True
+        # filter by keywords (name or email)
+        if keywords:
+            keyword_filter = (
+                User.name.ilike(f'%{keywords}%') |
+                User.email.ilike(f'%{keywords}%')
             )
+            query = query.filter(keyword_filter)
 
-            if keywords:
-                keyword_filter = (User.name.ilike(
-                    '%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
-                query = query.filter(keyword_filter)
-
-            if created_date:
-                date_created_filter = (
-                    cast(User.date_created, Date) <= today,
-                    cast(User.date_created, Date) >= created_date
+        # filter by disabled status (either disabled or admin_disabled)
+        if disabled_param is not None:
+            if disabled_param.lower() in ['true', '1', 'yes']:
+                # Show only disabled users (either disabled=True OR admin_disabled=True)
+                query = query.filter(
+                    or_(User.disabled == True, User.admin_disabled == True)
                 )
-                query = query.filter(date_created_filter)
-            returned_users = query
-            self.computed_results[date_range] = returned_users
+            elif disabled_param.lower() in ['false', '0', 'no']:
+                # Show only enabled users (both disabled=False AND admin_disabled=False)
+                query = query.filter(
+                    User.disabled == False,
+                    User.admin_disabled == False
+                )
 
-        paginated = returned_users.paginate(
-            page=page, per_page=per_page, error_out=False)
+        # filter by account creation date
+        if created_date_param:
+            try:
+                created_after_date = datetime.strptime(
+                    created_date_param, "%Y-%m-%d").date()
+                query = query.filter(
+                    cast(User.date_created, Date) >= created_after_date,
+                    cast(User.date_created, Date) <= today
+                )
+            except ValueError:
+                return dict(
+                    status='fail',
+                    message="Invalid created date format. Use YYYY-MM-DD."
+                ), 400
+
+        paginated = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
         users = paginated.items
         pagination = {
             'total': paginated.total,
@@ -1209,6 +1259,18 @@ class InActiveUsersView(Resource):
 class UserDisableView(Resource):
     @admin_required
     def post(self, user_id):
+        current_user_roles = get_jwt_claims()['roles']
+
+        payload = request.get_json()
+        if not payload:
+            return dict(status='fail', message='No payload provided'), 400
+
+        disable_schema = DisableSchema()
+        validated_payload, errors = disable_schema.load(payload)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        disabled_reason = validated_payload.get('disabled_reason')
 
         user = User.get_by_id(user_id)
         if not user:
@@ -1217,9 +1279,12 @@ class UserDisableView(Resource):
         if user.disabled:
             return dict(status='fail', message=f'User with id {user_id} is already disabled'), 409
 
+        is_admin_user = is_admin(current_user_roles)
+
         for project in user.projects:
             if not project.disabled:
-                disabled_project = disable_project(project)
+                disabled_project = disable_project(
+                    project, is_admin_user, disabled_reason=disabled_reason)
                 if type(disabled_project) == SimpleNamespace:
                     status_code = disabled_project.status_code if disabled_project.status_code else 500
                     return dict(status='fail', message=disabled_project.message), status_code
@@ -1227,6 +1292,10 @@ class UserDisableView(Resource):
         try:
             # save user
             user.disabled = True
+            if is_admin_user:
+                user.admin_disabled = True
+            if disabled_reason:
+                user.disabled_reason = disabled_reason
             user.save()
             log_activity('User', status='Success',
                          operation='Disable',
@@ -1283,6 +1352,7 @@ class UserEnableView(Resource):
         try:
             # save user
             user.disabled = False
+            user.admin_disabled = False
             user.save()
             log_activity('User', status='Success',
                          operation='Enable',

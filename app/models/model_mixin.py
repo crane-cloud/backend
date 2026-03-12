@@ -1,10 +1,17 @@
-from sqlalchemy import inspect, func, column
+from sqlalchemy import inspect, func, column, event
 from sqlalchemy.exc import SQLAlchemyError
 from flask_sqlalchemy import BaseQuery
 from ..models import db
 from sqlalchemy import or_
 import time
 from types import SimpleNamespace
+from sqlalchemy.orm.attributes import get_history
+from datetime import datetime, timezone
+
+
+def get_utc_now():
+    """Helper to ensure timezone-aware UTC datetimes."""
+    return datetime.now(timezone.utc)
 
 
 class SoftDeleteQuery(BaseQuery):
@@ -176,3 +183,77 @@ class ModelMixin(db.Model):
             }
             app_info.append(item_dict)
         return app_info
+
+
+class DetailedModelMixin(ModelMixin):
+    __abstract__ = True
+    deleted = db.Column(db.Boolean, default=False)
+    disabled = db.Column(db.Boolean, default=False)
+    admin_disabled = db.Column(db.Boolean, default=False)
+    disabled_reason = db.Column(db.String, nullable=True)
+
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    disabled_at = db.Column(db.DateTime, nullable=True)
+    enabled_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, default=get_utc_now(),
+                           onupdate=get_utc_now(), nullable=True)
+
+    @property
+    def is_currently_disabled(self):
+        """Helper property to check if disabled by EITHER user or admin."""
+        return self.disabled or self.admin_disabled
+
+
+@event.listens_for(DetailedModelMixin, "before_insert", propagate=True)
+def detailed_mixin_set_status_timestamps_on_insert(mapper, connection, target):
+    """
+    Ensure disabled_at / enabled_at / deleted_at are set consistently on insert.
+    """
+    now = get_utc_now()
+
+    # Handle Disabled State
+    if target.is_currently_disabled:
+        if not target.disabled_at:
+            target.disabled_at = now
+        target.enabled_at = None
+    else:
+        target.enabled_at = None
+        target.disabled_at = None
+
+    # Handle Deleted State, if it occurs
+    if target.deleted and not target.deleted_at:
+        target.deleted_at = now
+
+
+@event.listens_for(DetailedModelMixin, "before_update", propagate=True)
+def detailed_mixin_set_status_timestamps_on_update(mapper, connection, target):
+    """
+    Automatically update timestamps when disabled/admin_disabled/deleted flags change.
+    """
+    now = get_utc_now()
+
+    # 1. Track Disabled Status Changes
+    disabled_history = get_history(target, "disabled")
+    admin_disabled_history = get_history(target, "admin_disabled")
+
+    if disabled_history.has_changes() or admin_disabled_history.has_changes():
+        if target.is_currently_disabled:
+            # Only set disabled_at if it's not already set (e.g., admin disabled an already user-disabled app)
+            if not target.disabled_at:
+                target.disabled_at = now
+            target.enabled_at = None
+        else:
+            # Transition to fully enabled
+            target.enabled_at = now
+            # target.disabled_at = None
+
+    # 2. Track Deleted Status Changes
+    deleted_history = get_history(target, "deleted")
+
+    if deleted_history.has_changes():
+        if target.deleted:
+            target.deleted_at = now
+        else:
+            # Handle "undelete" scenarios
+            target.deleted_at = None

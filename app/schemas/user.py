@@ -1,5 +1,9 @@
 from app.helpers.role_search import has_admin_role
 from app.models.project import Project
+from app.models.app import App
+from app.models import db
+from app.schemas.common import BaseSchema
+from sqlalchemy import func
 from app.models.project_users import ProjectFollowers, ProjectUser
 from app.models.tags import TagFollowers
 from app.models.user import Followers
@@ -64,7 +68,7 @@ class SocialLinksField(fields.Dict):
         return value
 
 
-class UserSchema(Schema):
+class UserSchema(BaseSchema):
     id = fields.String(dump_only=True)
 
     email = fields.Email(required=True)
@@ -94,7 +98,6 @@ class UserSchema(Schema):
     ])
     roles = fields.Nested(RoleSchema, many=True, dump_only=True)
     verified = fields.Boolean(dump_only=True)
-    date_created = fields.Date(dump_only=True)
     last_seen = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     is_beta_user = fields.Boolean()
@@ -106,8 +109,6 @@ class UserSchema(Schema):
             regex=r'^(?!\s*$)', error='Organisations should be a valid string'
         ),
     ])
-    disabled = fields.Boolean(dump_only=True)
-    admin_disabled = fields.Boolean(dump_only=True)
     is_public = fields.Boolean()
     profile_picture = fields.String()
     biography = fields.String()
@@ -120,6 +121,8 @@ class UserSchema(Schema):
     following_count = fields.Method("get_following_count", dump_only=True)
     owned_projects_count = fields.Method(
         "get_owned_projects_count", dump_only=True)
+    owned_apps_count = fields.Method(
+        "get_owned_apps_count", dump_only=True)
     followed_tags_count = fields.Method(
         "get_followed_tags_count", dump_only=True)
     collaborative_projects_count = fields.Method(
@@ -144,6 +147,20 @@ class UserSchema(Schema):
             admin_disabled=False,
             is_public=True
         )
+
+    def get_owned_apps_count(self, obj):
+        return db.session.query(func.count(App.id)).join(
+            Project, App.project_id == Project.id
+        ).filter(
+            Project.owner_id == obj.id,
+            Project.deleted.is_(False),
+            Project.disabled.is_(False),
+            Project.admin_disabled.is_(False),
+            Project.is_public.is_(True),
+            App.deleted.is_(False),
+            App.disabled.is_(False),
+            App.admin_disabled.is_(False),
+        ).scalar()
 
     def get_followed_tags_count(self, obj):
         return TagFollowers.count(user_id=obj.id)

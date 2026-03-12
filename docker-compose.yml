@@ -41,6 +41,8 @@ services:
       dockerfile: Dockerfile
     image: cranecloud/cranecloud-backend:latest
     container_name: flask-api
+    tty: true
+    stdin_open: true
     networks:
       - cranecloud
       - default
@@ -55,6 +57,7 @@ services:
       APP_MAIL_PASSWORD:
       PYTHONDONTWRITEBYTECODE: 1
       PYTHONUNBUFFERED: 1
+      FLASK_DEBUG: 1
       FLASK_ENV: development
       FLASK_APP: server.py
       MONGO_URI: ${MONGO_URI:-mongodb://crane:password@crane-mongo-db:27017/admin}

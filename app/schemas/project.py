@@ -1,4 +1,5 @@
 from app.models.tags import ProjectTag
+from app.schemas.common import BaseSchema
 from marshmallow import Schema, fields, validate
 from app.helpers.age_utility import get_item_age
 from app.models.app import App
@@ -45,7 +46,7 @@ class ProjectListSchema(Schema):
         return ProjectFollowers.count(project_id=obj.id)
 
 
-class ProjectSchema(Schema):
+class ProjectSchema(BaseSchema):
 
     id = fields.UUID(dump_only=True)
     name = fields.String(required=True, error_message={
@@ -65,11 +66,8 @@ class ProjectSchema(Schema):
     organisation = fields.String()
     project_type = fields.String()
     alias = fields.String(required=False)
-    date_created = fields.Date(dump_only=True)
     age = fields.Method("get_age", dump_only=True)
     apps_count = fields.Method("get_apps_count", dump_only=True)
-    disabled = fields.Boolean(dump_only=True)
-    admin_disabled = fields.Boolean(dump_only=True)
     prometheus_url = fields.Method("get_prometheus_url", dump_only=True)
     followers_count = fields.Method("get_followers_count", dump_only=True)
     members_count = fields.Method("get_members_count", dump_only=True)
