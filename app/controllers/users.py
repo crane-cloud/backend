@@ -37,7 +37,11 @@ from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
 from app.helpers.email_validator import validate_and_generate_username, check_username_availability
-from app.helpers.user_finder import find_user_by_email_or_username, get_inactive_users_query
+from app.helpers.user_finder import (
+    find_user_by_email_or_username,
+    get_inactive_users_query,
+    send_inactive_user_reminders_bulk,
+)
 
 
 class UsersView(Resource):
@@ -1413,79 +1417,25 @@ class SendInactiveUserMailReminder(Resource):
     """
     @admin_required
     def post(self):
-        reminder_since = request.args.get(
-            "reminder_since", type=int, default=30)
+        reminder_since = request.args.get("reminder_since", type=int, default=30)
         start_days_ago = request.args.get("start", type=int)
         end_days_ago = request.args.get("end", type=int)
         created_date_param = request.args.get("created")
         days_range = request.args.get("range", type=int)
-        keywords = request.args.get('keywords', None)
-        disabled_param = request.args.get('disabled', None)
+        keywords = request.args.get("keywords", None)
+        disabled_param = request.args.get("disabled", None)
 
-        query, err = get_inactive_users_query(
+        result, status_code = send_inactive_user_reminders_bulk(
+            app=current_app._get_current_object(),
+            days_range=days_range,
             start_days_ago=start_days_ago,
             end_days_ago=end_days_ago,
-            days_range=days_range,
-            reminder_since=reminder_since,
+            created_date_param=created_date_param,
             keywords=keywords,
             disabled_param=disabled_param,
-            created_date_param=created_date_param,
+            reminder_since=reminder_since,
         )
-        if err is not None:
-            return err
-
-        users = query.all()
-        now = datetime.now()
-        date_str = now.strftime("%m/%d/%Y")
-        app = current_app._get_current_object()
-        successful_ids = []
-        errors = []
-
-        print(f"Users: {users}")
-
-        if len(users) == 0:
-            return dict(
-                status='success',
-                message=f'No users found to send reminder emails',
-            ), 200
-
-        for user in users:
-            try:
-                success = send_inactive_notification_to_user(
-                    email=user.email,
-                    name=user.name,
-                    app=app,
-                    template="user/inactive_user_reminder.html",
-                    subject="We miss you at Crane Cloud",
-                    date=date_str,
-                    is_success_template=True
-                )
-                if success:
-                    successful_ids.append(user.id)
-                else:
-                    errors.append(f"Failed to send email to {user.email}")
-            except Exception as e:
-                errors.append(f"Error processing user {user.id}: {str(e)}")
-
-        try:
-            if successful_ids:
-                db.session.bulk_update_mappings(
-                    User,
-                    [{"id": uid, "last_reminder_sent": now}
-                        for uid in successful_ids]
-                )
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            return dict(status='fail', message=f'Database error: {str(e)}'), 500
-
-        return dict(
-            status='success',
-            message=f'Successfully sent {len(successful_ids)} reminder emails',
-            total_users_processed=len(users),
-            emails_sent=len(successful_ids),
-            errors=errors if errors else None
-        ), 201
+        return result, status_code
 
 
 class GoogleOAuthView(Resource):
