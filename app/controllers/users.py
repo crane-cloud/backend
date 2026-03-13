@@ -7,6 +7,7 @@ from app.helpers.activity_logger import log_activity
 from app.helpers.inactiveUser_notification import send_inactive_notification_to_user
 from app.helpers.kube import disable_project, enable_project
 from app.helpers.role_search import has_admin_role
+from app.schemas.common import DisableSchema
 from app.schemas.user import SimpleUserSchema
 from flask import current_app, render_template
 from flask_restful import Resource, request, reqparse
@@ -31,13 +32,16 @@ from app.models.anonymous_users import AnonymousUser
 from app.models.project import Project
 from app.models.project_users import ProjectUser
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
-from app.helpers.admin import is_admin, is_authorised_project_user, is_owner_or_admin
 from app.models import mongo
 from bson.json_util import dumps
 from app.models.app import App
 from app.helpers.crane_app_logger import logger
 from app.helpers.email_validator import validate_and_generate_username, check_username_availability
-from app.helpers.user_finder import find_user_by_email_or_username
+from app.helpers.user_finder import (
+    find_user_by_email_or_username,
+    get_inactive_users_query,
+    send_inactive_user_reminders_bulk,
+)
 
 
 class UsersView(Resource):
@@ -1112,79 +1116,42 @@ class UserDataSummaryView(Resource):
 
 
 class InActiveUsersView(Resource):
-    computed_results = {}  # Dictionary to cache computed results
-    current_date = None  # Variable to track the current date
+    """
+    Retrieve inactive users based on their last_seen timestamp.
+    """
 
     @admin_required
     def get(self):
+        """
+        Returns users who have been INACTIVE (last_seen before a threshold).
+        """
         user_schema = UserSchema(many=True)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        start_date = request.args.get("start")
-        end_date = request.args.get("end")
-        created_date = request.args.get("created")
-        range = request.args.get("range", 0, type=int)
-        today = datetime.now().date()
+        start_days_ago = request.args.get("start", type=int)
+        end_days_ago = request.args.get("end", type=int)
+        created_date_param = request.args.get("created")
+        days_range = request.args.get("range", type=int)
         keywords = request.args.get('keywords', None)
+        disabled_param = request.args.get('disabled', None)
 
-        if (start_date is not None and end_date is not None):
-            if range:
-                return dict(status='fail', message="Either pass `range` or `start` and `end` but not all the three."), 400
-            try:
-                # Standardize the date format
-                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-                # Standardize the date format
-                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-            except ValueError:
-                return dict(status='fail', message="Invalid date format"), 400
+        query, err = get_inactive_users_query(
+            start_days_ago=start_days_ago,
+            end_days_ago=end_days_ago,
+            days_range=days_range,
+            keywords=keywords,
+            disabled_param=disabled_param,
+            created_date_param=created_date_param,
+        )
+        if err is not None:
+            return err
 
-        elif range:
-            start_date = today
-            end_date = today - timedelta(days=range)
+        paginated = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
 
-        else:
-            return dict(status='fail', message="Missing required parameters"), 400
-
-        if start_date > today:
-            return dict(status='fail', message="Entered date cannot be in the future"), 400
-
-        if end_date > start_date:
-            return dict(status='fail', message="Invalid date range: The start date must be earlier than the end date"), 400
-
-        # Clear computed results for the each new day
-        if self.current_date != today:
-            self.current_date = today
-            self.computed_results = {}
-
-        date_range = (start_date, end_date, created_date)
-
-        if date_range in self.computed_results:
-            returned_users = self.computed_results[date_range]
-
-        else:
-
-            query = User.query.filter(
-                cast(User.last_seen, Date) <= start_date,
-                cast(User.last_seen, Date) >= end_date,
-                User.verified == True
-            )
-
-            if keywords:
-                keyword_filter = (User.name.ilike(
-                    '%' + keywords + '%') | User.email.ilike('%' + keywords + '%'))
-                query = query.filter(keyword_filter)
-
-            if created_date:
-                date_created_filter = (
-                    cast(User.date_created, Date) <= today,
-                    cast(User.date_created, Date) >= created_date
-                )
-                query = query.filter(date_created_filter)
-            returned_users = query
-            self.computed_results[date_range] = returned_users
-
-        paginated = returned_users.paginate(
-            page=page, per_page=per_page, error_out=False)
         users = paginated.items
         pagination = {
             'total': paginated.total,
@@ -1209,6 +1176,18 @@ class InActiveUsersView(Resource):
 class UserDisableView(Resource):
     @admin_required
     def post(self, user_id):
+        current_user_roles = get_jwt_claims()['roles']
+
+        payload = request.get_json()
+        if not payload:
+            return dict(status='fail', message='No payload provided'), 400
+
+        disable_schema = DisableSchema()
+        validated_payload, errors = disable_schema.load(payload)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        disabled_reason = validated_payload.get('disabled_reason')
 
         user = User.get_by_id(user_id)
         if not user:
@@ -1217,9 +1196,12 @@ class UserDisableView(Resource):
         if user.disabled:
             return dict(status='fail', message=f'User with id {user_id} is already disabled'), 409
 
+        is_admin_user = is_admin(current_user_roles)
+
         for project in user.projects:
             if not project.disabled:
-                disabled_project = disable_project(project)
+                disabled_project = disable_project(
+                    project, is_admin_user, disabled_reason=disabled_reason)
                 if type(disabled_project) == SimpleNamespace:
                     status_code = disabled_project.status_code if disabled_project.status_code else 500
                     return dict(status='fail', message=disabled_project.message), status_code
@@ -1227,6 +1209,10 @@ class UserDisableView(Resource):
         try:
             # save user
             user.disabled = True
+            if is_admin_user:
+                user.admin_disabled = True
+            if disabled_reason:
+                user.disabled_reason = disabled_reason
             user.save()
             log_activity('User', status='Success',
                          operation='Disable',
@@ -1283,6 +1269,7 @@ class UserEnableView(Resource):
         try:
             # save user
             user.disabled = False
+            user.admin_disabled = False
             user.save()
             log_activity('User', status='Success',
                          operation='Enable',
@@ -1424,122 +1411,31 @@ class UserFollowersView(Resource):
 
 
 class SendInactiveUserMailReminder(Resource):
-    @admin_required
-    def get(self):
-        user_schema = UserSchema(many=True)
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-
-        value = request.args.get('value', type=int)
-        unit = request.args.get('unit')
-
-        query = User.query.filter(
-            User.verified == True,
-            User.disabled == False,
-            User.admin_disabled == False
-        )
-
-        if value is not None and unit is not None:
-            unit = unit.lower()
-            if unit not in ('hours', 'days', 'months'):
-                return dict(status='fail', message="Unit must be hours, days, or months"), 400
-
-            now = datetime.now()
-            if unit == 'hours':
-                lower_threshold = now - timedelta(hours=value)
-                upper_threshold = now - timedelta(hours=value-1)
-            elif unit == 'days':
-                lower_threshold = now - timedelta(days=value)
-                upper_threshold = now - timedelta(days=value-1)
-            else:
-                lower_threshold = now - timedelta(days=value * 30)
-                upper_threshold = now - timedelta(days=(value-1) * 30)
-
-            query = query.filter(
-                User.last_seen <= upper_threshold,
-                User.last_seen > lower_threshold
-            )
-
-        query = query.order_by(User.last_seen.desc())
-
-        paginated = query.paginate(
-            page=page, per_page=per_page, error_out=False)
-        users = paginated.items
-
-        pagination = {
-            'total': paginated.total,
-            'pages': paginated.pages,
-            'page': paginated.page,
-            'per_page': paginated.per_page,
-            'next': paginated.next_num,
-            'prev': paginated.prev_num
-        }
-        users_data = user_schema.dump(users)
-
-        return dict(
-            status='success',
-            message=f'Found {paginated.total} inactive users',
-            data=dict(pagination=pagination, users=users_data)
-        ), 200
-
+    """
+    Send reminder emails to inactive users. Uses the same filtering as InActiveUsersView
+    Adds reminder_since parameter to the query for when user last got the reminder
+    """
     @admin_required
     def post(self):
-        user_data = request.get_json()
+        reminder_since = request.args.get("reminder_since", type=int, default=30)
+        start_days_ago = request.args.get("start", type=int)
+        end_days_ago = request.args.get("end", type=int)
+        created_date_param = request.args.get("created")
+        days_range = request.args.get("range", type=int)
+        keywords = request.args.get("keywords", None)
+        disabled_param = request.args.get("disabled", None)
 
-        if not user_data or 'inactive_users' not in user_data:
-            return dict(status='fail', message='List of user UUIDs not provided'), 400
-
-        inactive_users = user_data['inactive_users']
-
-        if not isinstance(inactive_users, list):
-            return dict(status='fail', message='Invalid format for inactive users'), 400
-
-        emails_sent = 0
-        errors = []
-        now = datetime.now()
-
-        for user_uuid in inactive_users:
-            try:
-                user = User.query.get(user_uuid)
-                if not user:
-                    errors.append(f"User with UUID {user_uuid} not found")
-                    continue
-
-                if user.last_reminder_sent is None or user.last_reminder_sent < (now - timedelta(days=30)):
-                    success = send_inactive_notification_to_user(
-                        email=user.email,
-                        name=user.name,
-                        app=current_app._get_current_object(),
-                        template="user/inactive_user_reminder.html",
-                        subject="We miss you at Crane Cloud",
-                        date=now.strftime("%m/%d/%Y"),
-                        is_success_template=True
-                    )
-
-                    if success:
-                        emails_sent += 1
-                        user.last_reminder_sent = now
-                        db.session.add(user)
-                    else:
-                        errors.append(f"Failed to send email to {user.email}")
-                else:
-                    errors.append(
-                        f"Email reminder already sent to {user.email} within the last 30 days")
-
-            except Exception as e:
-                errors.append(f"Error processing user {user_uuid}: {str(e)}")
-
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            return dict(status='fail', message=f'Database error: {str(e)}'), 500
-
-        return dict(
-            status='success',
-            message=f'Successfully sent {emails_sent} reminder emails',
-            total_users_processed=len(inactive_users),
-            errors=errors if errors else None), 201
+        result, status_code = send_inactive_user_reminders_bulk(
+            app=current_app._get_current_object(),
+            days_range=days_range,
+            start_days_ago=start_days_ago,
+            end_days_ago=end_days_ago,
+            created_date_param=created_date_param,
+            keywords=keywords,
+            disabled_param=disabled_param,
+            reminder_since=reminder_since,
+        )
+        return result, status_code
 
 
 class GoogleOAuthView(Resource):

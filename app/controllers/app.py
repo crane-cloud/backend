@@ -7,6 +7,7 @@ import requests
 from app.helpers.activity_logger import log_activity
 from app.schemas.app import AppDeploySchema, MLAppDeploySchema
 from app.schemas.cluster import ClusterDetailSchema, ClusterSchema
+from app.schemas import DisableSchema
 from app.schemas.project import ProjectMiniListSchema, ProjectSchema
 from flask import current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt_claims
@@ -180,14 +181,14 @@ class AppsView(Resource):
 
             if app_url:
                 query = query.filter_by(url=app_url)
-            
+
             if is_modal:
                 is_modal_value = True if is_modal.lower() == 'true' else False
                 query = query.filter_by(is_modal=is_modal_value)
-            
+
             if is_ai:
                 is_ai_value = True if is_ai.lower() == 'true' else False
-                query = query.filter_by(is_ai=is_ai_value) 
+                query = query.filter_by(is_ai=is_ai_value)
 
             if start:
                 start_date = parse_date(start)
@@ -196,24 +197,26 @@ class AppsView(Resource):
             if end:
                 end_date = parse_date(end)
                 query = query.filter(App.date_created <= end_date)
-            
+
             if keyword:
                 query = query.filter(App.name.ilike(f"%{keyword}%"))
 
             if status == 'running':
-                query = query.join(AppState).filter(AppState.status == 'running')
+                query = query.join(AppState).filter(
+                    AppState.status == 'running')
 
             if status == 'down':
                 # Show apps with any status except 'running'
-                query = query.join(AppState).filter(AppState.status != 'running')
+                query = query.join(AppState).filter(
+                    AppState.status != 'running')
 
             if cluster_id:
                 # Filter apps by cluster_id via the related project
-                query = query.join(Project, App.project_id == Project.id).filter(Project.cluster_id == cluster_id)
+                query = query.join(Project, App.project_id == Project.id).filter(
+                    Project.cluster_id == cluster_id)
 
             paginated_apps = query.paginate(
                 page=page, per_page=per_page, error_out=False)
-            
 
             pagination = {
                 'total': paginated_apps.total,
@@ -226,7 +229,7 @@ class AppsView(Resource):
 
             apps = paginated_apps.items
             apps_data, errors = apps_schema.dumps(apps)
-            
+
             if errors:
                 return dict(status='fail', message=errors), 400
 
@@ -616,6 +619,9 @@ class AppDetailView(Resource):
                 if exc.status == 404:
                     return dict(status='fail', data=dict(apps=app_list), message="Application does not exist on the cluster"), 200
                 return dict(status='fail', data=dict(apps=app_list), message=str(exc)), 500
+            except Exception as exc:
+                return dict(status='fail', data=dict(apps=app_list), message=str(exc)), 500
+
             app_list.update(self.extract_app_details(app_status_object))
 
             app_list["pod_statuses"] = self.get_pod_statuses(
@@ -1692,6 +1698,16 @@ class AppDockerWebhookListenerView(Resource):
 class AppDisableView(Resource):
     @jwt_required
     def post(self, app_id):
+        payload = request.get_json()
+        if not payload:
+            return dict(status='fail', message='No payload provided'), 400
+
+        disable_schema = DisableSchema()
+        validated_payload, errors = disable_schema.load(payload)
+        if errors:
+            return dict(status='fail', message=errors), 400
+
+        disabled_reason = validated_payload.get('disabled_reason')
 
         # check credentials
         current_user_id = get_jwt_identity()
@@ -1709,7 +1725,8 @@ class AppDisableView(Resource):
             return dict(status='fail', message=f'App with id {app_id} is already disabled'), 409
 
         # Disable app
-        disabled_app = disable_user_app(app, is_admin(current_user_roles))
+        disabled_app = disable_user_app(app, is_admin(
+            current_user_roles), disabled_reason=disabled_reason)
         if type(disabled_app) == SimpleNamespace:
             status_code = disabled_app.status_code if disabled_app.status_code else 500
             return dict(status='fail', message=disabled_app.message), status_code

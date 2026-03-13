@@ -546,55 +546,59 @@ paths:
         - in: query
           name: range
           schema:
-            type: string
-          description: >
-            A relative date range for inactive users, such as `last 14 days`.
-            For an exact range, use `start` and `end` instead.
+            type: integer
+          required: true
+          description: Days of inactivity threshold. Returns users last seen more than N days ago. Incompatible with `start` and `end`.
         - in: query
           name: start
           schema:
-            type: string
-            format: date
-          description: >
-            The start date for inactive users. Must be used together with `end`.
-            This parameter is incompatible with `range`.
+            type: integer
+          description: Inactivity window start in days ago. Use with `end` (e.g., `start=30&end=60` for 30-60 days ago). Incompatible with `range`.
         - in: query
           name: end
           schema:
-            type: string
-            format: date
-          description: >
-            The end date for inactive users. Must be used together with `start`.
-            This parameter is incompatible with `range`.
+            type: integer
+          description: Inactivity window end in days ago. Must be greater than `start`. Use with `start`. Incompatible with `range`.
         - in: query
           name: created
           schema:
             type: string
             format: date
-          description: >
-            The created date for inactive users from the `current date`.
-            This parameter is `optional`.
+          description: Filter by account creation date (YYYY-MM-DD). Returns users created on or after this date.
         - in: query
           name: keywords
-          type: string
-          description: Enter the keywords if searching by either email or name
+          schema:
+            type: string
+          description: Search by user name or email (case-insensitive partial match).
+        - in: query
+          name: disabled
+          schema:
+            type: string
+            enum: [true, false, "1", "0", yes, no]
+          description: Filter by disabled status. `true` for disabled users (disabled OR admin_disabled). `false` for enabled users only.
         - in: query
           name: page
-          type: integer
-          description: Page number
+          schema:
+            type: integer
+          description: Page number (default 1)
         - in: query
           name: per_page
-          type: integer
-          description: Number of items per page
+          schema:
+            type: integer
+          description: Items per page (default 10)
       produces:
         - application/json
       responses:
         200:
-          description: "Success"
+          description: "Success - Paginated list of inactive users"
         400:
-          description: "Bad request"
+          description: "Bad request - Invalid parameters"
+        401:
+          description: "Unauthorized"
+        403:
+          description: "Forbidden - Admin required"
         500:
-          description: "Internal Server Error"
+          description: "Internal server error"
 
   "/users/{user_id}/disable":
     post:
@@ -614,6 +618,14 @@ paths:
           name: user_id
           required: true
           type: string
+        - in: body
+          name: disable_reason
+          schema:
+            properties:
+              disabled_reason:
+                type: string
+                required: true
+                description: "Reason for disabling the user"
       responses:
         201:
           description: "Successfully disabled user"
@@ -811,56 +823,11 @@ paths:
         500:
           description: "Internal Server Error"
   "/users/inactive_user_reminder":
-    get:
-      tags:
-        - inactive_user_reminder
-      summary: "Get inactive users with pagination and optional time filtering"
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          type: string
-          description: "Bearer [token]"
-        - in: query
-          name: page
-          required: false
-          type: integer
-          description: "Page number (default: 1)"
-        - in: query
-          name: per_page
-          required: false
-          type: integer
-          description: "Results per page (default: 10)"
-        - in: query
-          name: value
-          required: false
-          type: integer
-          description: "Numeric value for the time period"
-        - in: query
-          name: unit
-          required: false
-          type: string
-          enum: [hours, days, months]
-          description: "Unit of time (hours/days/months)"
-      responses:
-        200:
-          description: "Success - Returns paginated list of inactive users"
-        400:
-          description: "Bad request - Invalid parameters"
-        401:
-          description: "Unauthorized - Admin access required"
-        500:
-          description: "Internal Server Error"
     post:
       tags:
-        - inactive_user_reminder
+        - users
       summary: "Send reminder emails to inactive users"
-      consumes:
-        - application/json
+      description: "Uses the same filtering as GET /users/inactive_users. Sends reminders only to users who have not received one in the last 30 days."
       produces:
         - application/json
       parameters:
@@ -869,23 +836,48 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
-        - in: body
-          name: inactive_user_reminder
+        - in: query
+          name: range
+          required: true
           schema:
-            type: object
-            required:
-              - inactive_users
-            properties:
-              inactive_users:
-                type: array
-                items:
-                  type: string
-                  description: "User UUID"
+            type: integer
+          description: "Days of inactivity threshold. Sends to users last seen more than N days ago. Incompatible with start and end."
+        - in: query
+          name: start
+          schema:
+            type: integer
+          description: "Inactivity window start (days ago). Use with end. Incompatible with range."
+        - in: query
+          name: end
+          schema:
+            type: integer
+          description: "Inactivity window end (days ago). Must be greater than start. Use with start. Incompatible with range."
+        - in: query
+          name: created
+          schema:
+            type: string
+            format: date
+          description: "Filter by account creation date (YYYY-MM-DD)."
+        - in: query
+          name: keywords
+          schema:
+            type: string
+          description: "Search by user name or email (case-insensitive partial match)."
+        - in: query
+          name: disabled
+          schema:
+            type: string
+            enum: [true, false, "1", "0", yes, no]
+          description: "Filter by disabled status. true for disabled users, false for enabled only."
       responses:
         201:
-          description: "Success - Emails sent"
+          description: "Success - Emails sent. Returns emails_sent, total_users_processed, and optional errors array."
         400:
-          description: "Bad request - Invalid parameters"
+          description: "Bad request - Invalid or missing parameters (provide range or both start and end)."
+        401:
+          description: "Unauthorized"
+        403:
+          description: "Forbidden - Admin required"
         500:
           description: "Internal Server Error"
 
@@ -3003,9 +2995,17 @@ paths:
           name: project_id
           required: true
           type: string
+        - in: body
+          name: disable_reason
+          schema:
+            properties:
+              disabled_reason:
+                type: string
+                required: true
+                description: "Reason for disabling the project"
       responses:
         200:
-          description: "window overides start and end values, series if true return series metrics, deployments are only shown for non series"
+          description: "Project disabled successfully"
         404:
           description: "Project not found"
         400:
@@ -3787,6 +3787,14 @@ paths:
           name: app_id
           required: true
           type: string
+        - in: body
+          name: disable_reason
+          schema:
+            properties:
+              disabled_reason:
+                type: string
+                required: true
+                description: "Reason for disabling the app"
 
       responses:
         201:

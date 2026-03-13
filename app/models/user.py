@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from ..models import db
 
-from app.models.model_mixin import ModelMixin
+from app.models.model_mixin import DetailedModelMixin, ModelMixin
 from app.helpers.email_validator import validate_and_generate_username
 
 
@@ -26,7 +26,7 @@ class Followers(ModelMixin):
         self.followed_id = followed_id
 
 
-class User(ModelMixin):
+class User(DetailedModelMixin):
     """ user table definition """
 
     _tablename_ = "users"
@@ -40,10 +40,8 @@ class User(ModelMixin):
                          nullable=False, default="")
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
-    last_reminder_sent = db.Column(
-        db.DateTime, default=db.func.current_timestamp())
+    last_reminder_sent = db.Column(db.DateTime, nullable=True)
     projects = db.relationship('Project', backref='owner', lazy=True)
     organisation = db.Column(db.String(256), nullable=True, default="")
     other_projects = db.relationship('ProjectUser', back_populates='user')
@@ -51,8 +49,6 @@ class User(ModelMixin):
     credits = db.relationship('Credit', backref='user', lazy=True)
     credit_assignments = db.relationship(
         'CreditAssignment', backref='user', lazy=True)
-    disabled = db.Column(db.Boolean, default=False)
-    admin_disabled = db.Column(db.Boolean, default=False)
     followed_projects = db.relationship(
         'ProjectFollowers', back_populates='user')
     is_public = db.Column(db.Boolean, default=True)

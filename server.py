@@ -9,7 +9,7 @@ from flasgger import Swagger
 from flask_migrate import Migrate
 
 from app.routes import api
-from manage import admin_user, create_registries, create_roles
+from manage import admin_user, create_registries, create_roles, send_inactive_user_reminders
 from app.models import db, mongo
 from app.helpers.email import mail
 from app.tasks import update_celery
@@ -74,6 +74,7 @@ def create_app(config_name):
     app.cli.add_command(create_roles)
     app.cli.add_command(create_registries)
     app.cli.add_command(admin_user)
+    app.cli.add_command(send_inactive_user_reminders)
 
     # handle default 404 exceptions with a custom response
     @app.errorhandler(404)

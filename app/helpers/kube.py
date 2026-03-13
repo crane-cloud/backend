@@ -384,7 +384,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             app_id=new_app.id,
             domain=sub_domain,
             is_active=True,
-            is_generated=not is_custom 
+            is_generated=not is_custom
         )
         app_domain.save()
 
@@ -440,41 +440,42 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
 def set_domain_as_active(app, active_domain):
     """Set a domain as active and update app's url and k8s ingress"""
-    
+
     project = app.project
     cluster = project.cluster
     namespace = project.alias
-    
+
     kube_client = create_kube_clients(cluster.host, cluster.token)
-    
+
     service_name = f'{app.alias}-service'
     ingress_name = f'{project.alias}-ingress'
-    
+
     # Get current ingress
     ingress_list = kube_client.networking_api.list_namespaced_ingress(
         namespace=namespace).items
-    
+
     if not ingress_list:
         raise Exception('Project ingress configuration not found')
-    
+
     ingress = ingress_list[0]
-    
+
     # Get current active domain to remove from ingress
     current_active = AppDomain.query.filter_by(
         app_id=app.id, is_active=True, deleted=False).first()
-    
+
     if current_active and current_active.id != active_domain.id:
         # Remove current active domain from ingress if it's custom
         if not current_active.is_generated:
             for rule in ingress.spec.rules[:]:
                 if rule.host == current_active.domain:
                     ingress.spec.rules.remove(rule)
-    
-    # Add new domain to ingress if not generated 
+
+    # Add new domain to ingress if not generated
     if not active_domain.is_generated:
         # Check if domain already exists in ingress
-        domain_exists = any(rule.host == active_domain.domain for rule in ingress.spec.rules)
-        
+        domain_exists = any(
+            rule.host == active_domain.domain for rule in ingress.spec.rules)
+
         if not domain_exists:
             new_ingress_backend = client.V1IngressBackend(
                 service=client.V1IngressServiceBackend(
@@ -482,7 +483,7 @@ def set_domain_as_active(app, active_domain):
                     port=client.V1ServiceBackendPort(number=3000)
                 )
             )
-            
+
             new_ingress_rule = client.V1IngressRule(
                 host=active_domain.domain,
                 http=client.V1HTTPIngressRuleValue(
@@ -493,59 +494,59 @@ def set_domain_as_active(app, active_domain):
                     )]
                 )
             )
-            
+
             ingress.spec.rules.append(new_ingress_rule)
-    
+
     # Update ingress in k8s
     kube_client.networking_api.patch_namespaced_ingress(
         name=ingress_name,
         namespace=namespace,
         body=ingress
     )
-    
+
     active_domain.is_active = True
-    
+
     # Update app's url
     app.url = f'https://{active_domain.domain}'
     app.has_custom_domain = not active_domain.is_generated
-    
+
     return active_domain
 
 
 def remove_domain_from_ingress(app, domain):
     """Remove a domain from Kubernetes ingress"""
-    
+
     project = app.project
     cluster = project.cluster
     namespace = project.alias
-    
+
     # Create kube client
     kube_client = create_kube_clients(cluster.host, cluster.token)
-    
+
     ingress_name = f'{project.alias}-ingress'
-    
+
     # Get current ingress
     ingress_list = kube_client.networking_api.list_namespaced_ingress(
         namespace=namespace).items
-    
+
     if not ingress_list:
         raise Exception('Project ingress configuration not found')
-    
+
     ingress = ingress_list[0]
-    
+
     # Remove the domain from ingress rules
     for rule in ingress.spec.rules[:]:
         if rule.host == domain.domain:
             ingress.spec.rules.remove(rule)
             break
-    
+
     # Update ingress in Kubernetes
     kube_client.networking_api.patch_namespaced_ingress(
         name=ingress_name,
         namespace=namespace,
         body=ingress
     )
-    
+
 
 def create_pvc(kube_client, dep_name, namespace, mount_path='/data', storage='1Gi'):
     pvc_name = f'{dep_name}-pvc'
@@ -679,7 +680,8 @@ def delete_cluster_app(kube_client, namespace, app):
                     plural="seldondeployments",
                     name=seldon_name
                 )
-                logger.info(f"SeldonDeployment {app.alias} deleted successfully.")
+                logger.info(
+                    f"SeldonDeployment {app.alias} deleted successfully.")
 
         else:
             deployment = kube_client.appsv1_api.read_namespaced_deployment(
@@ -691,7 +693,7 @@ def delete_cluster_app(kube_client, namespace, app):
                 kube_client.appsv1_api.delete_namespaced_deployment(
                     name=deployment_name,
                     namespace=namespace
-                )  
+                )
 
         service = kube_client.kube.read_namespaced_service(
             name=service_name,
@@ -708,7 +710,7 @@ def delete_cluster_app(kube_client, namespace, app):
             name=app.alias,
             namespace=namespace
         )
-        
+
         kube_client.kube.delete_namespaced_secret(
             name=app.alias,
             namespace=namespace
@@ -736,7 +738,7 @@ def delete_cluster_app(kube_client, namespace, app):
             pass
 
 
-def disable_user_app(app: App, is_admin=False):
+def disable_user_app(app: App, is_admin=False, disabled_reason=None):
     try:
         kube_host = app.project.cluster.host
         kube_token = app.project.cluster.token
@@ -764,6 +766,8 @@ def disable_user_app(app: App, is_admin=False):
         app.disabled = True
         if is_admin:
             app.admin_disabled = True
+        if disabled_reason:
+            app.disabled_reason = disabled_reason
         app.save()
 
         log_activity('App', status='Success',
@@ -848,7 +852,7 @@ def enable_user_app(app: App):
         )
 
 
-def disable_project(project: Project, is_admin=False):
+def disable_project(project: Project, is_admin=False, disabled_reason=None):
 
     # Disable apps
     try:
@@ -859,7 +863,7 @@ def disable_project(project: Project, is_admin=False):
 
         # scale apps down to 0
         for app in project.apps:
-            disable_user_app(app, is_admin)
+            disable_user_app(app, is_admin, disabled_reason=disabled_reason)
 
         # Add resource quota
         quota = client.V1ResourceQuota(
@@ -884,6 +888,8 @@ def disable_project(project: Project, is_admin=False):
         project.disabled = True
         if is_admin:
             project.admin_disabled = True
+        if disabled_reason:
+            project.disabled_reason = disabled_reason
         project.save()
 
         log_activity('Project', status='Success',
