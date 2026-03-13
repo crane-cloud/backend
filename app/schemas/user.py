@@ -129,6 +129,7 @@ class UserSchema(BaseSchema):
         "get_collaborative_projects_count", dump_only=True)
     followed_projects_count = fields.Method(
         "get_followed_projects_count", dump_only=True)
+    last_reminder_sent = fields.Date(dump_only=True)
 
     def get_age(self, obj):
         return get_item_age(obj.date_created)

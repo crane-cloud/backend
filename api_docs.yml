@@ -823,56 +823,11 @@ paths:
         500:
           description: "Internal Server Error"
   "/users/inactive_user_reminder":
-    get:
-      tags:
-        - inactive_user_reminder
-      summary: "Get inactive users with pagination and optional time filtering"
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: header
-          name: Authorization
-          required: true
-          type: string
-          description: "Bearer [token]"
-        - in: query
-          name: page
-          required: false
-          type: integer
-          description: "Page number (default: 1)"
-        - in: query
-          name: per_page
-          required: false
-          type: integer
-          description: "Results per page (default: 10)"
-        - in: query
-          name: value
-          required: false
-          type: integer
-          description: "Numeric value for the time period"
-        - in: query
-          name: unit
-          required: false
-          type: string
-          enum: [hours, days, months]
-          description: "Unit of time (hours/days/months)"
-      responses:
-        200:
-          description: "Success - Returns paginated list of inactive users"
-        400:
-          description: "Bad request - Invalid parameters"
-        401:
-          description: "Unauthorized - Admin access required"
-        500:
-          description: "Internal Server Error"
     post:
       tags:
-        - inactive_user_reminder
+        - users
       summary: "Send reminder emails to inactive users"
-      consumes:
-        - application/json
+      description: "Uses the same filtering as GET /users/inactive_users. Sends reminders only to users who have not received one in the last 30 days."
       produces:
         - application/json
       parameters:
@@ -881,23 +836,48 @@ paths:
           required: true
           description: "Bearer [token]"
           type: string
-        - in: body
-          name: inactive_user_reminder
+        - in: query
+          name: range
+          required: true
           schema:
-            type: object
-            required:
-              - inactive_users
-            properties:
-              inactive_users:
-                type: array
-                items:
-                  type: string
-                  description: "User UUID"
+            type: integer
+          description: "Days of inactivity threshold. Sends to users last seen more than N days ago. Incompatible with start and end."
+        - in: query
+          name: start
+          schema:
+            type: integer
+          description: "Inactivity window start (days ago). Use with end. Incompatible with range."
+        - in: query
+          name: end
+          schema:
+            type: integer
+          description: "Inactivity window end (days ago). Must be greater than start. Use with start. Incompatible with range."
+        - in: query
+          name: created
+          schema:
+            type: string
+            format: date
+          description: "Filter by account creation date (YYYY-MM-DD)."
+        - in: query
+          name: keywords
+          schema:
+            type: string
+          description: "Search by user name or email (case-insensitive partial match)."
+        - in: query
+          name: disabled
+          schema:
+            type: string
+            enum: [true, false, "1", "0", yes, no]
+          description: "Filter by disabled status. true for disabled users, false for enabled only."
       responses:
         201:
-          description: "Success - Emails sent"
+          description: "Success - Emails sent. Returns emails_sent, total_users_processed, and optional errors array."
         400:
-          description: "Bad request - Invalid parameters"
+          description: "Bad request - Invalid or missing parameters (provide range or both start and end)."
+        401:
+          description: "Unauthorized"
+        403:
+          description: "Forbidden - Admin required"
         500:
           description: "Internal Server Error"
 

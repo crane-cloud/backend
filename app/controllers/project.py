@@ -865,6 +865,7 @@ class ProjectDisableView(Resource):
                 owner_name=project_owner.name,
                 project_name=project.name,
                 admin_disabled=is_admin(current_user_roles),
+                disabled_reason=disabled_reason,
                 status='disabled')
 
             send_email(

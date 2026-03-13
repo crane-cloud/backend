@@ -41,8 +41,7 @@ class User(DetailedModelMixin):
     password = db.Column(db.String(256), nullable=False, default="")
     verified = db.Column(db.Boolean, nullable=False, default=False)
     last_seen = db.Column(db.DateTime, default=db.func.current_timestamp())
-    last_reminder_sent = db.Column(
-        db.DateTime, default=db.func.current_timestamp())
+    last_reminder_sent = db.Column(db.DateTime, nullable=True)
     projects = db.relationship('Project', backref='owner', lazy=True)
     organisation = db.Column(db.String(256), nullable=True, default="")
     other_projects = db.relationship('ProjectUser', back_populates='user')
