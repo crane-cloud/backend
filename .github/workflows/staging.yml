@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - staging
+      - fix-migration
 
   workflow_dispatch:
 
