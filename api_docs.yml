@@ -3739,6 +3739,34 @@ paths:
         500:
           description: "Internal Server Error"
 
+  "/apps/{app_id}/restart":
+    post:
+      description: "restarts app by pulling the latest image"
+      tags:
+        - apps
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          description: "Bearer [token]"
+          type: string
+        - in: path
+          name: app_id
+          required: true
+          type: string
+
+      responses:
+        201:
+          description: "Success"
+        404:
+          description: "App not found"
+        400:
+          description: "Bad request"
+        500:
+          description: "Internal Server Error"
+
   "/apps/{app_id}/{user_id}/docker/{tag}/webhook":
     post:
       description: "redeploys apps by getting webhook notifiations from docker"

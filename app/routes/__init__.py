@@ -15,8 +15,8 @@ from app.controllers import (
     BillingInvoiceView, BillingInvoiceNotificationView, SystemSummaryView, CreditDetailView, ProjectUsersView, ProjectUsersTransferView, AppReviseView,
     ProjectUsersHandleInviteView, ClusterProjectsView, ProjectDisableView, ProjectEnableView, AppRedeployView, AppDisableView, AppEnableView,
     TagsView, TagsDetailView, TagFollowingView, GenericSearchView, MLProjectAppsView, ProjectMigrationView,
-    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder,GoogleOAuthView,TagProjectsView)
-from app.controllers.app import AppRevisionsView
+    UserDisableView, UserEnableView, AppDockerWebhookListenerView, UserFollowersView, UserFollowView, ProjectFollowingView, ActivityFeedView, SendInactiveUserMailReminder, GoogleOAuthView, TagProjectsView)
+from app.controllers.app import AppRestartView, AppRevisionsView
 from app.controllers.app_domain import AppDomainView, AppDomainDetailView
 from app.controllers.billing_invoice import BillingInvoiceDetailView
 from app.controllers.receipts import BillingReceiptsDetailView, BillingReceiptsView
@@ -172,6 +172,7 @@ api.add_resource(AppsView, '/apps')
 api.add_resource(AppDetailView, '/apps/<string:app_id>')
 api.add_resource(AppRevertView, '/apps/<string:app_id>/revert_url')
 api.add_resource(AppRevisionsView, '/apps/<string:app_id>/revisions')
+api.add_resource(AppRestartView, '/apps/<string:app_id>/restart')
 api.add_resource(
     AppReviseView, '/apps/<string:app_id>/revise/<string:revision_id>')
 api.add_resource(
@@ -189,7 +190,8 @@ api.add_resource(
 
 # App Domain routes
 api.add_resource(AppDomainView, '/apps/<string:app_id>/domains')
-api.add_resource(AppDomainDetailView, '/apps/<string:app_id>/domains/<string:domain_id>')
+api.add_resource(AppDomainDetailView,
+                 '/apps/<string:app_id>/domains/<string:domain_id>')
 
 
 # Registry routes
