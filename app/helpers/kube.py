@@ -183,6 +183,9 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
         mount_path = '/data'
 
+        selector_data = {'app': app_alias,
+                         'app.kubernetes.io/instance': app_alias}
+
         # create app deployment's pvc meta and spec
         is_ai = app_data.get('is_ai', False)
         if is_ai:
@@ -214,12 +217,11 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
         # spec
         template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels={
-                'app': app_alias
-            }),
+            metadata=client.V1ObjectMeta(labels=selector_data),
             spec=client.V1PodSpec(
                 containers=[container],
-                image_pull_secrets=[image_pull_secret],
+                image_pull_secrets=[
+                    image_pull_secret] if image_pull_secret else None,
                 volumes=volumes if is_ai else None
             )
         )
@@ -228,7 +230,7 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
         spec = client.V1DeploymentSpec(
             replicas=replicas,
             template=template,
-            selector={'matchLabels': {'app': app_alias}}
+            selector={'matchLabels': selector_data}
         )
 
         # Instantiate the deployment
@@ -255,15 +257,14 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
 
         service_meta = client.V1ObjectMeta(
             name=service_name,
-            labels={'app': app_alias, 'app.kubernetes.io/instance': app_alias}
+            labels=selector_data
         )
 
         service_spec = client.V1ServiceSpec(
             type='ClusterIP',
             ports=[client.V1ServicePort(
                 port=int(current_app.config['KUBE_SERVICE_PORT']), target_port=app_port)],
-            selector={'app': app_alias,
-                      'app.kubernetes.io/instance': app_alias}
+            selector=selector_data
         )
 
         service = client.V1Service(
