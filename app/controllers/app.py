@@ -627,9 +627,11 @@ class AppDetailView(Resource):
             app_list["pod_statuses"] = self.get_pod_statuses(
                 kube_client, project.alias, app_list['alias'])
 
+            conditions = getattr(app_status_object.status,
+                                 "conditions", None) or []
             app_list["deployment_messages"] = [
-                condition.message for condition in app_status_object.status.conditions
-                if condition.type == "Available"
+                condition.message for condition in conditions
+                if getattr(condition, "type", None) == "Available"
             ]
 
             app_list["app_running_status"] = self.get_app_running_status(
@@ -649,7 +651,12 @@ class AppDetailView(Resource):
             "image": container.image,
             "port": container.ports[0].container_port if container.ports else None,
             "replicas": app_status_object.spec.replicas,
-            "revision": app_status_object.metadata.annotations.get('deployment.kubernetes.io/revision'),
+            "revision": (
+                app_status_object.metadata.annotations.get(
+                    'deployment.kubernetes.io/revision')
+                if (app_status_object.metadata and getattr(app_status_object.metadata, 'annotations', None))
+                else None
+            ),
             "command": ' '.join(container.command) if container.command else None,
             "working_dir": container.working_dir,
             "env_vars": {env.name: env.value for env in container.env} if container.env else None,
@@ -714,8 +721,13 @@ class AppDetailView(Resource):
         if app.disabled:
             return "disabled"
 
+        conditions = getattr(app_status_object.status,
+                             "conditions", None) or []
         app_deployment_status = next(
-            (condition.status for condition in app_status_object.status.conditions if condition.type == "Available"), None)
+            (c.status for c in conditions if getattr(
+                c, "type", None) == "Available"),
+            None
+        )
 
         try:
             app_db_status_object = kube_client.appsv1_api.read_namespaced_deployment_status(
