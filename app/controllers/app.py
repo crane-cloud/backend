@@ -1217,6 +1217,72 @@ class AppRevisionsView(Resource):
             return dict(status='fail', message=str(exc)), 500
 
 
+class AppRestartView(Resource):
+    @jwt_required
+    def post(self, app_id):
+        """
+        restart app, to pull the latest images  
+        """
+        try:
+            current_user_id = get_jwt_identity()
+            current_user_roles = get_jwt_claims()['roles']
+            app = App.get_by_id(app_id)
+
+            if not app:
+                return dict(status='fail', message=f'App {app_id} not found'), 404
+
+            project = app.project
+
+            if not is_owner_or_admin(project, current_user_id, current_user_roles):
+                if not is_authorised_project_user(project, current_user_id, 'admin'):
+                    return dict(status='fail', message='Unauthorised'), 403
+
+            cluster = project.cluster
+            namespace = project.alias
+            if not cluster or not namespace:
+                return dict(status='fail', message='Internal server error'), 500
+
+            kube_host = cluster.host
+            kube_token = cluster.token
+            kube_client = create_kube_clients(kube_host, kube_token)
+
+            dep_name = f'{app.alias}-deployment'
+
+            # Create restart annotation
+            now = datetime.datetime.utcnow().isoformat()
+
+            patch_body = {
+                "spec": {
+                    "template": {
+                        "metadata": {
+                            "annotations": {
+                                "kubectl.kubernetes.io/restartedAt": now
+                            }
+                        }
+                    }
+                }
+            }
+            # Patch the deployment
+            kube_client.appsv1_api.patch_namespaced_deployment(
+                name=dep_name,
+                namespace=namespace,
+                body=patch_body,
+                _preload_content=False
+            )
+
+            log_activity('App', status='Success',
+                         operation='Restart',
+                         description='App restarted successfully',
+                         a_project=project,
+                         a_cluster_id=project.cluster_id,
+                         a_app=app)
+            return dict(status='success', message='App restarted successfully'), 200
+        except client.rest.ApiException as exc:
+            return dict(status='fail', message=exc.reason), check_kube_error_code(exc.status)
+        except Exception as exc:
+            return dict(status='fail', message=str(exc)), 500
+
+
 class AppRevertView(Resource):
     @jwt_required
     def patch(self, app_id):
