@@ -312,8 +312,10 @@ def deploy_user_app(kube_client, project: Project, user: User, app: App = None, 
             host=sub_domain,
             http=client.V1HTTPIngressRuleValue(
                 paths=[client.V1HTTPIngressPath(
-                    path="",
-                    path_type="ImplementationSpecific",
+                    path="/",
+                    path_type="Prefix",
+                    # path="",
+                    # path_type="ImplementationSpecific",
                     backend=new_ingress_backend
                 )]
             )
