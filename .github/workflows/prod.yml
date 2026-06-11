@@ -6,10 +6,6 @@ on:
     types:
       - released
       - prereleased
-  # to be removed
-  push:
-    branches:
-      - ch-change-dep-server
 jobs:
   build:
     outputs:

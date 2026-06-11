@@ -82,6 +82,3 @@ environment:
 
 celery:
   replicaCount: 1
-
-redis:
-  create: true
