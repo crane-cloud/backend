@@ -85,7 +85,7 @@ jobs:
       - name: Clone
         uses: actions/checkout@v4
 
-      # --- GCP DEPLOYEMENT ---
+      # --- GCP DEPLOYMENT ---
       # - name: Login (GCP)
       #   uses: google-github-actions/auth@v2
       #   with:
