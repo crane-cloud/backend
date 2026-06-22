@@ -14,7 +14,7 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      image: cranecloud/backend
+      image: cranecloud/cranecloud-backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,29 +75,35 @@ jobs:
 
     env:
       namespace: cranecloud-prod
-      image: cranecloud/backend
+      image: cranecloud/cranecloud-backend
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Login (GCP)
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+      # --- GCP DEPLOYMENT ---
+      # - name: Login (GCP)
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
-      - name: Install (Gcloud)
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: crane-cloud-274413
-          install_components: "gke-gcloud-auth-plugin"
+      # - name: Install (Gcloud)
+      #   uses: google-github-actions/setup-gcloud@v2
+      #   with:
+      #     project_id: crane-cloud-274413
+      #     install_components: "gke-gcloud-auth-plugin"
 
-      - name: Login (Kubernetes Cluster)
-        uses: google-github-actions/get-gke-credentials@v1
+      # - name: Login (Kubernetes Cluster)
+      #   uses: google-github-actions/get-gke-credentials@v2
+      #   with:
+      #     cluster_name: staging-cluster
+      #     location: us-central1-a
+      #     project_id: crane-cloud-274413
+
+      # --- RENU DEPLOYEMENT ---
+      - uses: azure/k8s-set-context@v1
         with:
-          cluster_name: staging-cluster
-          location: us-central1-a
-          project_id: crane-cloud-274413
+          kubeconfig: ${{ secrets.RENU_KUBECONFIG}}
 
       - name: Add Repo (cranecloud)
         run: |
